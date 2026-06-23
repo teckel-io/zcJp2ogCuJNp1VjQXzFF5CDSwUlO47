@@ -6,8 +6,8 @@
   This is the GENERIC master copy (lives in the `patient-survey` repo). To
   onboard a dentist, copy this file into THEIR tenant repo as `survey.html`
   and replace the two placeholders:
-      {{PRACTICE_NAME}}      -> e.g. "Your Dental Practice"   (appears twice)
-      {{PRACTICE_SUBTITLE}}  -> e.g. "123 High Street, Town · Dr A. Example"
+      s21 adv test      -> e.g. "Your Dental Practice"   (appears twice)
+        -> e.g. "123 High Street, Town · Dr A. Example"
   Nothing else needs changing. Safety net: if a placeholder is left
   unreplaced, the page shows neutral text rather than raw "{{...}}".
 
@@ -34,7 +34,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Patient Survey · {{PRACTICE_NAME}}</title>
+  <title>Patient Survey · s21 adv test</title>
   <style>
     :root{ --navy:#002349; --navy-deep:#001a37; --gold:#f0d060; --card:#ffffff;
            --ink:#10243d; --muted:#5b6b7d; --line:#d8e0ea; --ok:#1c7c44; --err:#b3261e; }
@@ -79,8 +79,8 @@
 </head>
 <body>
   <header>
-    <div class="practice">{{PRACTICE_NAME}}</div>
-    <div class="sub">{{PRACTICE_SUBTITLE}}</div>
+    <div class="practice">s21 adv test</div>
+    <div class="sub"></div>
   </header>
   <div class="wrap">
     <div class="card" id="root">
