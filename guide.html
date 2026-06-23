@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Guide &middot; {{PRACTICE_NAME}} — Management Portal</title>
+
+    <!--
+    =====================================================================
+    Sibling page to Benedict_Template_index.html.
+
+    Per-tenant template: the teckel spawn-script string-replaces nothing
+    on this page today (content is identical for every tenant), but the
+    same per-tenant file naming + GitHub Pages directory placement is
+    kept so future per-practice voice / branding tweaks can ride here.
+
+    Visual language matches the main portal:
+      Background        #002349  (deep navy)
+      Header band       #001a35  (slightly darker navy)
+      Primary text      #ffffff  (white)
+      Steel-blue accent #b0c4de  (subtitle, secondary text, lede)
+      Gold accent       #f0d060  (eyebrow, strong, code)
+      Card tint         rgba(176, 196, 222, 0.05)
+      Font              system-ui sans-serif
+
+    Layout:
+      Centered single column (~820px) for long-form reading. No widget,
+      no iframe, no cost meter — this page is documentation only.
+    =====================================================================
+    -->
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --navy:        #002349;
+            --navy-deep:   #001a35;
+            --steel:       #b0c4de;
+            --gold:        #f0d060;
+            --white:       #ffffff;
+            --card-bg:     rgba(176, 196, 222, 0.05);
+            --card-border: rgba(176, 196, 222, 0.18);
+            --note-bg:     rgba(255, 200, 0, 0.08);
+        }
+
+        html, body {
+            background-color: var(--navy);
+            color: var(--white);
+            font-family: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.5;
+        }
+
+        /* ---------- Top header band (matches index.html) ---------- */
+        header.site-header {
+            background-color: var(--navy-deep);
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+        }
+        header.site-header nav.site-nav a {
+            color: var(--gold);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            text-decoration: none;
+            border: 1px solid rgba(240, 208, 96, 0.4);
+            padding: 8px 14px;
+            border-radius: 4px;
+            transition: border-color 0.15s, background-color 0.15s;
+            display: inline-block;
+        }
+        header.site-header nav.site-nav a:hover {
+            border-color: var(--gold);
+            background-color: rgba(240, 208, 96, 0.08);
+        }
+        header.site-header .practice-info { text-align: right; }
+        header.site-header .practice-name {
+            color: var(--white);
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        header.site-header .practice-sub {
+            color: var(--steel);
+            font-size: 13px;
+            margin-top: 2px;
+        }
+
+        /* ---------- Guide shell ---------- */
+        main.guide-shell {
+            max-width: 820px;
+            margin: 40px auto;
+            padding: 0 24px;
+            color: var(--white);
+            line-height: 1.65;
+        }
+        main.guide-shell .eyebrow {
+            color: var(--gold);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+        main.guide-shell h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            letter-spacing: 0.3px;
+            line-height: 1.25;
+        }
+        main.guide-shell .lede {
+            color: var(--steel);
+            font-size: 16px;
+            margin-bottom: 36px;
+        }
+        main.guide-shell section { margin-bottom: 34px; }
+        main.guide-shell h2 {
+            color: var(--white);
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 8px;
+            letter-spacing: 0.2px;
+        }
+        main.guide-shell h3 {
+            color: var(--gold);
+            font-size: 13.5px;
+            font-weight: 600;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            margin-top: 22px;
+            margin-bottom: 10px;
+        }
+        main.guide-shell p { margin-bottom: 14px; color: var(--white); }
+        main.guide-shell ul, main.guide-shell ol {
+            margin: 12px 0 18px 26px;
+            color: var(--white);
+        }
+        main.guide-shell li { margin-bottom: 8px; }
+        main.guide-shell strong { color: var(--gold); font-weight: 600; }
+        main.guide-shell em { color: var(--steel); font-style: italic; }
+        main.guide-shell code {
+            background-color: rgba(176, 196, 222, 0.12);
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, monospace;
+            font-size: 13px;
+            color: var(--gold);
+        }
+        main.guide-shell table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        main.guide-shell th, main.guide-shell td {
+            border: 1px solid var(--card-border);
+            padding: 9px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        main.guide-shell th {
+            background-color: rgba(176, 196, 222, 0.08);
+            color: var(--gold);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-size: 11px;
+        }
+        main.guide-shell td { color: var(--white); }
+        main.guide-shell .callout {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-left: 3px solid var(--gold);
+            border-radius: 4px;
+            padding: 14px 18px;
+            margin: 18px 0;
+            color: var(--steel);
+            font-size: 14px;
+        }
+        main.guide-shell .callout strong { color: var(--gold); }
+        main.guide-shell hr {
+            border: 0;
+            border-top: 1px solid var(--card-border);
+            margin: 28px 0;
+        }
+        main.guide-shell .store-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+            margin: 20px 0 24px 0;
+        }
+        main.guide-shell .store-badges a {
+            display: inline-block;
+            transition: opacity 0.15s ease, transform 0.15s ease;
+            line-height: 0;  /* prevent baseline space below the img */
+        }
+        main.guide-shell .store-badges a:hover {
+            opacity: 0.88;
+            transform: translateY(-1px);
+        }
+        main.guide-shell .store-badges img {
+            display: block;
+            height: 56px;
+            width: auto;
+        }
+        @media (max-width: 480px) {
+            main.guide-shell .store-badges img { height: 48px; }
+        }
+        main.guide-shell .back-link {
+            display: inline-block;
+            margin-top: 24px;
+            color: var(--gold);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-decoration: none;
+            border: 1px solid rgba(240, 208, 96, 0.4);
+            padding: 8px 14px;
+            border-radius: 4px;
+        }
+        main.guide-shell .back-link:hover {
+            border-color: var(--gold);
+            background-color: rgba(240, 208, 96, 0.08);
+        }
+
+        footer.site-footer {
+            background-color: var(--navy-deep);
+            color: var(--steel);
+            font-size: 11.5px;
+            letter-spacing: 1.5px;
+            text-transform: lowercase;
+            text-align: center;
+            padding: 18px 16px;
+            border-top: 1px solid var(--card-border);
+        }
+        footer.site-footer a { color: var(--steel); text-decoration: none; }
+        footer.site-footer a:hover { color: var(--white); }
+
+        /* ---------- Mobile ---------- */
+        @media (max-width: 720px) {
+            header.site-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 14px 18px;
+            }
+            header.site-header .practice-info { text-align: left; }
+            header.site-header .practice-name { font-size: 18px; }
+            header.site-header .practice-sub  { font-size: 12px; }
+
+            main.guide-shell {
+                margin: 24px auto;
+                padding: 0 18px;
+            }
+            main.guide-shell h1 { font-size: 23px; }
+            main.guide-shell h2 { font-size: 18px; }
+            main.guide-shell .lede { font-size: 15px; }
+            main.guide-shell table { font-size: 13px; }
+            main.guide-shell th, main.guide-shell td { padding: 7px 8px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="site-header">
+        <nav class="site-nav">
+            <a href="index.html">&larr; Back to portal</a>
+        </nav>
+        <div class="practice-info">
+            <div class="practice-name">{{PRACTICE_NAME}}</div>
+            <div class="practice-sub">{{PRACTICE_SUBTITLE}}</div>
+        </div>
+    </header>
+
+    <main class="guide-shell">
+
+        <div class="eyebrow">User Guide</div>
+        <h1>Benedict &mdash; User Guide &amp; Best Practices</h1>
+        <p class="lede">
+            Benedict is your voice compliance assistant. He listens, fills in your forms,
+            shows them on screen, and emails the finished PDF when you&rsquo;re done.
+            He&rsquo;s quick, usually inexpensive, and a few simple habits will keep
+            every session accurate, fast, and cheap.
+        </p>
+
+        <!-- ============================================================
+             USAGE GUIDE — how to use Benedict to complete forms
+             ============================================================ -->
+
+        <section>
+            <h2>Getting started</h2>
+            <p>
+                Open your practice&rsquo;s Benedict page in your browser. You&rsquo;ll
+                see two things side by side:
+            </p>
+            <ul>
+                <li><strong>On the left:</strong> the Benedict voice widget &mdash; your way to talk to him.</li>
+                <li><strong>On the right:</strong> the form viewer (currently empty) and a running cost meter at the top.</li>
+            </ul>
+            <p>
+                To start, click the Benedict widget once and allow microphone access if
+                your browser asks. Then just speak &mdash; there&rsquo;s no special wake
+                word. Try <em>&ldquo;hi Benedict&rdquo;</em>, <em>&ldquo;I want to fill in a form&rdquo;</em>,
+                or <em>&ldquo;open the Crown consent.&rdquo;</em>
+            </p>
+        </section>
+
+        <section>
+            <h2>A typical session, end to end</h2>
+            <ol>
+                <li><strong>Greet Benedict.</strong> <em>&ldquo;Hi Benedict&rdquo;</em> or <em>&ldquo;I want to work on a form.&rdquo;</em> He&rsquo;ll respond and ask what you&rsquo;d like to do.</li>
+                <li><strong>Find your form.</strong> Either say a phrase from the form&rsquo;s title (<em>&ldquo;Crown consent&rdquo;</em>, <em>&ldquo;cleaning specification&rdquo;</em>, <em>&ldquo;patient survey&rdquo;</em>) and Benedict will search the catalogue, OR ask <em>&ldquo;what forms do I have?&rdquo;</em> to hear the list.</li>
+                <li><strong>Start filling.</strong> Once Benedict has the form, he&rsquo;ll walk through it question-by-question &mdash; OR you can volunteer many answers in one breath. Volunteering is recommended; it&rsquo;s faster and cheaper.</li>
+                <li><strong>Watch the form fill in real time.</strong> Ask <em>&ldquo;show me the form&rdquo;</em> to open the viewer on the right. You&rsquo;ll see each answer appear in the PDF as you give it.</li>
+                <li><strong>Make corrections any time.</strong> Tell Benedict <em>&ldquo;change question 7 to no&rdquo;</em> or <em>&ldquo;the answer to age is 34.&rdquo;</em> He&rsquo;ll overwrite the previous value.</li>
+                <li><strong>Skip PII when you&rsquo;d rather not share it.</strong> If a question asks for a personal detail (patient name, date of birth, contact info) and you&rsquo;d prefer to leave it blank, say <em>&ldquo;skip.&rdquo;</em> Benedict will leave that field blank and continue. The form will still submit.</li>
+                <li><strong>Submit when you&rsquo;re ready.</strong> When all required fields are filled, Benedict will offer to submit. Say <em>&ldquo;yes please&rdquo;</em> or <em>&ldquo;submit&rdquo;</em> and he&rsquo;ll email a PDF copy to the recipient on file.</li>
+            </ol>
+        </section>
+
+        <section>
+            <h2>Speaking to Benedict &mdash; what works</h2>
+            <ul>
+                <li><strong>Be natural.</strong> Whole sentences, fragments, <em>&ldquo;yeah&rdquo;</em> / <em>&ldquo;yep&rdquo;</em> / <em>&ldquo;no thanks&rdquo;</em> &mdash; all fine. He&rsquo;s not a command line.</li>
+                <li><strong>Batch your answers.</strong> <em>&ldquo;Yes to 1, 2 and 4; no to 3; the rest are all acknowledged.&rdquo;</em> &rarr; one save, less waiting. This is the biggest single thing you can do to speed up a session.</li>
+                <li><strong>Use a question number OR a content cue.</strong> <em>&ldquo;Set question 12 to acknowledged&rdquo;</em> and <em>&ldquo;the one about anaesthetic should be local&rdquo;</em> both work. Use whichever feels more natural.</li>
+                <li><strong>Ask for a review any time.</strong> <em>&ldquo;Review my entries&rdquo;</em> &rarr; he&rsquo;ll read back everything you&rsquo;ve filled so far.</li>
+                <li><strong>Pause whenever you need to.</strong> Long pauses cost very little &mdash; far less than active conversation. Take a phone call, look up a record, come back &mdash; Benedict will be waiting.</li>
+                <li><strong>Don&rsquo;t whisper.</strong> Speak clearly at normal volume; Benedict transcribes a clear signal better than a quiet one.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Resuming a form you didn&rsquo;t finish</h2>
+            <p>
+                If you started a form earlier and didn&rsquo;t finish, say
+                <em>&ldquo;resume the Crown consent&rdquo;</em> or
+                <em>&ldquo;show my in-progress forms.&rdquo;</em>
+                Benedict will pick up where you left off &mdash; your previous answers
+                are preserved. You don&rsquo;t need to restate anything you&rsquo;ve
+                already answered.
+            </p>
+        </section>
+
+        <section>
+            <h2>Surveys (multiple respondents in one log)</h2>
+            <p>
+                For a Patient Satisfaction Survey or similar log-style form, Benedict
+                will ask for one respondent&rsquo;s answers at a time. Tell him the
+                respondent&rsquo;s name first (or <em>&ldquo;anonymous&rdquo;</em>),
+                then walk through their answers, then he&rsquo;ll ask if there&rsquo;s
+                another respondent. Each respondent becomes one row in the submitted
+                survey log.
+            </p>
+            <p>
+                You can stop after one respondent if you only have one to enter. You
+                can also come back later and add more respondents to the same log
+                before submitting.
+            </p>
+        </section>
+
+        <section>
+            <h2>Cleaning schedules and other recurring logs</h2>
+            <p>
+                For logs like the FR2 Surgery Cleaning Specification, you&rsquo;ll tell
+                Benedict one task and date at a time. Say something like
+                <em>&ldquo;Sinks and taps, done, today, my initials are SDA&rdquo;</em>
+                &mdash; and Benedict will commit each task immediately.
+            </p>
+            <p>
+                Quick batch shortcut: say <em>&ldquo;today I did all of them&rdquo;</em>
+                &mdash; Benedict will read the task list back to you for confirmation,
+                then commit each one in a quick loop.
+            </p>
+        </section>
+
+        <section>
+            <h2>Reviewing or correcting after submission</h2>
+            <p>
+                Submitted a form and noticed a typo? Just tell Benedict:
+                <em>&ldquo;Open the last Crown consent and change question 27.&rdquo;</em>
+                He&rsquo;ll open a fresh editable copy with that change applied.
+                <strong>You can make more changes</strong> &mdash; ask for as many as
+                you need before saying <em>&ldquo;submit.&rdquo;</em> The original
+                submission stays in the audit trail; the new copy supersedes it.
+            </p>
+            <div class="callout">
+                When you&rsquo;re done revising, say <strong>&ldquo;submit&rdquo;</strong>
+                explicitly. Benedict will NOT auto-submit just because you confirmed a
+                single change &mdash; he waits for an explicit submission cue.
+            </div>
+        </section>
+
+        <section>
+            <h2>Ending the session</h2>
+            <p>
+                When you&rsquo;re done, say <em>&ldquo;that&rsquo;s everything&rdquo;</em>,
+                <em>&ldquo;thanks Benedict&rdquo;</em>, <em>&ldquo;goodbye&rdquo;</em>,
+                or simply close the page. The cost meter shows your total for the session.
+            </p>
+        </section>
+
+        <hr>
+
+        <!-- ============================================================
+             BEST PRACTICES — cost optimisation
+             ============================================================ -->
+
+        <section>
+            <h2>How Benedict charges you</h2>
+            <p>
+                Your bill runs on a single meter: <strong>teckel credits (tc)</strong>.
+                Every action Benedict takes against your data &mdash; reading your forms,
+                writing an answer, opening the viewer, sending a submission, even just
+                listening while you think &mdash; costs a small number of tc. The cost
+                meter at the top of your Benedict page shows the running total in real
+                time, with the pound/pence equivalent next to it. A typical session
+                (filling a full compliance form, reviewing it, and submitting it) costs
+                <strong>a few pence</strong>.
+            </p>
+
+            <p>
+                There are no separate per-call fees or hidden charges. What you see on
+                the meter is what you pay. Long pauses cost very little &mdash; far
+                less than active conversation &mdash; so feel free to think, look
+                something up, or step away briefly without watching the clock.
+            </p>
+
+            <h3>Topping up your tc balance &mdash; the teckel App</h3>
+            <p>
+                teckel handles ALL your billing through tc. To buy credit, install the
+                <strong>teckel App</strong> on your phone or tablet:
+            </p>
+            <div class="store-badges">
+                <a href="https://apps.apple.com/app/teckel/id6746805799"
+                   target="_blank" rel="noopener noreferrer"
+                   aria-label="Download teckel on the App Store">
+                    <img src="assets/apple_app_store_badge.svg"
+                         alt="Download on the App Store">
+                </a>
+                <a href="https://play.google.com/store/apps/details?id=io.teckel.app"
+                   target="_blank" rel="noopener noreferrer"
+                   aria-label="Get teckel on Google Play">
+                    <img src="assets/google_play_badge.svg"
+                         alt="Get it on Google Play">
+                </a>
+            </div>
+            <p>
+                Sign into the App with the same wallet you use for Benedict, tap your
+                credit balance, and choose a top-up amount. The purchase clears through
+                the App&rsquo;s in-app purchase flow (handled by Google or Apple, as
+                appropriate). The credits land instantly in your teckel wallet and are
+                usable from any Benedict session immediately.
+            </p>
+
+            <p>
+                If your balance gets low, Benedict will let you know before doing
+                anything that would overdraw it. He won&rsquo;t fail mid-form &mdash;
+                he&rsquo;ll pause and tell you to top up via the teckel App.
+            </p>
+
+            <p>
+                If you need the exact pricing for individual actions, ask Sabina or your
+                practice administrator &mdash; the rates are set per item and shown
+                live on the meter.
+            </p>
+        </section>
+
+        <section>
+            <h2>Five habits that keep costs down</h2>
+
+            <h3>1. Batch your answers when you can</h3>
+            <p>
+                Benedict can take a single sentence with many answers in it. Instead
+                of saying <em>&ldquo;yes&rdquo;</em> &middot; <em>&ldquo;yes&rdquo;</em>
+                &middot; <em>&ldquo;no&rdquo;</em> one at a time, try:
+            </p>
+            <div class="callout">
+                <em>&ldquo;Yes to questions 1, 2 and 4; no to question 3; the rest are all acknowledged.&rdquo;</em>
+            </div>
+            <p>
+                Benedict will batch-fill them with a single <code>save_progress</code>
+                call instead of one tool call per answer. <strong>One save_progress is
+                roughly the cost of three individual updates</strong> &mdash; and
+                you&rsquo;ll finish a 22-question form in about a minute instead of five.
+            </p>
+            <p>You can do this at the start (give him the whole form), in the middle (skip ahead a block), or at the end (catch up the remaining ones).</p>
+
+            <h3>2. Don&rsquo;t ask to &ldquo;see the form&rdquo; more than once per state</h3>
+            <p>
+                When you ask Benedict to show you the form on screen, he mints a fresh
+                view and the iframe loads it. If you then say <em>&ldquo;show me
+                again&rdquo;</em> within the same minute, <strong>without any new data
+                being entered</strong>, he&rsquo;ll fire another full open-viewer
+                cycle &mdash; which costs the same as the first time. (The system
+                catches the obvious duplicates silently, but it&rsquo;s worth knowing.)
+            </p>
+            <p>The right uses of <em>&ldquo;show me the form&rdquo;</em>:</p>
+            <ul>
+                <li>At the start of a session, to see what you&rsquo;re filling.</li>
+                <li>After you&rsquo;ve filled several answers and want to verify them visually.</li>
+                <li>Just before you submit, as a final review.</li>
+            </ul>
+            <p>If nothing&rsquo;s changed since the last view, you can trust what was there.</p>
+
+            <h3>3. Don&rsquo;t repeat yourself if Benedict heard you the first time</h3>
+            <p>
+                If Benedict acknowledges an answer (<em>&ldquo;Got it &mdash; that&rsquo;s
+                a yes for question seven&rdquo;</em>), it&rsquo;s recorded. You don&rsquo;t
+                need to confirm it again unless he asks you to. Each <em>&ldquo;yes I
+                did say yes&rdquo;</em> is another tool roundtrip.
+            </p>
+            <p>
+                If you genuinely want to <strong>change</strong> an answer, just tell
+                him plainly: <em>&ldquo;Change question seven to no.&rdquo;</em>
+                He&rsquo;ll update it once.
+            </p>
+
+            <h3>4. Pause freely &mdash; silence is (almost) free</h3>
+            <p>
+                If you need to step away, take a phone call, or check a patient record,
+                just stop talking. Long pauses cost very little &mdash; a 2-minute
+                pause is roughly the cost of a few seconds of active conversation. When you come
+                back, Benedict picks up where you left off &mdash; no need to
+                apologise or recap.
+            </p>
+            <p>This is the recommended pattern for any form where you need to look something up partway through.</p>
+
+            <h3>5. Submit only once</h3>
+            <p>
+                When all your non-PII answers are in, Benedict will offer to submit.
+                Say yes (or <em>&ldquo;submit it&rdquo;</em> / <em>&ldquo;send it&rdquo;</em>)
+                and let the submission complete. If you re-ask
+                <em>&ldquo;is it sent yet?&rdquo;</em> five times, each one is a tool call.
+            </p>
+            <p>You&rsquo;ll know it&rsquo;s sent when:</p>
+            <ul>
+                <li>Benedict says the recipient has been emailed.</li>
+                <li>The cost meter shows a submission line.</li>
+                <li>The form viewer shows the submitted state.</li>
+            </ul>
+            <p>
+                If you don&rsquo;t hear that confirmation in 10&ndash;20 seconds, then it&rsquo;s
+                reasonable to ask once. Before that, just wait &mdash; submission is the longest
+                single tool call (a PDF is generated, pinned to permanent storage, then emailed),
+                so it can take a few seconds.
+            </p>
+        </section>
+
+        <section>
+            <h2>What&rsquo;s already optimised for you</h2>
+            <p>A few things the system handles automatically &mdash; you don&rsquo;t need to do anything about them, but knowing they exist might save you a worried question:</p>
+            <ul>
+                <li><strong>PII fields can be left blank under GDPR.</strong> If a question asks for a patient name, date of birth, or anything else that identifies a person, you can say <em>&ldquo;skip&rdquo;</em> or simply not answer. Benedict will move on and the form will still submit cleanly.</li>
+                <li><strong>The form viewer auto-heals.</strong> If the on-screen iframe ever stops refreshing, leave it for a few seconds &mdash; it refreshes its own access token in the background. You very rarely need to ask to <em>&ldquo;reopen&rdquo;</em> it.</li>
+                <li><strong>The cost meter is always live.</strong> It starts ticking the moment you load the page (not when you start the conversation), and it shows the same currency at all scales: pence under &pound;1, then pounds (with the residual pence still visible).</li>
+                <li><strong>Confirmations are short.</strong> Benedict is trained to answer in one sentence when he can. If he&rsquo;s giving you a long status report, it&rsquo;s usually because you asked for one (<em>&ldquo;review my entries&rdquo;</em>, <em>&ldquo;what&rsquo;s left&rdquo;</em>, etc.).</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>What costs the most (and how to spend it wisely)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Activity</th>
+                        <th>Relative cost</th>
+                        <th>Comment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Listening to you</td>
+                        <td>Lowest</td>
+                        <td>Pauses cost almost nothing</td>
+                    </tr>
+                    <tr>
+                        <td>Acknowledging a single answer</td>
+                        <td>Low</td>
+                        <td>Each tick on the meter</td>
+                    </tr>
+                    <tr>
+                        <td>Filling a single field</td>
+                        <td>Low&ndash;medium</td>
+                        <td>Bigger if the answer needs canonicalisation</td>
+                    </tr>
+                    <tr>
+                        <td>Saving several answers in one go</td>
+                        <td>Medium</td>
+                        <td>Cheaper than the same answers individually</td>
+                    </tr>
+                    <tr>
+                        <td>Opening the form viewer</td>
+                        <td>Medium</td>
+                        <td>Generates a fresh PDF preview</td>
+                    </tr>
+                    <tr>
+                        <td>Submitting the form</td>
+                        <td>Highest</td>
+                        <td>PDF render + permanent storage + email</td>
+                    </tr>
+                    <tr>
+                        <td>Generating a status report</td>
+                        <td>High</td>
+                        <td>Reads many records and produces a PDF</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>
+                You&rsquo;ll almost never see anything outside this range. If the meter
+                jumps suddenly with no obvious cause, ask Sabina to take a look &mdash;
+                it usually means something asked Benedict to repeat itself.
+            </p>
+        </section>
+
+        <section>
+            <h2>When to ask for help</h2>
+            <ul>
+                <li><strong>Benedict didn&rsquo;t hear you correctly:</strong> repeat once, more slowly. He&rsquo;ll auto-correct most homophones.</li>
+                <li><strong>An answer was recorded wrong:</strong> <em>&ldquo;Change question N to X.&rdquo;</em> Don&rsquo;t try to undo the previous turn &mdash; just overwrite.</li>
+                <li><strong>You&rsquo;re stuck on a date format:</strong> Benedict will accept most natural phrasings (<em>&ldquo;ten May twenty-twenty-six&rdquo;</em>, <em>&ldquo;10th of May&rdquo;</em>, <em>&ldquo;10 May 2026&rdquo;</em>). If he keeps misinterpreting, spell out the year digits.</li>
+                <li><strong>The form looks incomplete on screen:</strong> check whether the missing fields are PII (greyed out / not required) &mdash; they&rsquo;re allowed to stay blank.</li>
+                <li><strong>Benedict says &ldquo;I haven&rsquo;t loaded a form yet&rdquo;:</strong> tell him which form you want by name. He&rsquo;ll find it in the catalogue.</li>
+                <li><strong>Anything else:</strong> ask Sabina. She&rsquo;s the gatekeeper agent and can transfer you back to Benedict once whatever needed sorting is sorted.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>A note on the cost meter</h2>
+            <p>
+                The meter shows what you&rsquo;ve spent <strong>on this page load, for
+                this voice agent, since you arrived</strong>. It does NOT show your
+                account balance. If you ever need to top up, do that through your
+                teckel wallet &mdash; Benedict will let you know if your balance dips
+                below the cost of the action you&rsquo;re about to take.
+            </p>
+            <p>
+                A single typical form submission (Q&amp;A with around 20 questions,
+                including a verbal walk-through and an email at the end) usually shows
+                somewhere around <strong>a few pence</strong> on the meter. A longer
+                log entry with multiple rows might run to <strong>5&ndash;10p</strong>.
+                Status reports and large grids can reach <strong>15&ndash;20p</strong>.
+                If yours is consistently higher, the most likely cause is repeating
+                yourself &mdash; re-read habits 1 and 3.
+            </p>
+        </section>
+
+        <a class="back-link" href="index.html">&larr; Back to portal</a>
+
+    </main>
+
+    <footer class="site-footer">
+        &copy; teckel.io
+    </footer>
+
+</body>
+</html>

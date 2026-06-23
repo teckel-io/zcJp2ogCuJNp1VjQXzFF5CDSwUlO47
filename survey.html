@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  teckel Document Analyser — Patient self-fill survey page — MASTER TEMPLATE
+  ============================================================================
+  This is the GENERIC master copy (lives in the `patient-survey` repo). To
+  onboard a dentist, copy this file into THEIR tenant repo as `survey.html`
+  and replace the two placeholders:
+      {{PRACTICE_NAME}}      -> e.g. "Your Dental Practice"   (appears twice)
+      {{PRACTICE_SUBTITLE}}  -> e.g. "123 High Street, Town · Dr A. Example"
+  Nothing else needs changing. Safety net: if a placeholder is left
+  unreplaced, the page shows neutral text rather than raw "{{...}}".
+
+  A public, signed-link page where a patient fills a satisfaction survey
+  themselves. ONE submission = ONE respondent (append_log_entry) — no LLM in
+  the loop, so voice cost per respondent ≈ zero.
+
+  CONTRACT (two server endpoints — Yusuf wires the public routes in the main):
+    GET  {API_BASE}/document_analyser/survey_fill_schema?token=<JWT>
+         -> 200 { success, form_title, respondent_count,
+                  questions:[ {question_number, question_text,
+                               answer_options:[...], is_pii:bool} ] }
+         -> 4xx { success:false, user_message }   (expired / invalid link)
+    POST {API_BASE}/document_analyser/submit_survey_response
+         body { token:<JWT>, answers:{ <question_number>: <answer string> } }
+         -> 200 { success:true, respondent_count }
+         -> 4xx { success:false, user_message, rejected:[question_number,...] }
+
+  The <JWT> is the same HMAC-signed form-view token used by render_form_pdf
+  (_sign_form_view_token / _verify_form_view_token). The agent mints a fill
+  link via request_form_view (fill mode) and shares it with send_form.
+  PII fields are clearly optional (GDPR): blank is always allowed.
+-->
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Patient Survey · {{PRACTICE_NAME}}</title>
+  <style>
+    :root{ --navy:#002349; --navy-deep:#001a37; --gold:#f0d060; --card:#ffffff;
+           --ink:#10243d; --muted:#5b6b7d; --line:#d8e0ea; --ok:#1c7c44; --err:#b3261e; }
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+          background:var(--navy); color:var(--ink); line-height:1.5; }
+    header{ background:var(--navy-deep); color:#fff; padding:18px 20px; text-align:center; }
+    header .practice{ font-size:20px; font-weight:700; letter-spacing:.2px; }
+    header .sub{ font-size:13px; opacity:.8; margin-top:2px; }
+    .wrap{ max-width:680px; margin:0 auto; padding:20px 16px 60px; }
+    .card{ background:var(--card); border-radius:14px; padding:22px 20px; margin-top:18px;
+           box-shadow:0 6px 24px rgba(0,0,0,.18); }
+    h1{ font-size:21px; margin:4px 0 6px; }
+    .intro{ color:var(--muted); font-size:14px; margin-bottom:6px; }
+    .q{ padding:16px 0; border-top:1px solid var(--line); }
+    .q:first-of-type{ border-top:none; }
+    .q .label{ font-weight:600; font-size:15px; }
+    .q .pii{ display:inline-block; font-size:12px; color:var(--muted); font-weight:500;
+             background:#eef3f8; border-radius:999px; padding:2px 10px; margin-left:8px; }
+    .opts{ margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+    .opt{ display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--line);
+          border-radius:10px; cursor:pointer; font-size:15px; transition:border-color .12s,background .12s; }
+    .opt:hover{ border-color:var(--navy); }
+    .opt input{ accent-color:var(--navy); width:18px; height:18px; }
+    .opt.sel{ border-color:var(--navy); background:rgba(0,35,73,.05); }
+    input[type=text],textarea{ width:100%; margin-top:10px; padding:11px 12px; border:1px solid var(--line);
+          border-radius:10px; font-size:15px; font-family:inherit; }
+    textarea{ min-height:74px; resize:vertical; }
+    .hint{ font-size:12px; color:var(--muted); margin-top:6px; }
+    .actions{ margin-top:22px; }
+    button.submit{ width:100%; background:var(--navy); color:#fff; border:none; border-radius:12px;
+          padding:15px; font-size:16px; font-weight:600; cursor:pointer; }
+    button.submit:disabled{ opacity:.55; cursor:default; }
+    .msg{ text-align:center; padding:30px 18px; }
+    .msg .big{ font-size:40px; }
+    .msg h2{ margin:10px 0 4px; }
+    .msg p{ color:var(--muted); }
+    .err{ color:var(--err); font-size:14px; margin-top:12px; text-align:center; }
+    .skel{ color:var(--muted); text-align:center; padding:30px; }
+    footer{ text-align:center; color:#9fb2c6; font-size:12px; padding:14px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="practice">{{PRACTICE_NAME}}</div>
+    <div class="sub">{{PRACTICE_SUBTITLE}}</div>
+  </header>
+  <div class="wrap">
+    <div class="card" id="root">
+      <div class="skel" id="loading">Loading your survey…</div>
+    </div>
+  </div>
+  <footer>© teckel.io · your feedback is confidential</footer>
+
+  <script>
+    // ---- rebrand safety net ----------------------------------------------
+    // A patient must never see an unreplaced {{placeholder}}. If onboarding
+    // forgot to fill one in, fall back to neutral text.
+    (function(){
+      var nameEl = document.querySelector("header .practice");
+      var subEl  = document.querySelector("header .sub");
+      if (nameEl && nameEl.textContent.indexOf("{{") !== -1) nameEl.textContent = "Your dental practice";
+      if (subEl  && subEl.textContent.indexOf("{{")  !== -1) subEl.textContent  = "";
+      if (document.title.indexOf("{{") !== -1) document.title = "Patient Survey";
+    })();
+
+    // ---- config -----------------------------------------------------------
+    const API_BASE = "https://mcp2.bh.tkllabs.io:9779";
+    const SCHEMA_URL = API_BASE + "/document_analyser/survey_fill_schema";
+    const SUBMIT_URL = API_BASE + "/document_analyser/submit_survey_response";
+
+    const root = document.getElementById("root");
+    const token = new URLSearchParams(location.search).get("token") || "";
+
+    const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
+      c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+
+    function showError(message){
+      root.innerHTML =
+        '<div class="msg"><div class="big">⚠️</div><h2>This link can\'t be opened</h2>' +
+        '<p>' + esc(message || "The link may have expired. Please ask the practice for a new one.") + '</p></div>';
+    }
+    function showThanks(count){
+      root.innerHTML =
+        '<div class="msg"><div class="big">✅</div><h2>Thank you</h2>' +
+        '<p>Your feedback has been recorded. Thank you for helping us improve.</p></div>';
+    }
+
+    // ---- render -----------------------------------------------------------
+    let QUESTIONS = [];
+
+    function renderForm(schema){
+      QUESTIONS = schema.questions || [];
+      let html = '<h1>' + esc(schema.form_title || "Patient Satisfaction Survey") + '</h1>' +
+                 '<div class="intro">Please answer the questions below. It takes a couple of minutes, ' +
+                 'and any field marked optional can be left blank.</div><form id="f">';
+      QUESTIONS.forEach((q, i) => {
+        const qn = esc(q.question_number);
+        const label = esc((q.question_text || "").replace(/[:?]\s*$/, ""));
+        const opts = (q.answer_options || []).filter(o => String(o).trim());
+        html += '<div class="q" data-qn="' + qn + '"><div class="label">' + label +
+                (q.is_pii ? '<span class="pii">optional</span>' : '') + '</div>';
+        if (opts.length){
+          html += '<div class="opts" role="radiogroup">';
+          opts.forEach((o, k) => {
+            const id = "q" + i + "_" + k;
+            html += '<label class="opt" for="' + id + '">' +
+                    '<input type="radio" id="' + id + '" name="q_' + qn + '" value="' + esc(o) + '">' +
+                    '<span>' + esc(o) + '</span></label>';
+          });
+          html += '</div>';
+        } else if (q.is_pii){
+          html += '<input type="text" name="q_' + qn + '" autocomplete="off" placeholder="Optional — you may leave this blank">' +
+                  '<div class="hint">Optional. Under GDPR you do not have to provide this.</div>';
+        } else {
+          html += '<textarea name="q_' + qn + '" placeholder="Your answer (optional)"></textarea>';
+        }
+        html += '</div>';
+      });
+      html += '<div class="actions"><button class="submit" type="submit">Submit my feedback</button>' +
+              '<div class="err" id="formErr" style="display:none"></div></div></form>';
+      root.innerHTML = html;
+
+      // radio visual selection
+      root.querySelectorAll('.opt input').forEach(inp => inp.addEventListener('change', () => {
+        const grp = inp.name;
+        root.querySelectorAll('input[name="' + grp + '"]').forEach(x => x.closest('.opt').classList.toggle('sel', x.checked));
+      }));
+      document.getElementById("f").addEventListener("submit", onSubmit);
+    }
+
+    function collectAnswers(){
+      const answers = {};
+      QUESTIONS.forEach(q => {
+        const el = document.querySelector('[name="q_' + q.question_number + '"]:checked') ||
+                   document.querySelector('input[name="q_' + q.question_number + '"], textarea[name="q_' + q.question_number + '"]');
+        let v = "";
+        if (el) v = (el.type === "radio") ? (el.checked ? el.value : "") : el.value;
+        // radios: read the checked one explicitly
+        if ((q.answer_options || []).length){
+          const checked = document.querySelector('input[name="q_' + q.question_number + '"]:checked');
+          v = checked ? checked.value : "";
+        }
+        answers[q.question_number] = (v || "").trim();
+      });
+      return answers;
+    }
+
+    async function onSubmit(e){
+      e.preventDefault();
+      const btn = root.querySelector("button.submit");
+      const errEl = document.getElementById("formErr");
+      errEl.style.display = "none";
+      btn.disabled = true; btn.textContent = "Submitting…";
+      try{
+        const r = await fetch(SUBMIT_URL, {
+          method:"POST", headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ token, answers: collectAnswers() })
+        });
+        const data = await r.json().catch(() => ({}));
+        if (r.ok && data.success){ showThanks(data.respondent_count); return; }
+        errEl.textContent = data.user_message || "Something went wrong — please check your answers and try again.";
+        errEl.style.display = "block";
+      }catch(_){
+        errEl.textContent = "Network error — please try again.";
+        errEl.style.display = "block";
+      }
+      btn.disabled = false; btn.textContent = "Submit my feedback";
+    }
+
+    // ---- boot -------------------------------------------------------------
+    (async function(){
+      if (!token){ showError("This link is missing its security token."); return; }
+      try{
+        const r = await fetch(SCHEMA_URL + "?token=" + encodeURIComponent(token));
+        const data = await r.json().catch(() => ({}));
+        if (r.ok && data.success && Array.isArray(data.questions)){ renderForm(data); return; }
+        showError(data.user_message);
+      }catch(_){
+        showError("We couldn't load the survey just now. Please try again shortly.");
+      }
+    })();
+  </script>
+</body>
+</html>

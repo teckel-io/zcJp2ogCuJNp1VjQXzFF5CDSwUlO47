@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Link can't be opened</title>
+<style>
+  :root { --navy:#0b2545; --gold:#c9a227; }
+  body { margin:0; font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+         background:var(--navy); color:#eef3fb; min-height:100vh;
+         display:flex; flex-direction:column; }
+  header { padding:22px 28px; border-bottom:1px solid rgba(255,255,255,.15); }
+  header .name { font-size:1.25rem; font-weight:700; }
+  header .sub { font-size:.85rem; color:#b9c6dd; margin-top:2px; }
+  main { flex:1; display:flex; align-items:center; justify-content:center; padding:32px; }
+  .card { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14);
+          border-radius:14px; padding:40px 36px; max-width:480px; text-align:center; }
+  .icon { font-size:2.4rem; }
+  h1 { font-size:1.3rem; margin:14px 0 8px; }
+  p { color:#c9d5ea; line-height:1.55; margin:0; }
+  footer { text-align:center; padding:16px; font-size:.78rem; color:#8fa2c4; }
+</style>
+</head>
+<body>
+<header>
+  <div class="name">{{PRACTICE_NAME}}</div>
+  <div class="sub">{{PRACTICE_SUBTITLE}}</div>
+</header>
+<main>
+  <div class="card">
+    <div class="icon">&#9888;&#65039;</div>
+    <h1>This link can't be opened</h1>
+    <p>The address looks incomplete or out of date. Please use the exact link you
+       were sent &mdash; opening it straight from your email or message is best &mdash;
+       or ask the practice for a fresh one.</p>
+  </div>
+</main>
+<footer>&copy; teckel.io &middot; your feedback is confidential</footer>
+</body>
+</html>

@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{PRACTICE_NAME}} — Management Portal</title>
+
+    <!--
+    =====================================================================
+    Visual language (teckel house style):
+      Background        #002349  (deep navy)
+      Header band       #001a35  (slightly darker navy)
+      Primary text      #ffffff  (white)
+      Steel-blue accent #b0c4de  (subtitle, secondary text, links)
+      Gold accent       #f0d060  (highlight / call-outs)
+      Card tint         rgba(176, 196, 222, 0.05)
+      Notification tint rgba(255, 200, 0, 0.08)
+      Font              system-ui sans-serif
+
+    Layout decision (v2.2.48, 7 May 2026):
+      The voice agent widget is the HERO. On desktop it sits in a
+      prominent left column (380px) with generous breathing room.
+      The right column stacks title + cost meter ABOVE a tall iframe
+      so the user can read the cost ticker and the form without
+      scrolling. On mobile (≤900px) the widget moves to the TOP of
+      the page so the hero still dominates the first screen.
+    =====================================================================
+    -->
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --navy:        #002349;
+            --navy-deep:   #001a35;
+            --steel:       #b0c4de;
+            --gold:        #f0d060;
+            --white:       #ffffff;
+            --card-bg:     rgba(176, 196, 222, 0.05);
+            --card-border: rgba(176, 196, 222, 0.18);
+            --note-bg:     rgba(255, 200, 0, 0.08);
+        }
+
+        html, body {
+            background-color: var(--navy);
+            color: var(--white);
+            font-family: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.5;
+        }
+
+        /* ---------- Top header band ----------
+           Flex layout, all elements right-justified. Nav link sits just
+           to the LEFT of the practice name + sub. On mobile stacks
+           vertically, right-aligned.
+        ------------------------------------------------------------------ */
+        header.site-header {
+            background-color: var(--navy-deep);
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 18px;
+        }
+        header.site-header nav.site-nav a {
+            color: var(--gold);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            text-decoration: none;
+            border: 1px solid rgba(240, 208, 96, 0.4);
+            padding: 8px 14px;
+            border-radius: 4px;
+            transition: border-color 0.15s, background-color 0.15s;
+            display: inline-block;
+        }
+        header.site-header nav.site-nav a:hover {
+            border-color: var(--gold);
+            background-color: rgba(240, 208, 96, 0.08);
+        }
+        header.site-header .practice-info { text-align: right; }
+        header.site-header .practice-name {
+            color: var(--white);
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        header.site-header .practice-sub {
+            color: var(--steel);
+            font-size: 13px;
+            margin-top: 2px;
+        }
+
+        /* ---------- Page shell ----------
+           Two-column on desktop:
+             LEFT:  Benedict widget — the HERO. Sticky so it stays in
+                    view as the user scrolls a long form.
+             RIGHT: Title bar + cost meter above the form iframe.
+           Stacks on mobile (≤900px), widget first.
+        ----------------------------------------------------------------- */
+        .page-shell {
+            display: flex;
+            flex-direction: row;
+            gap: 28px;
+            padding: 28px;
+            max-width: 1600px;
+            margin: 0 auto;
+            min-height: calc(100vh - 84px);
+        }
+
+        .left-rail {
+            flex: 0 0 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            min-width: 0;
+        }
+
+        .agent-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            padding: 22px 22px 24px 22px;
+            position: sticky;
+            top: 28px;
+        }
+        .agent-card .label {
+            font-size: 11px;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 14px;
+        }
+        .agent-card .agent-prompt {
+            color: var(--steel);
+            font-size: 13.5px;
+            margin-top: 14px;
+            line-height: 1.55;
+        }
+
+        /* The ElevenLabs widget itself — give it presence as the hero. */
+        elevenlabs-convai {
+            display: block;
+            min-height: 56px;
+        }
+
+        .right-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            min-width: 0;
+        }
+
+        /* Title + cost panel header strip */
+        .title-bar {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            padding: 22px 26px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+        }
+        .title-bar .title-block .h1 {
+            color: var(--white);
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+        .title-bar .title-block .h2 {
+            color: var(--steel);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        /* Cost meter — fits the right edge of the title bar */
+        .cost-meter {
+            text-align: right;
+            min-width: 240px;
+        }
+        .cost-meter .label {
+            font-size: 10.5px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 4px;
+        }
+        .cost-meter .total {
+            color: var(--white);
+            font-size: 19px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+        .cost-meter .breakdown {
+            color: var(--steel);
+            font-size: 11.5px;
+            margin-top: 4px;
+            line-height: 1.45;
+            word-break: break-word;
+        }
+        /* Final-total block (20 May 2026) — appears after a
+           conversation ends and the post-conversation webhook has
+           populated agent_conversations.cost_total_in_tc. Includes
+           voice-agent tc. Replaces the prior "Voice-agent minutes
+           are billed separately by teckel." footer copy now that
+           voice is part of the headline total. */
+        .cost-meter .final-block {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(176, 196, 222, 0.18);
+        }
+        .cost-meter .final-label {
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--steel);
+            margin-bottom: 3px;
+        }
+        .cost-meter .final-total {
+            color: var(--gold);
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .cost-meter .final-split {
+            color: var(--steel);
+            font-size: 10.5px;
+            margin-top: 3px;
+            line-height: 1.45;
+        }
+
+        /* Form viewer pane */
+        .form-viewer-shell {
+            flex: 1;
+            position: relative;
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            overflow: hidden;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+        #form-viewer {
+            width: 100%;
+            height: 100%;
+            min-height: 600px;
+            border: 0;
+            background: #ffffff;
+        }
+        .form-viewer-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 60px 32px;
+            /* OPAQUE solid background — previously --card-bg (rgba alpha
+               0.05) which was effectively transparent, so iframe content
+               (e.g. FORM_VIEW_TOKEN_EXPIRED error page) showed THROUGH
+               the placeholder and the two text layers superimposed.
+               20 May 2026 fix. */
+            background-color: var(--navy);
+            pointer-events: none;
+            transition: opacity 0.35s ease, visibility 0s linear 0.35s;
+        }
+        /* When hidden: fade out via opacity (visible during 0.35s
+           transition), THEN flip visibility:hidden so the placeholder
+           text fully disappears from the rendered tree (no residual
+           anti-aliasing artefacts on top of iframe content). The
+           visibility transition is delayed by the opacity duration
+           so the fade plays out before the element disappears. */
+        .form-viewer-placeholder.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+        .form-viewer-placeholder .ph-eyebrow {
+            color: var(--gold);
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+        .form-viewer-placeholder .ph-title {
+            color: var(--white);
+            font-size: 18px;
+            line-height: 1.4;
+            margin: 0 0 10px 0;
+            max-width: 480px;
+            font-weight: 500;
+        }
+        .form-viewer-placeholder .ph-detail {
+            color: var(--steel);
+            font-size: 13px;
+            line-height: 1.55;
+            max-width: 480px;
+        }
+
+        footer.site-footer {
+            background-color: var(--navy-deep);
+            color: var(--steel);
+            font-size: 11.5px;
+            letter-spacing: 1.5px;
+            text-transform: lowercase;
+            text-align: center;
+            padding: 18px 16px;
+            border-top: 1px solid var(--card-border);
+        }
+        footer.site-footer a { color: var(--steel); text-decoration: none; }
+        footer.site-footer a:hover { color: var(--white); }
+
+        /* =================================================================
+           MOBILE / TABLET (≤900px)
+           Stack vertically; Benedict widget moves to the top so the
+           HERO is still first thing the user sees.
+           ================================================================= */
+        @media (max-width: 900px) {
+            .page-shell {
+                flex-direction: column;
+                padding: 18px;
+                gap: 18px;
+            }
+            .left-rail {
+                flex: 0 0 auto;
+                order: 1;            /* widget first */
+            }
+            .right-pane {
+                order: 2;
+            }
+            .agent-card {
+                position: static;     /* drop sticky on mobile so it scrolls naturally */
+                padding: 18px;
+            }
+            .title-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 14px;
+                padding: 18px;
+            }
+            .cost-meter {
+                text-align: left;
+                min-width: 0;
+                width: 100%;
+            }
+            #form-viewer {
+                min-height: 70vh;
+            }
+            header.site-header {
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 12px;
+                padding: 14px 18px;
+            }
+            header.site-header .practice-info { text-align: right; }
+            header.site-header .practice-name { font-size: 18px; }
+            header.site-header .practice-sub  { font-size: 12px; }
+            .title-bar .title-block .h1       { font-size: 19px; }
+            .form-viewer-placeholder .ph-title { font-size: 16px; }
+        }
+
+        @media (max-width: 480px) {
+            .page-shell { padding: 14px; gap: 14px; }
+            .agent-card { padding: 16px; }
+            .cost-meter .total { font-size: 17px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <nav class="site-nav">
+            <a href="guide.html">User Guide</a>
+        </nav>
+        <div class="practice-info">
+            <div class="practice-name">{{PRACTICE_NAME}}</div>
+            <div class="practice-sub">{{PRACTICE_SUBTITLE}}</div>
+        </div>
+    </header>
+
+    <div class="page-shell">
+
+        <!--
+          LEFT RAIL — voice agent (hero element).
+          Per-tenant agent IDs. The teckel spawn-script string-replaces
+          these placeholders at page-build time when onboarding a new
+          dentist.
+
+          The Brenda widget block is currently commented out — Brenda is
+          the future entry agent that takes the security PIN and hands
+          off to Benedict; until that flow is built, the user talks to
+          Benedict directly.
+        -->
+        <div class="left-rail">
+            <div class="agent-card">
+                <div class="label">Speak with Benedict</div>
+
+                <!-- BRENDA_WIDGET_BEGIN
+                <elevenlabs-convai agent-id="agent_BRENDA_PLACEHOLDER"></elevenlabs-convai>
+                     BRENDA_WIDGET_END -->
+
+                <elevenlabs-convai agent-id="agent_PLACEHOLDER"></elevenlabs-convai>
+
+                <div class="agent-prompt">
+                    Tap the button to open a voice conversation with the practice's
+                    document compliance assistant. Try saying &ldquo;show me my
+                    Crown consent form&rdquo;, &ldquo;open the patient survey&rdquo;,
+                    or &ldquo;pull up the cleaning specification.&rdquo;
+                </div>
+            </div>
+        </div>
+
+        <!--
+          RIGHT PANE — title + cost meter above the form iframe.
+        -->
+        <div class="right-pane">
+            <div class="title-bar">
+                <div class="title-block">
+                    <div class="h1">{{PRACTICE_NAME}} — Management Portal</div>
+                    <div class="h2">Compliance documents &middot; voice-driven workflow</div>
+                </div>
+                <div class="cost-meter">
+                    <!-- v2.2.74 (Steven, 31 May 2026): SESSION COST panel removed
+                         per request — only LAST SESSION TOTAL is shown. The
+                         session-cost elements (label / cost-total / cost-breakdown)
+                         were deleted; setCostMeter() already null-guards them
+                         (if (totalEl) … / if (!breakdownEl) return) and the
+                         final-block is populated independently by
+                         setFinalCostBlock(). -->
+                    <!--
+                      Final-total block — only populated once Yusuf's
+                      post-conversation webhook has fired and
+                      teckel.update_conversation_cost has written the
+                      three cost columns. Includes voice-agent tc.
+                      Mirrors what Benedict reads aloud via the
+                      _session_summary field (v2.2.60 + v2.2.61).
+                      20 May 2026.
+                    -->
+                    <div class="final-block" id="cost-final" style="display:none;">
+                        <div class="final-label">Last session total</div>
+                        <div class="final-total" id="cost-final-total">—</div>
+                        <div class="final-split" id="cost-final-split">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-viewer-shell">
+                <iframe id="form-viewer" name="form-viewer"
+                        src="about:blank"
+                        title="form viewer"
+                        allow="fullscreen"></iframe>
+                <div class="form-viewer-placeholder" id="form-viewer-placeholder">
+                    <div class="ph-eyebrow">Form viewer</div>
+                    <div class="ph-title">Ask Benedict to show you a form and it will appear here.</div>
+                    <div class="ph-detail">The selected form will load alongside the conversation so you can read it while you fill it in.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        &copy; teckel.io
+    </footer>
+
+    <!-- ElevenLabs widget runtime -->
+    <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
+
+    <!-- teckel custom client-tool handlers — identical for every tenant page.
+         display_form: opens a form in the iframe and (optionally) starts the
+                       per-instance rolling-token poll for iframe self-heal.
+
+         v2.2.55 (Phase 13.1 hardening, 9 May 2026) — display_form takes a
+         single `view_session_id` argument (not pdf_url/cost_url). The
+         browser fetches /document_analyser/resolve_view_session?id=<id>
+         to retrieve the actual signed URLs and load them. Long opaque
+         strings never travel through the LLM — fix for the Benedict-
+         mangles-base64-token failure surfaced by Phase 16 telemetry.
+
+         v2.2.48 (Phase 15.1) — TWO independent pollers run on this page:
+           1. AGENT-LEVEL poll  — kicked at DOMContentLoaded, drives the
+              visible cost meter UI. Polls /document_analyser/render_agent
+              _session_cost?agent_id=...&since=session_start every 5s.
+              Aggregates billing across all instances since page load
+              (so the meter ticks even before any form has been opened).
+           2. PER-INSTANCE poll — kicked when display_form fires (after
+              the resolve fetch returns a cost_url). Polls /document_
+              analyser/render_session_cost?instance_id=...&token=... every
+              5s. Used ONLY for rolling-token iframe self-heal — its cost
+              summary is no longer rendered to the meter. -->
+    <script>
+    (function () {
+        'use strict';
+
+        // -----------------------------------------------------------------
+        // tc → GBP conversion
+        // -----------------------------------------------------------------
+        // payments_due rows that aren't backed by a cost_events row (i.e.
+        // the v2.2.48 nominal flat fees — instance creation, field update,
+        // form submission, etc.) carry no GBP cost from the server: the
+        // SQL function LEFT JOINs cost_events and falls through to 0
+        // when no row exists. That makes `totals.gbp` zero for any
+        // session that hasn't done LLM extractions, even though the user
+        // has very real tc charges accumulated.
+        //
+        // This constant matches the `tc_per_gbp` rate stored in the
+        // teckel.tc_rates table (500,000 tc per GBP — tc_Price-Matrix.xlsx, 7 Jun 2026; keep in sync with teckel.tc_rates).
+        // If the rate changes, update this constant. Long-term fix is to
+        // server-side-derive gbp from tc when cost_event_id IS NULL — see
+        // Phase 15 roadmap.
+        var TC_PER_GBP = 500000;
+        function tcToGbp(totals) {
+            // Prefer server-supplied gbp_cost when present (accurate for
+            // LLM token costs); fall back to the constant for flat fees.
+            if (totals && totals.gbp && totals.gbp > 0) return totals.gbp;
+            var tc = (totals && totals.tc) || 0;
+            return tc / TC_PER_GBP;
+        }
+
+        // -----------------------------------------------------------------
+        // Shared cost-meter UI renderer
+        // -----------------------------------------------------------------
+
+        function formatCostUnit(gbp) {
+            // Round UP to whole pence; pounds shown whole with the
+            // residual whole pence beside them (Steven directive 9 Jun 2026):
+            //
+            //   <£1   →  "X p"     (whole pence, rounded up)
+            //   ≥£1   →  "£N R p"  (whole pounds + whole residual pence)
+            //   exact →  "£N"      (residual = 0 → no trailing " 0 p")
+            //
+            // Examples:
+            //   9.96p     → "10 p"
+            //   62.6277p  → "63 p"
+            //   £1.00     → "£1"
+            //   720.3064p → "£7 21 p"
+            var pence = Math.ceil((gbp || 0) * 100);
+            if (pence < 100) {
+                return pence.toLocaleString('en-GB') + ' p';
+            }
+            var wholePounds   = Math.floor(pence / 100);
+            var residualPence = pence - (wholePounds * 100);
+            var poundsStr = '£' + wholePounds.toLocaleString('en-GB');
+            if (residualPence === 0) {
+                return poundsStr;
+            }
+            return poundsStr + ' ' + residualPence.toLocaleString('en-GB') + ' p';
+        }
+
+        // Human-readable labels for event_type — mirrors server's
+        // _compose_session_summary LABEL dict in
+        // teckel__document_analyser_v2_2.py so the website breakdown
+        // and Benedict's spoken _session_summary use IDENTICAL wording.
+        // Add new mappings here whenever a new event_type ships
+        // server-side. (20 May 2026 fix — Steven feedback: website
+        // breakdown previously diverged from Benedict's output.)
+        var EVENT_TYPE_LABEL = {
+            form_submission:          'form submission',
+            log_snapshot_submission:  'log snapshot submission',
+            log_entry_append:         'log entries added',
+            log_entry_edit:           'log entry edits',
+            log_entry_remove:         'log entry removals',
+            log_re_render:            'log re-renders',
+            form_view_open:           'form viewer opens',
+            field_update:             'field updates',
+            save_progress:            'bulk saves',
+            instance_creation:        'form starts',
+            form_revision:            'form revisions',
+            status_report:            'status reports',
+            evidence_upload:          'evidence uploads',
+            catalogue_lookup:         'catalogue searches',
+            template_fetch:           'template fetches',
+            instance_read:            'instance reads',
+            instances_listing:        'instance listings',
+            edition_diff:             'edition diffs',
+            duty_cycle_query:         'due-within queries',
+            log_state_read:           'log state reads',
+            log_history_read:         'log history reads',
+            phase_0_lookup:           'session lookups',
+            extraction_bundle:        'extraction passes',
+            flat_fee:                 'other'
+        };
+
+        function formatBreakdownLine(it) {
+            var n     = it.n_events || 0;
+            var tc    = Math.ceil(it.tc_cost || 0).toLocaleString('en-GB',
+                          { maximumFractionDigits: 0 });
+            var label = EVENT_TYPE_LABEL[it.event_type]
+                        || (it.event_type || '').replace(/_/g, ' ');
+            return n + ' ' + label + ' (' + tc + ' tc)';
+        }
+
+        function setCostMeter(totals, n_events, items) {
+            try {
+                totals = totals || {};
+                items  = items  || [];
+                var tcStr   = Math.ceil(totals.tc || 0).toLocaleString('en-GB',
+                              { maximumFractionDigits: 0 });
+                var costStr = formatCostUnit(tcToGbp(totals));
+                var totalEl     = document.getElementById('cost-total');
+                var breakdownEl = document.getElementById('cost-breakdown');
+                if (totalEl)     totalEl.textContent     = tcStr + ' tc · ' + costStr;
+                if (!breakdownEl) return;
+                if (!n_events || !items.length) {
+                    breakdownEl.textContent = 'no billable events yet';
+                    return;
+                }
+                // Format matches Benedict's spoken _session_summary
+                // verbatim: "{n} {label} ({tc} tc)" joined by "; ".
+                breakdownEl.textContent = items.map(formatBreakdownLine)
+                                               .join('; ');
+            } catch (e) {
+                console.warn('setCostMeter failed', e);
+            }
+        }
+
+        // -----------------------------------------------------------------
+        // FINAL-TOTAL block — populated by the post-session webhook
+        // -----------------------------------------------------------------
+        // After a conversation ends, Yusuf's ElevenLabs post-conversation
+        // webhook calls da.update_conversation_cost_in_telemetry, which
+        // writes cost_of_chat_agent_in_tc + cost_of_da_in_tc +
+        // cost_total_in_tc on the agent_conversations row. The website
+        // polls /document_analyser/render_session_final_cost in parallel
+        // with the running meter; when `ready: true` is returned, the
+        // final block lights up showing the session's TOTAL cost
+        // (voice + DA combined).
+        //
+        // The running meter stays visible too — it covers the current
+        // session's activity until that session's own webhook fires.
+        // Voice-agent tc is NOT in the running meter (the running poll
+        // reads payments_due only); voice tc is FIRST visible in this
+        // final block.
+        // -----------------------------------------------------------------
+
+        var lastFinalConversationId = null;
+
+        function setFinalCostBlock(payload) {
+            try {
+                var block      = document.getElementById('cost-final');
+                var totalEl    = document.getElementById('cost-final-total');
+                var splitEl    = document.getElementById('cost-final-split');
+                if (!block || !totalEl || !splitEl) return;
+                if (!payload || !payload.ready) {
+                    block.style.display = 'none';
+                    return;
+                }
+                var chat  = payload.cost_of_chat_agent_in_tc || 0;
+                var da    = payload.cost_of_da_in_tc         || 0;
+                var total = payload.cost_total_in_tc         || 0;
+                var totalStr = Math.ceil(total).toLocaleString('en-GB',
+                                  { maximumFractionDigits: 0 }) + ' tc';
+                var totalGbp = formatCostUnit(total / TC_PER_GBP);
+                totalEl.textContent = totalStr + ' · ' + totalGbp;
+                splitEl.textContent = 'agent: '
+                    + Math.ceil(chat).toLocaleString('en-GB',
+                          { maximumFractionDigits: 0 })
+                    + ' tc · document analyser: '
+                    + Math.ceil(da).toLocaleString('en-GB',
+                          { maximumFractionDigits: 0 })
+                    + ' tc';
+                block.style.display = 'block';
+                lastFinalConversationId = payload.conversation_id || lastFinalConversationId;
+            } catch (e) {
+                console.warn('setFinalCostBlock failed', e);
+            }
+        }
+
+        // -----------------------------------------------------------------
+        // 1. AGENT-LEVEL cost poll (v2.2.48) — drives the visible meter.
+        // -----------------------------------------------------------------
+        // Reads agent_id from the FIRST <elevenlabs-convai> tag on the
+        // page (Brenda or Benedict — both will resolve to the same
+        // user wallet via teckel's agent → wallet mapping). Captures
+        // session_start as ISO at script load and polls every 5s.
+        // -----------------------------------------------------------------
+
+        var MCP_BASE = 'https://mcp2.bh.tkllabs.io:9779';
+
+        var sessionAgentId = null;
+        var sessionStart   = new Date().toISOString();
+        var agentPollInterval = null;
+
+        function discoverAgentId() {
+            var tags = document.querySelectorAll('elevenlabs-convai');
+            for (var i = 0; i < tags.length; i++) {
+                var aid = tags[i].getAttribute('agent-id');
+                if (aid && aid.indexOf('PLACEHOLDER') === -1) {
+                    return aid;
+                }
+            }
+            return null;
+        }
+
+        function pollAgentCostOnce() {
+            if (!sessionAgentId) return;
+            var url = MCP_BASE
+                    + '/document_analyser/render_agent_session_cost'
+                    + '?agent_id=' + encodeURIComponent(sessionAgentId)
+                    + '&since='    + encodeURIComponent(sessionStart);
+            fetch(url, { method: 'GET', credentials: 'omit' })
+                .then(function (resp) {
+                    if (!resp.ok) {
+                        console.warn('[teckel] agent-level cost poll non-OK', resp.status);
+                        return null;
+                    }
+                    return resp.json();
+                })
+                .then(function (data) {
+                    if (!data) return;
+                    setCostMeter(data.totals, data.n_billable_events, data.items);
+                })
+                .catch(function (e) {
+                    console.warn('[teckel] agent-level cost poll failed', e);
+                });
+        }
+
+        function startAgentCostPoll() {
+            sessionAgentId = discoverAgentId();
+            if (!sessionAgentId) {
+                console.warn('[teckel] no agent-id found on the page — cost meter will stay dormant');
+                return;
+            }
+            console.log('[teckel] starting agent-level cost poll for agent_id=' + sessionAgentId
+                        + ', session_start=' + sessionStart);
+            // Slight delay so the ElevenLabs widget has time to mount.
+            setTimeout(pollAgentCostOnce, 600);
+            agentPollInterval = setInterval(pollAgentCostOnce, 5000);
+            // Also start the final-cost poll. Slower cadence — this is
+            // only useful once a conversation has ENDED and the webhook
+            // has populated the row, which happens at session boundaries.
+            setTimeout(pollFinalCostOnce, 2000);
+            setInterval(pollFinalCostOnce, 15000);
+        }
+
+        // -----------------------------------------------------------------
+        // FINAL-COST poll (20 May 2026, v2.2.61 endpoint) — populates
+        // the "Last session total" block when a conversation has ended
+        // and Yusuf's post-conversation webhook has written the three
+        // cost columns to agent_conversations.
+        // -----------------------------------------------------------------
+        function pollFinalCostOnce() {
+            if (!sessionAgentId) return;
+            var url = MCP_BASE
+                    + '/document_analyser/render_session_final_cost'
+                    + '?agent_id=' + encodeURIComponent(sessionAgentId);
+            fetch(url, { method: 'GET', credentials: 'omit' })
+                .then(function (resp) {
+                    if (!resp.ok) {
+                        console.warn('[teckel] final-cost poll non-OK', resp.status);
+                        return null;
+                    }
+                    return resp.json();
+                })
+                .then(function (data) {
+                    if (!data) return;
+                    setFinalCostBlock(data);
+                })
+                .catch(function (e) {
+                    console.warn('[teckel] final-cost poll failed', e);
+                });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startAgentCostPoll);
+        } else {
+            startAgentCostPoll();
+        }
+
+        // -----------------------------------------------------------------
+        // 2. PER-INSTANCE rolling-token poll (v2.2.47, retained) — used
+        //    SOLELY for iframe self-heal on token expiry. Does not
+        //    update the visible meter; that comes from the agent-level
+        //    poll above.
+        // -----------------------------------------------------------------
+
+        var costPollInterval = null;
+        var currentCostUrl   = null;
+        var rollingPdfUrl    = null;
+        var rollingCostUrl   = null;
+
+        function pollInstanceCostOnce() {
+            if (!currentCostUrl) return;
+            fetch(currentCostUrl, { method: 'GET', credentials: 'omit' })
+                .then(function (resp) {
+                    if (!resp.ok) {
+                        // 401 means BOTH the cost token AND the iframe's
+                        // pdf token have expired (same TTL, same secret).
+                        // Swap the cached rolling URLs in silently.
+                        if (resp.status === 401) {
+                            if (rollingCostUrl && rollingPdfUrl) {
+                                console.log('[teckel] iframe token expired; rolling to fresh tokens silently');
+                                var iframe = document.getElementById('form-viewer');
+                                if (iframe && rollingPdfUrl) {
+                                    iframe.src = rollingPdfUrl;
+                                }
+                                currentCostUrl = rollingCostUrl;
+                                rollingPdfUrl  = null;
+                                rollingCostUrl = null;
+                            } else {
+                                console.warn('[teckel] iframe token expired and no rolling tokens cached — stopping per-instance poll');
+                                stopInstanceCostPoll();
+                            }
+                        }
+                        return null;
+                    }
+                    return resp.json();
+                })
+                .then(function (data) {
+                    if (!data) return;
+                    // v2.2.48: do NOT call setCostMeter here — agent-level
+                    // poll owns the meter UI now. Cache the rolling URLs
+                    // for iframe self-heal only.
+                    if (data.refreshed_pdf_url && data.refreshed_cost_url) {
+                        rollingPdfUrl  = data.refreshed_pdf_url;
+                        rollingCostUrl = data.refreshed_cost_url;
+                    }
+                })
+                .catch(function (e) {
+                    console.warn('per-instance cost poll failed', e);
+                });
+        }
+
+        function startInstanceCostPoll(url) {
+            stopInstanceCostPoll();
+            currentCostUrl = url;
+            pollInstanceCostOnce();
+            costPollInterval = setInterval(pollInstanceCostOnce, 5000);
+        }
+
+        function stopInstanceCostPoll() {
+            if (costPollInterval) {
+                clearInterval(costPollInterval);
+                costPollInterval = null;
+            }
+        }
+
+        // -----------------------------------------------------------------
+        // URL chain-of-custody validation (v2.2.48 hardening)
+        // -----------------------------------------------------------------
+        // Reject any pdf_url or cost_url that doesn't point at the
+        // configured MCP server. Benedict has been observed fabricating
+        // URLs (e.g. literal "https://example.com") and calling
+        // display_form with them, bypassing request_form_view entirely.
+        // The iframe then loads junk content that confuses the user.
+        //
+        // Defence: refuse to set iframe.src or start cost-poll on URLs
+        // outside the MCP_BASE host. Surface a loud failure card in
+        // place of the iframe so the audience sees the fabrication
+        // instead of swallowing it silently.
+        // -----------------------------------------------------------------
+
+        var TECKEL_URL_PREFIX = MCP_BASE.replace(/\/$/, '') + '/document_analyser/';
+
+        function isValidTeckelUrl(url) {
+            if (!url || typeof url !== 'string') return false;
+            return url.indexOf(TECKEL_URL_PREFIX) === 0;
+        }
+
+        function showFabricationCard(reason, badUrl) {
+            var iframe      = document.getElementById('form-viewer');
+            var placeholder = document.getElementById('form-viewer-placeholder');
+            if (!iframe) return;
+            var safeUrl = (badUrl || '').replace(/[<>"&]/g, function (c) {
+                return ({'<':'&lt;','>':'&gt;','"':'&quot;','&':'&amp;'})[c];
+            });
+            var html = '<!doctype html><html><head><meta charset="utf-8"><style>'
+                + 'html,body{margin:0;height:100%;font-family:system-ui,sans-serif;'
+                + 'background:#001a35;color:#ffffff;display:flex;align-items:center;'
+                + 'justify-content:center;padding:32px;box-sizing:border-box;}'
+                + '.card{max-width:560px;text-align:center;background:rgba(176,196,222,0.05);'
+                + 'border:1px solid rgba(193,161,100,0.4);border-radius:6px;padding:34px 28px;}'
+                + '.eyebrow{color:#f0d060;font-size:11px;letter-spacing:3px;'
+                + 'text-transform:uppercase;margin-bottom:14px;}'
+                + '.title{font-size:18px;line-height:1.4;margin:0 0 14px 0;}'
+                + '.detail{color:#b0c4de;font-size:13px;line-height:1.55;}'
+                + '.code{font-family:monospace;font-size:11px;color:#b0c4de;'
+                + 'background:rgba(255,255,255,0.04);padding:8px 10px;border-radius:3px;'
+                + 'margin-top:16px;display:inline-block;word-break:break-all;}'
+                + '</style></head><body><div class="card">'
+                + '<div class="eyebrow">Form viewer — refused to load</div>'
+                + '<div class="title">The voice agent passed an unverified URL.</div>'
+                + '<div class="detail">' + reason + ' Ask the voice agent to '
+                + 'open the form again — the next request will go through the '
+                + 'normal sign-then-load flow.</div>'
+                + '<div class="code">' + safeUrl + '</div>'
+                + '</div></body></html>';
+            iframe.srcdoc = html;
+            if (placeholder) placeholder.classList.add('hidden');
+        }
+
+        // ElevenLabs custom client tool: display_form
+        // Args (v2.2.55 + cost-fix 9 May 2026):
+        //   view_session_id — short opaque id (~11 chars) returned by
+        //                     request_form_view. The browser fetches
+        //                     /document_analyser/resolve_view_session
+        //                     to retrieve the actual signed pdf_url +
+        //                     cost_url, then sets iframe.src and
+        //                     starts the rolling-token poll.
+        //
+        // Why this is a single-arg tool now:
+        //   Phase 16 telemetry on 9 May 2026 (record_id 5) caught
+        //   Benedict mangling the base64 payload of the original
+        //   signed pdf_url in transit between request_form_view and
+        //   display_form ("AUTOCLAVE_LOG_FAILED_CYCLES" became
+        //   "AUTOCLAVE_LOG_LAVE_FAILED_CYCLES" inside the JWT-style
+        //   payload; signature kept unchanged → HMAC verification
+        //   failed three retries in a row, no recovery possible).
+        //   The architectural fix is to keep long opaque strings out
+        //   of LLM-handled payloads entirely. Now the agent only ever
+        //   handles the 11-char view_session_id, which it copies
+        //   faithfully because there's nothing semantically guessable
+        //   to "smarten up". The signed URLs travel browser->server
+        //   only and never reach the LLM.
+        //
+        // Why this is now async (returns Promise) + debounced:
+        //   Record 7 telemetry showed Benedict double-firing
+        //   display_form for the same view_session_id (cycle 1: same
+        //   second; cycle 2: 8 seconds apart with no user trigger).
+        //   ElevenLabs charges per tool call. The tool registration
+        //   now has expects_response:true + response_timeout_secs:10
+        //   so the LLM waits for our return value before continuing —
+        //   gives it a clear "already done" signal that prevents
+        //   re-firing. Plus a same-id debounce here so a redundant
+        //   call short-circuits without re-fetching / re-loading the
+        //   iframe even if the LLM does try.
+        var lastDisplayFormBy = {};   // map: view_session_id -> { result, timestamp }
+        var DISPLAY_FORM_DEBOUNCE_MS = 30 * 1000;   // 30s
+
+        function displayFormImpl(args) {
+            console.log('[teckel] display_form called with args:', args);
+            args = args || {};
+            var iframe      = document.getElementById('form-viewer');
+            var placeholder = document.getElementById('form-viewer-placeholder');
+
+            var viewSessionId = (args.view_session_id || '').toString().trim();
+            if (!viewSessionId) {
+                console.warn('[teckel] display_form called with NO view_session_id — Benedict likely skipped request_form_view.');
+                showFabricationCard(
+                    'display_form was called without a view session id.',
+                    '(no view_session_id provided)'
+                );
+                return Promise.resolve(
+                    'display_form failed: no view_session_id provided. Ask the user to retry.'
+                );
+            }
+
+            // Sanity check the id shape — should be 8-32 URL-safe
+            // base64 chars (server emits 11). Reject obvious
+            // fabrications like "abc" or full URLs.
+            var idLooksValid = /^[A-Za-z0-9_-]{8,32}$/.test(viewSessionId);
+            if (!idLooksValid) {
+                console.error('[teckel] REFUSED — view_session_id has wrong shape:', viewSessionId);
+                showFabricationCard(
+                    'The view session id did not look like one minted by request_form_view.',
+                    viewSessionId
+                );
+                return Promise.resolve(
+                    'display_form failed: view_session_id "' + viewSessionId
+                    + '" failed shape check. Mint a fresh one via request_form_view.'
+                );
+            }
+
+            // Same-id debounce — if this view_session_id was already
+            // displayed within the last DISPLAY_FORM_DEBOUNCE_MS, return
+            // the cached result instead of re-fetching + re-loading the
+            // iframe. Belt-and-braces against intra-turn double-fire
+            // and inter-turn re-confirmation.
+            var prior = lastDisplayFormBy[viewSessionId];
+            var nowMs = Date.now();
+            if (prior && (nowMs - prior.timestamp) < DISPLAY_FORM_DEBOUNCE_MS) {
+                console.log('[teckel] display_form deduped — same view_session_id within debounce window:', viewSessionId);
+                return Promise.resolve(
+                    'display_form already completed for view_session_id=' + viewSessionId
+                    + '. The iframe is loaded with this form. Do NOT call display_form again with this same id; '
+                    + 'if the user wants to refresh, call request_form_view to mint a new id first.'
+                );
+            }
+
+            var resolveUrl = MCP_BASE.replace(/\/$/, '')
+                + '/document_analyser/resolve_view_session?id='
+                + encodeURIComponent(viewSessionId);
+
+            console.log('[teckel] resolving view_session_id at:', resolveUrl);
+
+            return fetch(resolveUrl, { method: 'GET', credentials: 'omit' })
+                .then(function (resp) {
+                    if (!resp.ok) {
+                        return resp.text().then(function (txt) {
+                            throw new Error('resolve failed: status=' + resp.status + ' body=' + txt);
+                        });
+                    }
+                    return resp.json();
+                })
+                .then(function (data) {
+                    if (!data || !data.success) {
+                        throw new Error('resolve returned non-success: ' + JSON.stringify(data));
+                    }
+                    var pdfUrl  = data.pdf_url;
+                    var costUrl = data.cost_url;
+
+                    // Chain-of-custody — server should only ever
+                    // emit URLs on its own host, but we still
+                    // validate (defence in depth, no overhead).
+                    if (pdfUrl && !isValidTeckelUrl(pdfUrl)) {
+                        console.error('[teckel] REFUSED — resolved pdf_url is not a valid teckel URL:', pdfUrl);
+                        showFabricationCard(
+                            'The resolved pdf URL did not come from the teckel server.',
+                            pdfUrl
+                        );
+                        return 'display_form failed: resolved pdf URL did not come from the teckel server.';
+                    }
+                    if (costUrl && !isValidTeckelUrl(costUrl)) {
+                        console.error('[teckel] REFUSED — resolved cost_url is not a valid teckel URL:', costUrl);
+                        showFabricationCard(
+                            'The resolved cost-meter URL did not come from the teckel server.',
+                            costUrl
+                        );
+                        return 'display_form failed: resolved cost URL did not come from the teckel server.';
+                    }
+
+                    // Wire iframe load + cost poll. Return a Promise
+                    // that resolves once the iframe has loaded (or a
+                    // safety timeout fires) so the LLM gets clear
+                    // "done" feedback before continuing.
+                    return new Promise(function (resolveOuter) {
+                        var alreadyResolved = false;
+                        function finishOnce(msg) {
+                            if (alreadyResolved) return;
+                            alreadyResolved = true;
+                            // Cache only after success — failed loads
+                            // shouldn't suppress retries.
+                            lastDisplayFormBy[viewSessionId] = {
+                                result: msg,
+                                timestamp: Date.now()
+                            };
+                            resolveOuter(msg);
+                        }
+
+                        if (pdfUrl) {
+                            console.log('[teckel] setting iframe.src to:', pdfUrl);
+                            if (iframe) {
+                                iframe.removeAttribute('srcdoc');   // clear any prior fabrication card
+                                iframe.src = pdfUrl;
+                                iframe.addEventListener('load', function () {
+                                    console.log('[teckel] iframe loaded successfully');
+                                    finishOnce(
+                                        'display_form completed: view_session_id=' + viewSessionId
+                                        + ', iframe loaded, cost-poll started. Do NOT call display_form again with this same id.'
+                                    );
+                                }, { once: true });
+                                iframe.addEventListener('error', function (e) {
+                                    console.error('[teckel] iframe load error:', e);
+                                    finishOnce(
+                                        'display_form: iframe load error for view_session_id='
+                                        + viewSessionId + '. Ask the user to retry.'
+                                    );
+                                }, { once: true });
+                            } else {
+                                console.error('[teckel] no element with id="form-viewer" found on page');
+                                finishOnce('display_form failed: no form-viewer element on page.');
+                                return;
+                            }
+                            if (placeholder) placeholder.classList.add('hidden');
+                        } else {
+                            finishOnce(
+                                'display_form: no pdf_url to load (cost-only refresh). '
+                                + 'Cost poll started.'
+                            );
+                        }
+
+                        if (costUrl) {
+                            console.log('[teckel] starting per-instance rolling-token poll at:', costUrl);
+                            startInstanceCostPoll(costUrl);
+                        }
+
+                        // Safety timeout — if iframe load never fires
+                        // (some networks / iframe quirks), resolve at
+                        // 5s so the LLM doesn't hit its 10s timeout.
+                        setTimeout(function () {
+                            finishOnce(
+                                'display_form completed: view_session_id=' + viewSessionId
+                                + ', iframe load event timed out at 5s but src is set; cost-poll started. '
+                                + 'Do NOT call display_form again with this same id.'
+                            );
+                        }, 5000);
+                    });
+                })
+                .catch(function (e) {
+                    console.error('[teckel] display_form resolve failed:', e);
+                    showFabricationCard(
+                        'The form viewer link could not be resolved. The voice agent may need to re-open the form.',
+                        String(e && e.message || e)
+                    );
+                    return 'display_form failed: ' + String(e && e.message || e)
+                        + '. Ask the user to retry; you may need to call request_form_view again.';
+                });
+        }
+
+        // Multi-channel registration — see prior version comments for rationale.
+        window.display_form = displayFormImpl;
+        window.displayForm  = displayFormImpl;
+
+        window.addEventListener('elevenlabs-convai:call', function (event) {
+            try {
+                if (!event || !event.detail || !event.detail.config) {
+                    console.warn('[teckel] elevenlabs-convai:call event fired without config; cannot register clientTools');
+                    return;
+                }
+                event.detail.config.clientTools = event.detail.config.clientTools || {};
+                event.detail.config.clientTools.display_form = displayFormImpl;
+                console.log('[teckel] display_form registered via elevenlabs-convai:call event');
+            } catch (e) {
+                console.error('[teckel] failed to register display_form via event listener', e);
+            }
+        });
+        console.log('[teckel] display_form registered globally (window.display_form + window.displayForm); event-listener registration will fire when widget initialises');
+
+        // ElevenLabs custom client tool: update_avatar (existing)
+        // Place your existing avatar-swap handler here when re-introducing
+        // the inter-agent transfer flow (currently disabled in the
+        // document analyser deployment).
+    })();
+    </script>
+</body>
+</html>
