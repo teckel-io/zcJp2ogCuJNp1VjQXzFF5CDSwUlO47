@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<!--
+  teckel Document Analyser — ACCOUNT SETTINGS page (Phase 4b, v2.2.175).
+  Post-authentication practice settings menu, opened via the signed settings link
+  minted by get_settings_link (scope="settings", wallet-bound, short TTL).
+
+  Flow:
+    POST {API_BASE}/document_analyser/get_current_settings   (JSON: settings_token)
+    POST {API_BASE}/document_analyser/submit_setting         (JSON: settings_token, setting, value)
+    POST {API_BASE}/document_analyser/submit_setting_asset   (multipart: settings_token, setting, file)
+  No Bearer; the signed token IS the authority. Server-side the flag
+  DOCUMENT_ANALYSER_SETTINGS_MENU gates everything.
+
+  Self-contained: no external assets, everything inline, all dynamic text escaped.
+  Deployed as settings.html to each tenant's GitHub Pages repo (this MASTER is the source).
+  Degrades gracefully when the server predates 2.2.175 (reader/asset endpoints 404 →
+  the page still allows the admin-email change, which is live since 2.2.173).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Account Settings — teckel</title>
+<style>
+  /* Visual language matches the portal (index.html / guide.html): deep navy, gold + steel
+     accents, translucent steel cards, system-ui. Single committed dark theme (no light mode). */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy:        #002349;
+    --navy-deep:   #001a35;
+    --steel:       #b0c4de;
+    --gold:        #f0d060;
+    --white:       #ffffff;
+    --card-bg:     rgba(176, 196, 222, 0.05);
+    --card-border: rgba(176, 196, 222, 0.18);
+    --note-bg:     rgba(255, 200, 0, 0.08);
+  }
+  html, body {
+    background-color: var(--navy); color: var(--white);
+    font-family: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    min-height: 100vh; -webkit-font-smoothing: antialiased; line-height: 1.5;
+  }
+  /* ---- Header band (matches index.html / guide.html) ---- */
+  header.site-header {
+    background-color: var(--navy-deep); padding: 18px 24px;
+    border-bottom: 1px solid var(--card-border);
+    display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  }
+  header.site-header .eyebrow {
+    color: var(--gold); font-size: 11px; font-weight: 600;
+    letter-spacing: 2.5px; text-transform: uppercase;
+  }
+  header.site-header .practice-info { text-align: right; }
+  header.site-header .practice-name { color: var(--white); font-size: 22px; font-weight: 600; letter-spacing: 0.3px; }
+  header.site-header .practice-sub  { color: var(--steel); font-size: 13px; margin-top: 2px; }
+
+  .wrap { max-width: 640px; margin: 40px auto; padding: 0 24px 48px; }
+  .card { background-color: var(--card-bg); border: 1px solid var(--card-border);
+          border-radius: 14px; padding: 22px; margin-bottom: 16px; }
+  h1 { font-size: 26px; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.3px; }
+  h2 { font-size: 20px; font-weight: 600; margin-bottom: 10px; color: var(--white);
+       border-bottom: 1px solid var(--card-border); padding-bottom: 8px; letter-spacing: 0.2px; }
+  p.sub { margin-bottom: 8px; color: var(--steel); font-size: .95rem; }
+  label { display: block; font-size: .78rem; color: var(--steel); letter-spacing: .5px;
+          text-transform: uppercase; margin: 12px 0 5px; }
+  input[type=email], input[type=text] {
+    width: 100%; padding: 11px 13px; border-radius: 9px;
+    border: 1px solid var(--card-border); background-color: rgba(176, 196, 222, 0.06);
+    color: var(--white); font-size: 1rem; font-family: inherit;
+  }
+  input[type=email]:focus, input[type=text]:focus { outline: none; border-color: var(--gold); }
+  input::placeholder { color: var(--steel); opacity: .55; }
+  input[disabled] { opacity: .5; }
+  /* Primary action = gold-filled (the portal's strong accent) */
+  .btn { display: inline-block; margin-top: 14px; background-color: var(--gold); color: var(--navy);
+         border: 0; border-radius: 9px; padding: 11px 20px; font-size: .95rem; font-weight: 700;
+         font-family: inherit; letter-spacing: .3px; cursor: pointer; transition: opacity .15s; }
+  .btn:hover { opacity: .88; }
+  .btn[disabled] { opacity: .5; cursor: default; }
+  /* Secondary action = gold-outline (matches the portal's nav links) */
+  .filebtn { display: inline-block; margin-top: 10px; color: var(--gold);
+             border: 1px solid rgba(240, 208, 96, 0.4); border-radius: 6px; padding: 9px 16px;
+             cursor: pointer; font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+             text-transform: uppercase; transition: border-color .15s, background-color .15s; }
+  .filebtn:hover { border-color: var(--gold); background-color: rgba(240, 208, 96, 0.08); }
+  input[type=file] { display: none; }
+  .msg { margin-top: 12px; padding: 11px 13px; border-radius: 9px; font-size: .93rem; display: none; }
+  .msg.show { display: block; }
+  .msg.ok   { background-color: rgba(120, 220, 150, 0.12); color: #86e0a6; border: 1px solid rgba(120, 220, 150, 0.25); }
+  .msg.err  { background-color: rgba(230, 120, 120, 0.12); color: #f3a3a3; border: 1px solid rgba(230, 120, 120, 0.25); }
+  .msg.info { background-color: var(--note-bg); color: var(--steel); border: 1px solid var(--card-border); }
+  .row { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: .93rem; color: var(--white); }
+  .row input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--gold); }
+  .soon { font-size: .68rem; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;
+          background-color: var(--note-bg); color: var(--gold); border-radius: 5px; padding: 3px 9px; vertical-align: middle; }
+  .thumb { max-height: 46px; max-width: 180px; display: block; margin-top: 10px; border-radius: 6px; border: 1px solid var(--card-border); }
+  .foot { text-align: center; margin-top: 24px; font-size: .75rem; color: var(--steel); opacity: .6; letter-spacing: .5px; }
+  @media (max-width: 560px) {
+    header.site-header { padding: 14px 18px; }
+    header.site-header .practice-name { font-size: 18px; }
+    .wrap { margin: 24px auto; }
+  }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="eyebrow">teckel &middot; document analyser</div>
+  <div class="practice-info">
+    <div class="practice-name" id="hdrPracticeName">Practice Portal</div>
+    <div class="practice-sub">Account settings &middot; secure &amp; private</div>
+  </div>
+</header>
+<div class="wrap">
+  <div class="card">
+    <h1>Account Settings</h1>
+    <p class="sub">Private to your practice. Changes here apply to your whole account.</p>
+    <div class="msg info" id="pageMsg"></div>
+  </div>
+
+  <div class="card" id="emailCard">
+    <h2>Admin email</h2>
+    <p class="sub">Where Benedict sends your completed forms, reports and links.</p>
+    <label for="adminEmail">Practice admin email</label>
+    <input type="email" id="adminEmail" autocomplete="email" placeholder="you@yourpractice.co.uk">
+    <button class="btn" id="saveEmail">Save email</button>
+    <div class="msg" id="emailMsg"></div>
+  </div>
+
+  <div class="card" id="logoCard">
+    <h2>Practice logo</h2>
+    <p class="sub">Shown on your rendered forms and letterhead. PNG or JPG, up to 2&nbsp;MB.</p>
+    <img id="logoThumb" class="thumb" alt="Current practice logo" style="display:none">
+    <label class="filebtn" for="logoFile">Choose logo…</label>
+    <input type="file" id="logoFile" accept=".png,.jpg,.jpeg">
+    <div class="row"><input type="checkbox" id="logoOnForms"><label for="logoOnForms" style="margin:0">Show on rendered forms</label></div>
+    <div class="row"><input type="checkbox" id="logoOnBanner"><label for="logoOnBanner" style="margin:0">Show on the website banner</label></div>
+    <div class="msg" id="logoMsg"></div>
+  </div>
+
+  <div class="card" id="favCard">
+    <h2>Favicon</h2>
+    <p class="sub">The little browser-tab icon for your practice portal. ICO or PNG, up to 2&nbsp;MB.</p>
+    <label class="filebtn" for="favFile">Choose favicon…</label>
+    <input type="file" id="favFile" accept=".ico,.png">
+    <div class="msg" id="favMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>Practice name <span class="soon">portal display coming soon</span></h2>
+    <!-- 25 Jul 2026: the old copy ("Renaming your practice across your portal is nearly
+         ready") read as "nothing works yet" to a user who had ALREADY renamed by voice —
+         their name saves to practice_profile and DOES appear on letterhead and submitted
+         forms. Only the name shown on the portal website itself is still pending (U7). Say
+         exactly that, and point at the channel that actually works today. -->
+    <p class="sub">Your practice name is already used on your letterhead and submitted
+       forms — just ask Benedict to change it by voice. Updating the name shown on this
+       portal website is coming soon.</p>
+    <input type="text" id="practiceName" disabled placeholder="">
+  </div>
+
+  <div class="foot">teckel Document Analyser — secure settings</div>
+</div>
+
+<script>
+"use strict";
+var API_BASE  = "https://mcp2.bh.tkllabs.io:9779";
+var READ_URL  = API_BASE + "/document_analyser/get_current_settings";
+var SET_URL   = API_BASE + "/document_analyser/submit_setting";
+var ASSET_URL = API_BASE + "/document_analyser/submit_setting_asset";
+var MAX_BYTES = 2 * 1024 * 1024;
+
+var token = new URLSearchParams(location.search).get("token") || "";
+
+function el(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/[&<>"']/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function showMsg(id, kind, text){
+  var m = el(id); m.className = "msg show " + kind; m.innerHTML = esc(text);
+}
+function hideMsg(id){ el(id).className = "msg"; }
+function userMessageFrom(xhr, fallback){
+  var body = {};
+  try { body = JSON.parse(xhr.responseText || "{}"); } catch (e) {}
+  var d = body.detail || body;
+  return (d && d.envelope && d.envelope.user_message) || (d && d.user_message) ||
+         (body && body.message) || fallback;
+}
+
+// --- Token presence / client-side expiry (same pattern as upload.html) ---
+function b64urlDecode(s){ s = s.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; return atob(s); }
+function tokenExpired(t){
+  try { var p = JSON.parse(b64urlDecode(t.split(".")[0])); return typeof p.exp === "number" && (p.exp * 1000) < Date.now(); }
+  catch (e) { return false; }   // undecodable → let the server decide
+}
+function disablePage(text){
+  showMsg("pageMsg", "err", text);
+  ["adminEmail","saveEmail","logoFile","favFile","logoOnForms","logoOnBanner"].forEach(function(id){
+    var n = el(id); if (n) n.disabled = true;
+  });
+  document.querySelectorAll(".filebtn").forEach(function(n){ n.style.pointerEvents = "none"; n.style.opacity = ".5"; });
+}
+if (!token){
+  disablePage("This settings link is missing its security code. Please ask Benedict for a new settings link.");
+} else if (tokenExpired(token)) {
+  disablePage("This settings link has expired. Just ask Benedict for a new settings link — it only takes a moment.");
+}
+
+// --- Load current values (best-effort; a 404 means the server predates the reader) ---
+var suppressToggleEvents = true;
+function loadCurrent(){
+  if (!token || tokenExpired(token)) return;
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", READ_URL, true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.onload = function(){
+    if (xhr.status >= 200 && xhr.status < 300){
+      var s = {};
+      try { s = (JSON.parse(xhr.responseText || "{}").settings) || {}; } catch (e) {}
+      if (s.admin_email) el("adminEmail").value = s.admin_email;
+      if (s.practice_name) { el("practiceName").placeholder = s.practice_name; el("hdrPracticeName").textContent = s.practice_name; }
+      if (s.logo_ref){ el("logoThumb").src = s.logo_ref; el("logoThumb").style.display = "block"; }
+      el("logoOnForms").checked  = (s.logo_on_forms  !== false);
+      el("logoOnBanner").checked = (s.logo_on_banner !== false);
+      suppressToggleEvents = false;
+    } else {
+      // Older server or transient trouble: the page still works, fields just start blank.
+      showMsg("pageMsg", "info",
+        "Couldn't load your current values just now — you can still make changes below.");
+      suppressToggleEvents = false;
+    }
+  };
+  xhr.onerror = function(){
+    showMsg("pageMsg", "info",
+      "Couldn't load your current values just now — you can still make changes below.");
+    suppressToggleEvents = false;
+  };
+  xhr.send(JSON.stringify({ settings_token: token }));
+}
+loadCurrent();
+
+// --- Admin email ---
+el("saveEmail").addEventListener("click", function(){
+  var v = (el("adminEmail").value || "").trim();
+  hideMsg("emailMsg");
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){
+    showMsg("emailMsg", "err", "That doesn't look like a complete email address. Please check it.");
+    return;
+  }
+  el("saveEmail").disabled = true;
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", SET_URL, true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.onload = function(){
+    el("saveEmail").disabled = false;
+    if (xhr.status >= 200 && xhr.status < 300){
+      showMsg("emailMsg", "ok", userMessageFrom(xhr, "Saved — your admin email is updated."));
+    } else {
+      showMsg("emailMsg", "err", userMessageFrom(xhr, "Sorry, that didn't save. Please try again."));
+    }
+  };
+  xhr.onerror = function(){
+    el("saveEmail").disabled = false;
+    showMsg("emailMsg", "err", "Couldn't reach the server. Please check your connection and try again.");
+  };
+  xhr.send(JSON.stringify({ settings_token: token, setting: "admin_email", value: v }));
+});
+
+// --- Asset uploads (logo / favicon) ---
+function uploadAsset(fileInputId, setting, msgId, allowedExts){
+  var f = el(fileInputId).files[0];
+  if (!f) return;
+  hideMsg(msgId);
+  var ext = (f.name.lastIndexOf(".") >= 0 ? f.name.slice(f.name.lastIndexOf(".") + 1) : "").toLowerCase();
+  if (ext === "jpeg") ext = "jpg";
+  if (allowedExts.indexOf(ext) === -1){
+    showMsg(msgId, "err", "That file type isn't accepted here. Allowed: " + allowedExts.join(", ").toUpperCase() + ".");
+    return;
+  }
+  if (f.size > MAX_BYTES){
+    showMsg(msgId, "err", "That file is too large. Please choose an image under 2 MB.");
+    return;
+  }
+  showMsg(msgId, "info", "Uploading…");
+  var fd = new FormData();
+  fd.append("settings_token", token);
+  fd.append("setting", setting);
+  fd.append("file", f, f.name);
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", ASSET_URL, true);
+  xhr.onload = function(){
+    if (xhr.status >= 200 && xhr.status < 300){
+      showMsg(msgId, "ok", userMessageFrom(xhr, "Uploaded."));
+      if (setting === "logo"){
+        try {
+          var u = (JSON.parse(xhr.responseText || "{}").url) || "";
+          if (u){ el("logoThumb").src = u + "?v=" + Date.now(); el("logoThumb").style.display = "block"; }
+        } catch (e) {}
+      }
+    } else if (xhr.status === 404){
+      showMsg(msgId, "err", "This upload isn't switched on for your account just yet — it's coming very soon.");
+    } else {
+      showMsg(msgId, "err", userMessageFrom(xhr, "Sorry, that didn't upload. Please try again."));
+    }
+  };
+  xhr.onerror = function(){
+    showMsg(msgId, "err", "Couldn't reach the server. Please check your connection and try again.");
+  };
+  xhr.send(fd);
+}
+el("logoFile").addEventListener("change", function(){ uploadAsset("logoFile", "logo", "logoMsg", ["png","jpg"]); });
+el("favFile").addEventListener("change", function(){ uploadAsset("favFile", "favicon", "favMsg", ["ico","png"]); });
+
+// --- Display toggles ---
+function saveToggle(setting, checked, msgId){
+  if (suppressToggleEvents) return;
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", SET_URL, true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.onload = function(){
+    if (xhr.status >= 200 && xhr.status < 300){
+      showMsg(msgId, "ok", userMessageFrom(xhr, "Preference saved."));
+    } else {
+      showMsg(msgId, "err", userMessageFrom(xhr, "Couldn't save that preference just now."));
+    }
+  };
+  xhr.onerror = function(){ showMsg(msgId, "err", "Couldn't reach the server just now."); };
+  xhr.send(JSON.stringify({ settings_token: token, setting: setting, value: checked ? "true" : "false" }));
+}
+el("logoOnForms").addEventListener("change", function(){ saveToggle("logo_on_forms",  el("logoOnForms").checked,  "logoMsg"); });
+el("logoOnBanner").addEventListener("change", function(){ saveToggle("logo_on_banner", el("logoOnBanner").checked, "logoMsg"); });
+</script>
+</body>
+</html>
