@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>s21 adv test — Management Portal</title>
+    <title>Dental Dynamo — Management Portal</title>
 
     <!--
     =====================================================================
@@ -377,7 +377,7 @@
             <a href="guide.html">User Guide</a>
         </nav>
         <div class="practice-info">
-            <div class="practice-name">s21 adv test</div>
+            <div class="practice-name">Dental Dynamo</div>
             <div class="practice-sub"></div>
         </div>
     </header>
@@ -420,7 +420,7 @@
         <div class="right-pane">
             <div class="title-bar">
                 <div class="title-block">
-                    <div class="h1">s21 adv test — Management Portal</div>
+                    <div class="h1">Dental Dynamo — Management Portal</div>
                     <div class="h2">Compliance documents &middot; voice-driven workflow</div>
                 </div>
                 <div class="cost-meter">
@@ -1100,9 +1100,91 @@
                 });
         }
 
+        // ElevenLabs custom client tool: display_upload_link (Phase 4a, 21 Jul 2026)
+        // Loads the practice's evidence-upload page in the form iframe so they can drag a
+        // file in right here, next to Benedict. `upload_url` is the signed URL returned by
+        // get_upload_link. Same anti-fabrication discipline as display_form: only ever load
+        // a teckel Pages upload.html URL — never an agent-fabricated one.
+        var lastUploadShown = { url: null, ts: 0 };
+        var UPLOAD_LINK_DEBOUNCE_MS = 30 * 1000;
+        function isValidUploadUrl(url) {
+            if (!url || typeof url !== 'string') return false;
+            return /^https:\/\/teckel-io\.github\.io\/[^?#]*upload\.html\?token=[^\s]+$/.test(url);
+        }
+        function displayUploadLinkImpl(args) {
+            console.log('[teckel] display_upload_link called with args:', args);
+            args = args || {};
+            var iframe      = document.getElementById('form-viewer');
+            var placeholder = document.getElementById('form-viewer-placeholder');
+            var url = (args.upload_url || '').toString().trim();
+            if (!isValidUploadUrl(url)) {
+                showFabricationCard(
+                    'display_upload_link was called with a URL that is not a teckel upload page.',
+                    url || '(no upload_url provided)');
+                return Promise.resolve(
+                    'display_upload_link failed: upload_url did not look like a teckel upload page. '
+                    + 'Call get_upload_link first and pass its upload_url through UNCHANGED.');
+            }
+            var nowMs = Date.now();
+            if (lastUploadShown.url === url && (nowMs - lastUploadShown.ts) < UPLOAD_LINK_DEBOUNCE_MS) {
+                return Promise.resolve(
+                    'display_upload_link already showed this upload page. Do NOT call it again for the same link.');
+            }
+            if (!iframe) return Promise.resolve('display_upload_link failed: no form-viewer element on page.');
+            lastUploadShown = { url: url, ts: nowMs };
+            iframe.src = url;
+            if (placeholder) placeholder.classList.add('hidden');
+            console.log('[teckel] display_upload_link loaded the upload page in the iframe');
+            return Promise.resolve(
+                'display_upload_link completed: the upload page is on screen now. Tell the user to drag '
+                + 'their file into it. NEVER claim the file is attached until they confirm the page said it uploaded.');
+        }
+
+        // ElevenLabs custom client tool: display_settings_link (Phase 4b, 22 Jul 2026)
+        // Loads the practice's Account Settings page in the form iframe. `settings_url` is
+        // the signed URL returned by get_settings_link. Same anti-fabrication discipline:
+        // only ever load a teckel Pages settings.html URL — never an agent-fabricated one.
+        var lastSettingsShown = { url: null, ts: 0 };
+        var SETTINGS_LINK_DEBOUNCE_MS = 30 * 1000;
+        function isValidSettingsUrl(url) {
+            if (!url || typeof url !== 'string') return false;
+            return /^https:\/\/teckel-io\.github\.io\/[^?#]*settings\.html\?token=[^\s]+$/.test(url);
+        }
+        function displaySettingsLinkImpl(args) {
+            console.log('[teckel] display_settings_link called with args:', args);
+            args = args || {};
+            var iframe      = document.getElementById('form-viewer');
+            var placeholder = document.getElementById('form-viewer-placeholder');
+            var url = (args.settings_url || '').toString().trim();
+            if (!isValidSettingsUrl(url)) {
+                showFabricationCard(
+                    'display_settings_link was called with a URL that is not a teckel settings page.',
+                    url || '(no settings_url provided)');
+                return Promise.resolve(
+                    'display_settings_link failed: settings_url did not look like a teckel settings page. '
+                    + 'Call get_settings_link first and pass its settings_url through UNCHANGED.');
+            }
+            var nowMs = Date.now();
+            if (lastSettingsShown.url === url && (nowMs - lastSettingsShown.ts) < SETTINGS_LINK_DEBOUNCE_MS) {
+                return Promise.resolve(
+                    'display_settings_link already showed this settings page. Do NOT call it again for the same link.');
+            }
+            if (!iframe) return Promise.resolve('display_settings_link failed: no form-viewer element on page.');
+            lastSettingsShown = { url: url, ts: nowMs };
+            iframe.src = url;
+            if (placeholder) placeholder.classList.add('hidden');
+            console.log('[teckel] display_settings_link loaded the settings page in the iframe');
+            return Promise.resolve(
+                'display_settings_link completed: the Account Settings page is on screen now. Tell the user '
+                + 'they can update their admin email or logo there. NEVER claim a setting changed until the '
+                + 'user confirms the page said it saved.');
+        }
+
         // Multi-channel registration — see prior version comments for rationale.
         window.display_form = displayFormImpl;
         window.displayForm  = displayFormImpl;
+        window.display_upload_link = displayUploadLinkImpl;
+        window.display_settings_link = displaySettingsLinkImpl;
 
         window.addEventListener('elevenlabs-convai:call', function (event) {
             try {
@@ -1112,7 +1194,9 @@
                 }
                 event.detail.config.clientTools = event.detail.config.clientTools || {};
                 event.detail.config.clientTools.display_form = displayFormImpl;
-                console.log('[teckel] display_form registered via elevenlabs-convai:call event');
+                event.detail.config.clientTools.display_upload_link = displayUploadLinkImpl;
+                event.detail.config.clientTools.display_settings_link = displaySettingsLinkImpl;
+                console.log('[teckel] display_form + display_upload_link + display_settings_link registered via elevenlabs-convai:call event');
             } catch (e) {
                 console.error('[teckel] failed to register display_form via event listener', e);
             }
