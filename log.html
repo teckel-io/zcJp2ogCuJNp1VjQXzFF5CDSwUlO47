@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  teckel Document Analyser — Log self-fill page (v2.2.146, 3 Jul 2026)
+  ============================================================================
+  A signed-link page where a practice user fills ONE column-log entry (e.g. a
+  20-field reception security checklist) on the web instead of by voice. ONE
+  submission = ONE dated log entry (append_log_entry) — no LLM in the loop.
+  The voice agent OFFERS this link as a user-choosable option for long logs
+  (Steven, 3 Jul: a 20-field log ≈ £13 by voice vs pennies here).
+
+  CONTRACT (two public server endpoints, token-only auth — v2.2.146):
+    GET  {API_BASE}/document_analyser/log_fill_schema?token=<JWT>
+         -> 200 { success, form_title, entry_count,
+                  fields:[ {key, label, is_pii:bool} ] }
+         -> 4xx { success:false, user_message }   (expired / invalid link)
+    POST {API_BASE}/document_analyser/submit_log_fill
+         body { token:<JWT>, values:{ <field key>: <value string> } }
+         -> 200 { success:true, entry_count, fields_filled, fields_blank }
+         -> 4xx/soft { success:false, user_message }
+
+  The <JWT> is the HMAC-signed scope="fill" token minted by get_log_fill_link.
+  PII fields are clearly optional (GDPR): blank is always allowed. Same
+  escaping discipline as survey.html (esc() before every innerHTML).
+
+  Per-tenant placeholders (filled by provisioning / deploy):
+      Dental Dynamo      -> e.g. "Your Dental Practice"   (appears twice)
+        -> e.g. "123 High Street, Town · Dr A. Example"
+-->
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Compliance Log · Dental Dynamo</title>
+  <style>
+    :root{ --navy:#002349; --navy-deep:#001a37; --gold:#f0d060; --card:#ffffff;
+           --ink:#10243d; --muted:#5b6b7d; --line:#d8e0ea; --ok:#1c7c44; --err:#b3261e; }
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+          background:var(--navy); color:var(--ink); line-height:1.5; }
+    header{ background:var(--navy-deep); color:#fff; padding:18px 20px; text-align:center; }
+    header .practice{ font-size:20px; font-weight:700; letter-spacing:.2px; }
+    header .sub{ font-size:13px; opacity:.8; margin-top:2px; }
+    .wrap{ max-width:680px; margin:0 auto; padding:20px 16px 60px; }
+    .card{ background:var(--card); border-radius:14px; padding:22px 20px; margin-top:18px;
+           box-shadow:0 6px 24px rgba(0,0,0,.18); }
+    h1{ font-size:21px; margin:4px 0 6px; }
+    .intro{ color:var(--muted); font-size:14px; margin-bottom:6px; }
+    .allyes{ margin:12px 0 2px; }
+    .allyes button{ background:#eef3f8; color:var(--navy); border:1px solid var(--line);
+          border-radius:10px; padding:9px 14px; font-size:14px; font-weight:600; cursor:pointer; }
+    .allyes button:hover{ border-color:var(--navy); }
+    .q{ padding:14px 0; border-top:1px solid var(--line); }
+    .q:first-of-type{ border-top:none; }
+    .q .label{ font-weight:600; font-size:15px; }
+    .q .pii{ display:inline-block; font-size:12px; color:var(--muted); font-weight:500;
+             background:#eef3f8; border-radius:999px; padding:2px 10px; margin-left:8px; }
+    .row{ display:flex; gap:8px; margin-top:9px; align-items:center; }
+    .row input[type=text]{ flex:1; padding:10px 12px; border:1px solid var(--line);
+          border-radius:10px; font-size:15px; font-family:inherit; min-width:0; }
+    .chip{ background:#eef3f8; border:1px solid var(--line); border-radius:999px;
+          padding:8px 14px; font-size:14px; cursor:pointer; user-select:none; }
+    .chip:hover{ border-color:var(--navy); }
+    .hint{ font-size:12px; color:var(--muted); margin-top:6px; }
+    .actions{ margin-top:22px; }
+    button.submit{ width:100%; background:var(--navy); color:#fff; border:none; border-radius:12px;
+          padding:15px; font-size:16px; font-weight:600; cursor:pointer; }
+    button.submit:disabled{ opacity:.55; cursor:default; }
+    .msg{ text-align:center; padding:30px 18px; }
+    .msg .big{ font-size:40px; }
+    .msg h2{ margin:10px 0 4px; }
+    .msg p{ color:var(--muted); }
+    .err{ color:var(--err); font-size:14px; margin-top:12px; text-align:center; }
+    .warn{ color:var(--err); font-size:14px; margin-top:12px; text-align:center; }
+    .skel{ color:var(--muted); text-align:center; padding:30px; }
+    footer{ text-align:center; color:#9fb2c6; font-size:12px; padding:14px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="practice">Dental Dynamo</div>
+    <div class="sub"></div>
+  </header>
+  <div class="wrap">
+    <div class="card" id="root">
+      <div class="skel" id="loading">Loading your log…</div>
+    </div>
+  </div>
+  <footer>© teckel.io · one submission records one dated log entry</footer>
+
+  <script>
+    // ---- config -----------------------------------------------------------
+    const API_BASE = "https://mcp2.bh.tkllabs.io:9779";
+    const SCHEMA_URL = API_BASE + "/document_analyser/log_fill_schema";
+    const SUBMIT_URL = API_BASE + "/document_analyser/submit_log_fill";
+
+    const root = document.getElementById("root");
+    const token = new URLSearchParams(location.search).get("token") || "";
+
+    const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
+      c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+
+    function showError(message){
+      root.innerHTML =
+        '<div class="msg"><div class="big">⚠️</div><h2>This link can\'t be opened</h2>' +
+        '<p>' + esc(message || "The link may have expired. Please ask the practice for a new one.") + '</p></div>';
+    }
+    function showThanks(data){
+      const n = (data && typeof data.entry_count === "number") ? data.entry_count : null;
+      root.innerHTML =
+        '<div class="msg"><div class="big">✅</div><h2>Entry recorded</h2>' +
+        '<p>Your log entry has been saved' + (n ? ' — the log now holds ' + n + ' entr' + (n === 1 ? 'y' : 'ies') : '') +
+        '.</p></div>';
+    }
+
+    // ---- render -----------------------------------------------------------
+    let FIELDS = [];
+    let pendingConfirm = false;   // partial-submit double-press guard
+
+    function renderForm(schema){
+      FIELDS = schema.fields || [];
+      let html = '<h1>' + esc(schema.form_title || "Compliance log") + '</h1>' +
+                 '<div class="intro">Fill in today\'s entry below. Fields marked optional can be left blank.</div>' +
+                 '<div class="allyes"><button type="button" id="allYes">Set every empty field to “Yes”</button>' +
+                 '<div class="hint">Handy for checklists — you can still change any field afterwards.</div></div>' +
+                 '<form id="f">';
+      FIELDS.forEach((q, i) => {
+        const label = esc((q.label || "").replace(/[:?]\s*$/, ""));
+        html += '<div class="q"><div class="label">' + label +
+                (q.is_pii ? '<span class="pii">optional</span>' : '') + '</div>' +
+                '<div class="row">' +
+                '<input type="text" data-idx="' + i + '" autocomplete="off" placeholder="' +
+                (q.is_pii ? 'Optional — you may leave this blank' : 'Your answer') + '">' +
+                '<span class="chip" data-fill="' + i + '" data-v="Yes">Yes</span>' +
+                '<span class="chip" data-fill="' + i + '" data-v="No">No</span>' +
+                '</div>' +
+                (q.is_pii ? '<div class="hint">Optional. Under GDPR you do not have to provide this.</div>' : '') +
+                '</div>';
+      });
+      html += '<div class="actions"><button class="submit" type="submit">Save this log entry</button>' +
+              '<div class="warn" id="formWarn" style="display:none"></div>' +
+              '<div class="err" id="formErr" style="display:none"></div></div></form>';
+      root.innerHTML = html;
+
+      root.querySelectorAll('.chip').forEach(ch => ch.addEventListener('click', () => {
+        const inp = root.querySelector('input[data-idx="' + ch.dataset.fill + '"]');
+        if (inp){ inp.value = ch.dataset.v; }
+        pendingConfirm = false;
+      }));
+      document.getElementById("allYes").addEventListener("click", () => {
+        FIELDS.forEach((q, i) => {
+          const inp = root.querySelector('input[data-idx="' + i + '"]');
+          if (inp && !inp.value.trim() && !q.is_pii){ inp.value = "Yes"; }
+        });
+        pendingConfirm = false;
+      });
+      root.querySelectorAll('input[data-idx]').forEach(inp =>
+        inp.addEventListener('input', () => { pendingConfirm = false; }));
+      document.getElementById("f").addEventListener("submit", onSubmit);
+    }
+
+    function collectValues(){
+      const values = {};
+      FIELDS.forEach((q, i) => {
+        const inp = root.querySelector('input[data-idx="' + i + '"]');
+        values[q.key] = inp ? (inp.value || "").trim() : "";
+      });
+      return values;
+    }
+
+    async function onSubmit(e){
+      e.preventDefault();
+      const btn = root.querySelector("button.submit");
+      const errEl = document.getElementById("formErr");
+      const warnEl = document.getElementById("formWarn");
+      errEl.style.display = "none";
+      const values = collectValues();
+      const blanks = FIELDS.filter(q => !values[q.key] && !q.is_pii).map(q => q.label);
+      if (blanks.length && !pendingConfirm){
+        warnEl.textContent = blanks.length + " field" + (blanks.length === 1 ? " is" : "s are") +
+          " still blank: " + blanks.slice(0, 8).join(", ") + (blanks.length > 8 ? "…" : "") +
+          ". Press “Save this log entry” again to save with those left blank.";
+        warnEl.style.display = "block";
+        pendingConfirm = true;
+        return;
+      }
+      warnEl.style.display = "none";
+      btn.disabled = true; btn.textContent = "Saving…";
+      try{
+        const r = await fetch(SUBMIT_URL, {
+          method:"POST", headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ token, values })
+        });
+        const data = await r.json().catch(() => ({}));
+        if (r.ok && data.success){ showThanks(data); return; }
+        errEl.textContent = data.user_message || "Something went wrong — please check your answers and try again.";
+        errEl.style.display = "block";
+      }catch(_){
+        errEl.textContent = "Network error — please try again.";
+        errEl.style.display = "block";
+      }
+      btn.disabled = false; btn.textContent = "Save this log entry";
+      pendingConfirm = false;
+    }
+
+    // ---- boot -------------------------------------------------------------
+    (async function(){
+      if (!token){ showError("This link is missing its security token."); return; }
+      try{
+        const r = await fetch(SCHEMA_URL + "?token=" + encodeURIComponent(token));
+        const data = await r.json().catch(() => ({}));
+        if (r.ok && data.success && Array.isArray(data.fields)){ renderForm(data); return; }
+        showError(data.user_message);
+      }catch(_){
+        showError("We couldn't load the log just now. Please try again shortly.");
+      }
+    })();
+  </script>
+</body>
+</html>
