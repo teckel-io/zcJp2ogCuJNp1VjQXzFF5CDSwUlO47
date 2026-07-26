@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Guide &middot; s21 adv test — Management Portal</title>
+    <title>User Guide &middot; Dental Dynamo — Management Portal</title>
 
     <!--
     =====================================================================
@@ -232,6 +232,14 @@
             border-color: var(--gold);
             background-color: rgba(240, 208, 96, 0.08);
         }
+        /* In-content external links (e.g. the support page) — gold to stay
+           readable on the navy background; underlined to signal clickability. */
+        main.guide-shell a.ext-link {
+            color: var(--gold);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+        main.guide-shell a.ext-link:hover { color: var(--white); }
 
         footer.site-footer {
             background-color: var(--navy-deep);
@@ -277,7 +285,7 @@
             <a href="index.html">&larr; Back to portal</a>
         </nav>
         <div class="practice-info">
-            <div class="practice-name">s21 adv test</div>
+            <div class="practice-name">Dental Dynamo</div>
             <div class="practice-sub"></div>
         </div>
     </header>
@@ -287,10 +295,10 @@
         <div class="eyebrow">User Guide</div>
         <h1>Benedict &mdash; User Guide &amp; Best Practices</h1>
         <p class="lede">
-            Benedict is your voice compliance assistant. He listens, fills in your forms,
-            shows them on screen, and emails the finished PDF when you&rsquo;re done.
-            He&rsquo;s quick, usually inexpensive, and a few simple habits will keep
-            every session accurate, fast, and cheap.
+            Benedict is your voice compliance assistant. He listens (you can type, too),
+            fills in your forms, shows them on screen, and emails the finished paperwork
+            when you&rsquo;re done. He&rsquo;s quick, and a few simple habits will keep
+            every session accurate, fast, and as inexpensive as possible.
         </p>
 
         <!-- ============================================================
@@ -300,12 +308,14 @@
         <section>
             <h2>Getting started</h2>
             <p>
-                Open your practice&rsquo;s Benedict page in your browser. You&rsquo;ll
-                see two things side by side:
+                Open your practice&rsquo;s Benedict page in your browser. (The URL was
+                created for you and emailed to you from &ldquo;no_reply@teckel.io&rdquo;
+                when you first created your practice&rsquo;s Benedict in the teckel
+                App.) You&rsquo;ll see two things side by side:
             </p>
             <ul>
                 <li><strong>On the left:</strong> the Benedict voice widget &mdash; your way to talk to him.</li>
-                <li><strong>On the right:</strong> the form viewer (currently empty) and a running cost meter at the top.</li>
+                <li><strong>On the right:</strong> the form viewer (currently empty). Your session cost appears at the top once the session ends.</li>
             </ul>
             <p>
                 To start, click the Benedict widget once and allow microphone access if
@@ -313,18 +323,34 @@
                 word. Try <em>&ldquo;hi Benedict&rdquo;</em>, <em>&ldquo;I want to fill in a form&rdquo;</em>,
                 or <em>&ldquo;open the Crown consent.&rdquo;</em>
             </p>
+            <h3>Your access code</h3>
+            <p>
+                Benedict will first ask for your <strong>six-digit access code</strong>.
+                Open the teckel App on your phone, navigate to your Account with your
+                teckel credit (tc) balance, tap &ldquo;Generate Access Code&rdquo;
+                (a popup will appear at the bottom of your phone screen with your
+                temporary six digit PIN), and read it out loud to Benedict (or type
+                it). PIN codes are single-use and expire after a short while &mdash;
+                that&rsquo;s what keeps your practice&rsquo;s records locked to your team.
+            </p>
+            <h3>Prefer to type?</h3>
+            <p>
+                The widget accepts <strong>typed messages during a voice call</strong> as
+                well as speech. Everything in this guide works either way &mdash; typing
+                is especially handy for email addresses, serial numbers and access codes.
+            </p>
         </section>
 
         <section>
             <h2>A typical session, end to end</h2>
             <ol>
                 <li><strong>Greet Benedict.</strong> <em>&ldquo;Hi Benedict&rdquo;</em> or <em>&ldquo;I want to work on a form.&rdquo;</em> He&rsquo;ll respond and ask what you&rsquo;d like to do.</li>
-                <li><strong>Find your form.</strong> Either say a phrase from the form&rsquo;s title (<em>&ldquo;Crown consent&rdquo;</em>, <em>&ldquo;cleaning specification&rdquo;</em>, <em>&ldquo;patient survey&rdquo;</em>) and Benedict will search the catalogue, OR ask <em>&ldquo;what forms do I have?&rdquo;</em> to hear the list.</li>
+                <li><strong>Find your form.</strong> Either say a phrase from the form&rsquo;s title (<em>&ldquo;Crown consent&rdquo;</em>, <em>&ldquo;cleaning specification&rdquo;</em>, <em>&ldquo;patient survey&rdquo;</em>) and Benedict will search the catalogue, OR ask <em>&ldquo;what am I working on?&rdquo;</em> / <em>&ldquo;what forms are available?&rdquo;</em> to hear the lists.</li>
                 <li><strong>Start filling.</strong> Once Benedict has the form, he&rsquo;ll walk through it question-by-question &mdash; OR you can volunteer many answers in one breath. Volunteering is recommended; it&rsquo;s faster and cheaper.</li>
-                <li><strong>Watch the form fill in real time.</strong> Ask <em>&ldquo;show me the form&rdquo;</em> to open the viewer on the right. You&rsquo;ll see each answer appear in the PDF as you give it.</li>
+                <li><strong>See it on screen whenever you like.</strong> Ask <em>&ldquo;show me the form&rdquo;</em> to open the viewer on the right. It shows the form as it stands at that moment &mdash; including your in-progress entry &mdash; but it doesn&rsquo;t update live while you speak, so ask again after a batch of answers for a fresh view.</li>
                 <li><strong>Make corrections any time.</strong> Tell Benedict <em>&ldquo;change question 7 to no&rdquo;</em> or <em>&ldquo;the answer to age is 34.&rdquo;</em> He&rsquo;ll overwrite the previous value.</li>
                 <li><strong>Skip PII when you&rsquo;d rather not share it.</strong> If a question asks for a personal detail (patient name, date of birth, contact info) and you&rsquo;d prefer to leave it blank, say <em>&ldquo;skip.&rdquo;</em> Benedict will leave that field blank and continue. The form will still submit.</li>
-                <li><strong>Submit when you&rsquo;re ready.</strong> When all required fields are filled, Benedict will offer to submit. Say <em>&ldquo;yes please&rdquo;</em> or <em>&ldquo;submit&rdquo;</em> and he&rsquo;ll email a PDF copy to the recipient on file.</li>
+                <li><strong>Submit when you&rsquo;re ready.</strong> When all required fields are filled, Benedict will offer to submit. Say <em>&ldquo;yes please&rdquo;</em> or <em>&ldquo;submit&rdquo;</em> and he&rsquo;ll email the finished paperwork (a PDF plus the original document format) to your practice&rsquo;s registered address. He always double-checks with you before sending anything to a different address.</li>
             </ol>
         </section>
 
@@ -334,8 +360,9 @@
                 <li><strong>Be natural.</strong> Whole sentences, fragments, <em>&ldquo;yeah&rdquo;</em> / <em>&ldquo;yep&rdquo;</em> / <em>&ldquo;no thanks&rdquo;</em> &mdash; all fine. He&rsquo;s not a command line.</li>
                 <li><strong>Batch your answers.</strong> <em>&ldquo;Yes to 1, 2 and 4; no to 3; the rest are all acknowledged.&rdquo;</em> &rarr; one save, less waiting. This is the biggest single thing you can do to speed up a session.</li>
                 <li><strong>Use a question number OR a content cue.</strong> <em>&ldquo;Set question 12 to acknowledged&rdquo;</em> and <em>&ldquo;the one about anaesthetic should be local&rdquo;</em> both work. Use whichever feels more natural.</li>
+                <li><strong>Type the fiddly bits.</strong> Email addresses, serial numbers, precise readings &mdash; typing them into the widget avoids mis-hearing and re-spelling, and costs nothing extra.</li>
                 <li><strong>Ask for a review any time.</strong> <em>&ldquo;Review my entries&rdquo;</em> &rarr; he&rsquo;ll read back everything you&rsquo;ve filled so far.</li>
-                <li><strong>Pause whenever you need to.</strong> Long pauses cost very little &mdash; far less than active conversation. Take a phone call, look up a record, come back &mdash; Benedict will be waiting.</li>
+                <li><strong>Pause whenever you need to.</strong> Once the line has been quiet for a few seconds, the per-minute rate drops to a small fraction (currently about 5%) until you speak again &mdash; so thinking time is cheap. For a genuinely long break, say <em>&ldquo;save it, I&rsquo;ll come back&rdquo;</em> and end the call; resuming later is seamless.</li>
                 <li><strong>Don&rsquo;t whisper.</strong> Speak clearly at normal volume; Benedict transcribes a clear signal better than a quiet one.</li>
             </ul>
         </section>
@@ -353,34 +380,82 @@
         </section>
 
         <section>
-            <h2>Surveys (multiple respondents in one log)</h2>
+            <h2>Knowing where you stand</h2>
+            <p>Benedict can answer four different &ldquo;where am I?&rdquo; questions &mdash; use the one you mean:</p>
+            <ul>
+                <li><em>&ldquo;What am I working on?&rdquo;</em> / <em>&ldquo;what&rsquo;s outstanding?&rdquo;</em> &mdash; the forms you&rsquo;ve started or not yet submitted.</li>
+                <li><em>&ldquo;What haven&rsquo;t I started yet?&rdquo;</em> &mdash; blank forms from your catalogue, grouped by type (audits, logs, risk assessments, policies&hellip;).</li>
+                <li><em>&ldquo;What forms are available?&rdquo;</em> &mdash; the whole catalogue, grouped, with where each form stands.</li>
+                <li><em>&ldquo;What&rsquo;s due within a month?&rdquo;</em> &mdash; the due window (a week, a fortnight, a year &mdash; your choice).</li>
+            </ul>
             <p>
-                For a Patient Satisfaction Survey or similar log-style form, Benedict
-                will ask for one respondent&rsquo;s answers at a time. Tell him the
-                respondent&rsquo;s name first (or <em>&ldquo;anonymous&rdquo;</em>),
-                then walk through their answers, then he&rsquo;ll ask if there&rsquo;s
-                another respondent. Each respondent becomes one row in the submitted
-                survey log.
-            </p>
-            <p>
-                You can stop after one respondent if you only have one to enter. You
-                can also come back later and add more respondents to the same log
-                before submitting.
+                Lists come back grouped and counted, ten names at a time &mdash; say
+                <em>&ldquo;next&rdquo;</em> for the following page. For a bird&rsquo;s-eye
+                view on paper, say <em>&ldquo;email me a status report&rdquo;</em>:
+                a PDF grouped by category goes to your practice&rsquo;s registered
+                address.
             </p>
         </section>
 
         <section>
-            <h2>Cleaning schedules and other recurring logs</h2>
+            <h2>Surveys &mdash; let patients fill them in themselves</h2>
             <p>
-                For logs like the FR2 Surgery Cleaning Specification, you&rsquo;ll tell
-                Benedict one task and date at a time. Say something like
-                <em>&ldquo;Sinks and taps, done, today, my initials are SDA&rdquo;</em>
-                &mdash; and Benedict will commit each task immediately.
+                For the Patient Satisfaction Survey (and any survey-style form), the
+                easiest and cheapest route is the <strong>web link</strong>. Say
+                <em>&ldquo;email me the survey link&rdquo;</em> &mdash; Benedict sends a
+                secure fill-in page link to your practice&rsquo;s registered address.
+                Forward it to patients, text it, or open it on a tablet at reception.
+                Each web submission lands as <strong>one respondent</strong> in the same
+                survey log &mdash; no voice time, works on any phone or computer, and
+                is by far the cheapest way to collect responses.
             </p>
             <p>
-                Quick batch shortcut: say <em>&ldquo;today I did all of them&rdquo;</em>
-                &mdash; Benedict will read the task list back to you for confirmation,
-                then commit each one in a quick loop.
+                You can also take responses <strong>by voice</strong>: Benedict asks for
+                one respondent&rsquo;s answers at a time (name first, or
+                <em>&ldquo;anonymous&rdquo;</em>). Say <em>&ldquo;new respondent&rdquo;</em>
+                to start the next one &mdash; each respondent becomes one row. Web and
+                voice responses can be mixed freely in the same survey; submit the log
+                whenever you&rsquo;re ready.
+            </p>
+        </section>
+
+        <section>
+            <h2>Daily logs, autoclave records and cleaning schedules</h2>
+            <p>
+                For a daily record like an autoclave log, Benedict walks the day&rsquo;s
+                fields in order &mdash; and <strong>you can give the whole entry in one
+                breath</strong>:
+            </p>
+            <div class="callout">
+                <em>&ldquo;Cycle one, yes, no, yellow, one three four, and the rest are all yes.&rdquo;</em>
+            </div>
+            <p>
+                Benedict maps your values onto the remaining fields in order and reads
+                back exactly what he recorded. <em>&ldquo;The next three are yes&rdquo;</em>
+                fills exactly three; <em>&ldquo;the rest are all yes&rdquo;</em> fills
+                everything left that can safely take a yes &mdash; he&rsquo;ll skip
+                dates, initials and number readings and tell you which ones still need
+                a real answer.
+            </p>
+            <ul>
+                <li><strong>Fix a field in today&rsquo;s entry:</strong> <em>&ldquo;change the minimum temperature to three&rdquo;</em> &mdash; or <em>&ldquo;clear the last two&rdquo;</em> to erase values from the draft.</li>
+                <li><strong>Fix a field in an entry you&rsquo;ve already saved:</strong> <em>&ldquo;in yesterday&rsquo;s entry, change day sheets to no&rdquo;</em> &mdash; Benedict corrects that one field and reads back what changed.</li>
+                <li><strong>Review any time:</strong> <em>&ldquo;read back today&rsquo;s entry&rdquo;</em> mid-fill, and <em>&ldquo;show me the form&rdquo;</em> puts it on screen &mdash; today&rsquo;s unsaved entry appears on the row marked <strong>IN PROGRESS</strong>.</li>
+                <li><strong>Save before you submit:</strong> say <em>&ldquo;save the entry&rdquo;</em> when the day is done &mdash; Benedict reads the committed row back from the record. If you ask to submit while today&rsquo;s entry is still unsaved, he&rsquo;ll check with you first &mdash; a half-done entry is never silently dropped.</li>
+                <li><strong>Machine details are remembered.</strong> Your autoclave&rsquo;s type, serial number and location are asked once and carried forward every day &mdash; and questions that don&rsquo;t apply to your equipment are skipped automatically.</li>
+            </ul>
+            <p>
+                Task-grid schedules (like the FR2 Surgery Cleaning Specification) work
+                task by task &mdash; <em>&ldquo;Sinks and taps, done, today, initials
+                SDA&rdquo;</em> &mdash; with the same shortcut: <em>&ldquo;today I did
+                all of them&rdquo;</em> and Benedict confirms the list, then commits
+                each one.
+            </p>
+            <p>
+                <strong>Long log, short day?</strong> Ask for <em>&ldquo;the log&rsquo;s
+                web link&rdquo;</em> &mdash; you&rsquo;ll get a fill-in page just like
+                the survey one. Each web submission adds one dated entry to the log,
+                with no voice time at all.
             </p>
         </section>
 
@@ -394,6 +469,11 @@
                 you need before saying <em>&ldquo;submit.&rdquo;</em> The original
                 submission stays in the audit trail; the new copy supersedes it.
             </p>
+            <p>
+                Every submission is also preserved as a permanent, tamper-evident record
+                on IPFS (distributed storage) &mdash; you can view your submission audit
+                record any time in the <strong>teckel App</strong>.
+            </p>
             <div class="callout">
                 When you&rsquo;re done revising, say <strong>&ldquo;submit&rdquo;</strong>
                 explicitly. Benedict will NOT auto-submit just because you confirmed a
@@ -404,10 +484,38 @@
         <section>
             <h2>Ending the session</h2>
             <p>
-                When you&rsquo;re done, say <em>&ldquo;that&rsquo;s everything&rdquo;</em>,
-                <em>&ldquo;thanks Benedict&rdquo;</em>, <em>&ldquo;goodbye&rdquo;</em>,
-                or simply close the page. The cost meter shows your total for the session.
+                When you&rsquo;re done, say <em>&ldquo;goodbye&rdquo;</em> or
+                <em>&ldquo;that&rsquo;s everything, thanks.&rdquo;</em> Benedict says one
+                goodbye and <strong>ends the call himself</strong> &mdash; there&rsquo;s
+                no hang-up button to hunt for. Your progress is already saved as you go,
+                so simply closing the page is fine too. Your total for the session is
+                shown once the call ends.
             </p>
+        </section>
+
+        <section>
+            <h2>Making Benedict yours &mdash; practice customisation</h2>
+            <p>
+                Every practice works a little differently, and the CQC expects your
+                compliance paperwork to reflect <strong>your</strong> practice &mdash;
+                not just a generic template. You can shape Benedict to your practice
+                simply by asking &mdash; no settings screens, nothing to fill in:
+            </p>
+            <ul>
+                <li><strong>Add your own questions</strong> to any standard form or to your patient survey &mdash; just tell Benedict, for example, &ldquo;add a question to the patient survey&rdquo;, and confirm when he reads it back. You can also <strong>switch off non-mandatory standard questions</strong> that don&rsquo;t apply to your practice, and remove or restore any of your changes whenever you like. Regulator-standard questions always stay, and every change is recorded (who, what, when) so your paperwork remains inspection-ready.</li>
+                <li><strong>Your practice details on your paperwork</strong> &mdash; tell Benedict your practice name, address, phone, email and CQC registration number once, and they appear on your finished submissions automatically.</li>
+                <li><strong>Attach evidence to a form</strong> &mdash; inspection certificates, scans and photos. While you&rsquo;re working on a form, say for example <em>&ldquo;I&rsquo;d like to attach the fire safety certificate&rdquo;</em> &mdash; a secure upload page appears right here in the form panel, and the same link is emailed to your practice address so you can open it on whichever device actually has the file. Drag the file in and it&rsquo;s stored securely and privately with the form (PDF, JPG, PNG, DOC, DOCX or TXT, up to 15&nbsp;MB). Even a scan whose text can&rsquo;t be read still attaches safely.</li>
+                <li><strong>Your admin email</strong> &mdash; the address Benedict sends completed forms, reports and links to. For safety this is never changed by voice alone: ask Benedict for <em>&ldquo;my account settings link&rdquo;</em> and a secure, short-lived link to your practice&rsquo;s <strong>Account Settings</strong> page is emailed to your current practice address &mdash; open it and update the email in a couple of clicks.</li>
+                <li><strong>Your logo and browser-tab icon</strong> &mdash; on the same <strong>Account Settings</strong> page you can upload your practice logo (PNG or JPG, under 2&nbsp;MB) and a browser-tab icon (favicon &mdash; ICO or PNG). Your logo then appears in the letterhead of your rendered and submitted paperwork, with an on/off switch right there on the page; your site picks the files up within a couple of minutes. If your practice doesn&rsquo;t already have a favicon, the free <a class="ext-link" href="https://realfavicongenerator.net/" target="_blank" rel="noopener noreferrer">realfavicongenerator.net</a> generates one from your logo in a couple of minutes.</li>
+            </ul>
+            <p>
+                <strong>Coming soon</strong> &mdash; these will appear on the same
+                Account Settings page:
+            </p>
+            <ul>
+                <li><strong>Renaming your practice</strong> across your portal pages.</li>
+                <li><strong>Your logo on the website banner</strong> &mdash; the on/off switch is already on the settings page; the banner display itself arrives shortly.</li>
+            </ul>
         </section>
 
         <hr>
@@ -419,21 +527,28 @@
         <section>
             <h2>How Benedict charges you</h2>
             <p>
-                Your bill runs on a single meter: <strong>teckel credits (tc)</strong>.
+                Your bill runs on a single currency: <strong>teckel credits (tc)</strong>.
                 Every action Benedict takes against your data &mdash; reading your forms,
                 writing an answer, opening the viewer, sending a submission, even just
-                listening while you think &mdash; costs a small number of tc. The cost
-                meter at the top of your Benedict page shows the running total in real
-                time, with the pound/pence equivalent next to it. A typical session
-                (filling a full compliance form, reviewing it, and submitting it) costs
-                <strong>a few pence</strong>.
+                listening while you think &mdash; costs a small number of tc. When your
+                session ends, that session&rsquo;s total is shown at the top of the page,
+                with the pound/pence equivalent.
             </p>
 
             <p>
-                There are no separate per-call fees or hidden charges. What you see on
-                the meter is what you pay. Long pauses cost very little &mdash; far
-                less than active conversation &mdash; so feel free to think, look
-                something up, or step away briefly without watching the clock.
+                There are no separate per-call fees or hidden charges. The main cost
+                driver is simply <strong>conversation time</strong> &mdash; so the habits
+                below (batching your answers, typing, and letting the web fill-in pages
+                do the long repetitive work) are where the real savings live. One footnote:
+                the call is billed by the minute, but sustained silence is billed at a
+                small fraction (currently about 5%) of the rate &mdash; so pauses are
+                cheap, though never free. For a long break, end the session rather than
+                leave the line open; your progress keeps, and you can resume any time.
+            </p>
+            <p>
+                Submission emails and reports arrive from
+                <strong>no_reply@teckel.io</strong> &mdash; add it to your safe senders
+                so nothing lands in spam.
             </p>
 
             <h3>Topping up your tc balance &mdash; the teckel App</h3>
@@ -456,28 +571,29 @@
                 </a>
             </div>
             <p>
-                Sign into the App with the same wallet you use for Benedict, tap your
-                credit balance, and choose a top-up amount. The purchase clears through
-                the App&rsquo;s in-app purchase flow (handled by Google or Apple, as
-                appropriate). The credits land instantly in your teckel wallet and are
-                usable from any Benedict session immediately.
+                Open the teckel App and navigate to the Account you use for Benedict,
+                tap &ldquo;Purchase teckel credits&rdquo;, and choose a top-up amount.
+                The purchase clears through the App&rsquo;s in-app purchase flow
+                (handled by Google or Apple, as appropriate). The credits land
+                instantly in your teckel Account and are usable from any Benedict
+                session immediately.
             </p>
 
             <p>
-                If your balance gets low, Benedict will let you know before doing
-                anything that would overdraw it. He won&rsquo;t fail mid-form &mdash;
-                he&rsquo;ll pause and tell you to top up via the teckel App.
+                Benedict never stops mid-form for billing &mdash; your usage is totted
+                up and drawn from your practice&rsquo;s tc balance shortly after the
+                work is done. If your balance is running low, Benedict will mention it
+                once during a session &mdash; a gentle heads-up, never an interruption
+                &mdash; so you can top up in the teckel App before it matters.
             </p>
 
             <p>
-                If you need the exact pricing for individual actions, ask Sabina or your
-                practice administrator &mdash; the rates are set per item and shown
-                live on the meter.
+                For specific pricing questions, contact <a class="ext-link" href="https://teckel.io/support" target="_blank" rel="noopener noreferrer">teckel.io/support</a>.
             </p>
         </section>
 
         <section>
-            <h2>Five habits that keep costs down</h2>
+            <h2>Six habits that keep costs down</h2>
 
             <h3>1. Batch your answers when you can</h3>
             <p>
@@ -489,21 +605,31 @@
                 <em>&ldquo;Yes to questions 1, 2 and 4; no to question 3; the rest are all acknowledged.&rdquo;</em>
             </div>
             <p>
-                Benedict will batch-fill them with a single <code>save_progress</code>
-                call instead of one tool call per answer. <strong>One save_progress is
-                roughly the cost of three individual updates</strong> &mdash; and
-                you&rsquo;ll finish a 22-question form in about a minute instead of five.
+                Benedict batch-fills them in one save instead of one round-trip per
+                answer &mdash; and you&rsquo;ll finish a 22-question form in about a
+                minute instead of five. The same works on daily logs:
+                <em>&ldquo;cycle one, yes, no, yellow, one three four &mdash; and the
+                rest are all yes.&rdquo;</em>
             </p>
             <p>You can do this at the start (give him the whole form), in the middle (skip ahead a block), or at the end (catch up the remaining ones).</p>
 
-            <h3>2. Don&rsquo;t ask to &ldquo;see the form&rdquo; more than once per state</h3>
+            <h3>2. Let the web page do the long ones</h3>
+            <p>
+                Surveys and long repetitive logs don&rsquo;t need a conversation at all.
+                Ask for <em>&ldquo;the survey link&rdquo;</em> or <em>&ldquo;the
+                log&rsquo;s web link&rdquo;</em> and fill the page on screen &mdash; or
+                hand it to the person who has the answers. A web submission costs next
+                to nothing compared with doing the same work by voice. This is the
+                single biggest saving available.
+            </p>
+
+            <h3>3. Don&rsquo;t ask to &ldquo;see the form&rdquo; more than once per state</h3>
             <p>
                 When you ask Benedict to show you the form on screen, he mints a fresh
                 view and the iframe loads it. If you then say <em>&ldquo;show me
                 again&rdquo;</em> within the same minute, <strong>without any new data
                 being entered</strong>, he&rsquo;ll fire another full open-viewer
-                cycle &mdash; which costs the same as the first time. (The system
-                catches the obvious duplicates silently, but it&rsquo;s worth knowing.)
+                cycle &mdash; which costs the same as the first time.
             </p>
             <p>The right uses of <em>&ldquo;show me the form&rdquo;</em>:</p>
             <ul>
@@ -513,12 +639,12 @@
             </ul>
             <p>If nothing&rsquo;s changed since the last view, you can trust what was there.</p>
 
-            <h3>3. Don&rsquo;t repeat yourself if Benedict heard you the first time</h3>
+            <h3>4. Don&rsquo;t repeat yourself if Benedict heard you the first time</h3>
             <p>
                 If Benedict acknowledges an answer (<em>&ldquo;Got it &mdash; that&rsquo;s
                 a yes for question seven&rdquo;</em>), it&rsquo;s recorded. You don&rsquo;t
                 need to confirm it again unless he asks you to. Each <em>&ldquo;yes I
-                did say yes&rdquo;</em> is another tool roundtrip.
+                did say yes&rdquo;</em> is another roundtrip.
             </p>
             <p>
                 If you genuinely want to <strong>change</strong> an answer, just tell
@@ -526,17 +652,19 @@
                 He&rsquo;ll update it once.
             </p>
 
-            <h3>4. Pause freely &mdash; silence is (almost) free</h3>
+            <h3>5. Pause freely &mdash; and step away properly for long breaks</h3>
             <p>
-                If you need to step away, take a phone call, or check a patient record,
-                just stop talking. Long pauses cost very little &mdash; a 2-minute
-                pause is roughly the cost of a few seconds of active conversation. When you come
-                back, Benedict picks up where you left off &mdash; no need to
-                apologise or recap.
+                A pause is cheap: once the line has been quiet for a few seconds, the
+                per-minute rate drops by about 95% until you speak again. So think,
+                check a record, take your time. For a genuinely long absence (a phone
+                call, a patient), say <em>&ldquo;save it, I&rsquo;ll come back
+                later&rdquo;</em> and end the session &mdash; everything you&rsquo;ve
+                entered is preserved, and <em>&ldquo;resume the&hellip;&rdquo;</em>
+                picks up exactly where you left off.
             </p>
-            <p>This is the recommended pattern for any form where you need to look something up partway through.</p>
+            <p>Short lookup &mdash; just pause. Long interruption &mdash; save and resume.</p>
 
-            <h3>5. Submit only once</h3>
+            <h3>6. Submit only once</h3>
             <p>
                 When all your non-PII answers are in, Benedict will offer to submit.
                 Say yes (or <em>&ldquo;submit it&rdquo;</em> / <em>&ldquo;send it&rdquo;</em>)
@@ -546,7 +674,6 @@
             <p>You&rsquo;ll know it&rsquo;s sent when:</p>
             <ul>
                 <li>Benedict says the recipient has been emailed.</li>
-                <li>The cost meter shows a submission line.</li>
                 <li>The form viewer shows the submitted state.</li>
             </ul>
             <p>
@@ -562,8 +689,11 @@
             <p>A few things the system handles automatically &mdash; you don&rsquo;t need to do anything about them, but knowing they exist might save you a worried question:</p>
             <ul>
                 <li><strong>PII fields can be left blank under GDPR.</strong> If a question asks for a patient name, date of birth, or anything else that identifies a person, you can say <em>&ldquo;skip&rdquo;</em> or simply not answer. Benedict will move on and the form will still submit cleanly.</li>
-                <li><strong>The form viewer auto-heals.</strong> If the on-screen iframe ever stops refreshing, leave it for a few seconds &mdash; it refreshes its own access token in the background. You very rarely need to ask to <em>&ldquo;reopen&rdquo;</em> it.</li>
-                <li><strong>The cost meter is always live.</strong> It starts ticking the moment you load the page (not when you start the conversation), and it shows the same currency at all scales: pence under &pound;1, then pounds (with the residual pence still visible).</li>
+                <li><strong>What&rsquo;s recorded is what&rsquo;s read back.</strong> Every acknowledgement comes from the saved record itself &mdash; Benedict can&rsquo;t invent fields, and he won&rsquo;t call a form complete while required answers are blank; he names what&rsquo;s missing instead.</li>
+                <li><strong>Your in-progress entry is visible.</strong> On a daily log, the on-screen form shows today&rsquo;s unsaved entry on the row marked <em>IN PROGRESS &mdash; not saved yet</em>, so what you see always matches where you are.</li>
+                <li><strong>Emails only go where you&rsquo;d expect.</strong> Submissions, reports and fill-in links go to your practice&rsquo;s registered address; any other destination needs your explicit confirmation first.</li>
+                <li><strong>The form viewer keeps itself alive.</strong> Its access link renews in the background, so a view you opened earlier keeps working &mdash; you very rarely need to ask to <em>&ldquo;reopen&rdquo;</em> it. (To see NEW answers, ask <em>&ldquo;show me the form&rdquo;</em> again &mdash; the view is a snapshot of the moment you asked.)</li>
+                <li><strong>The cost display is simple and honest.</strong> Your total appears at the end of the session, always in the same currency at any scale: pence under &pound;1, then pounds (with the residual pence still visible).</li>
                 <li><strong>Confirmations are short.</strong> Benedict is trained to answer in one sentence when he can. If he&rsquo;s giving you a long status report, it&rsquo;s usually because you asked for one (<em>&ldquo;review my entries&rdquo;</em>, <em>&ldquo;what&rsquo;s left&rdquo;</em>, etc.).</li>
             </ul>
         </section>
@@ -580,14 +710,14 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td>Listening to you</td>
-                        <td>Lowest</td>
-                        <td>Pauses cost almost nothing</td>
+                        <td>Keeping the call open</td>
+                        <td>Low</td>
+                        <td>Sustained silence bills at about 5% of the per-minute rate &mdash; cheap, but end the call for long absences</td>
                     </tr>
                     <tr>
                         <td>Acknowledging a single answer</td>
                         <td>Low</td>
-                        <td>Each tick on the meter</td>
+                        <td>A small fixed fee per action</td>
                     </tr>
                     <tr>
                         <td>Filling a single field</td>
@@ -617,9 +747,10 @@
                 </tbody>
             </table>
             <p>
-                You&rsquo;ll almost never see anything outside this range. If the meter
-                jumps suddenly with no obvious cause, ask Sabina to take a look &mdash;
-                it usually means something asked Benedict to repeat itself.
+                You&rsquo;ll almost never see anything outside this range. If a session
+                total comes in much higher than expected with no obvious cause, raise
+                it at <a class="ext-link" href="https://teckel.io/support" target="_blank" rel="noopener noreferrer">teckel.io/support</a> &mdash; the usual cause is
+                something asking Benedict to repeat itself.
             </p>
         </section>
 
@@ -627,31 +758,27 @@
             <h2>When to ask for help</h2>
             <ul>
                 <li><strong>Benedict didn&rsquo;t hear you correctly:</strong> repeat once, more slowly. He&rsquo;ll auto-correct most homophones.</li>
-                <li><strong>An answer was recorded wrong:</strong> <em>&ldquo;Change question N to X.&rdquo;</em> Don&rsquo;t try to undo the previous turn &mdash; just overwrite.</li>
+                <li><strong>An answer was recorded wrong:</strong> <em>&ldquo;Change question N to X.&rdquo;</em> For a log entry you&rsquo;ve already saved: <em>&ldquo;in yesterday&rsquo;s entry, change day sheets to no.&rdquo;</em> Don&rsquo;t try to undo the previous turn &mdash; just overwrite.</li>
                 <li><strong>You&rsquo;re stuck on a date format:</strong> Benedict will accept most natural phrasings (<em>&ldquo;ten May twenty-twenty-six&rdquo;</em>, <em>&ldquo;10th of May&rdquo;</em>, <em>&ldquo;10 May 2026&rdquo;</em>). If he keeps misinterpreting, spell out the year digits.</li>
-                <li><strong>The form looks incomplete on screen:</strong> check whether the missing fields are PII (greyed out / not required) &mdash; they&rsquo;re allowed to stay blank.</li>
+                <li><strong>The form looks incomplete on screen:</strong> check whether the missing fields ask for personal details (PII) &mdash; those are allowed to stay blank under GDPR, and the form still submits.</li>
                 <li><strong>Benedict says &ldquo;I haven&rsquo;t loaded a form yet&rdquo;:</strong> tell him which form you want by name. He&rsquo;ll find it in the catalogue.</li>
-                <li><strong>Anything else:</strong> ask Sabina. She&rsquo;s the gatekeeper agent and can transfer you back to Benedict once whatever needed sorting is sorted.</li>
+                <li><strong>Benedict says a form &ldquo;isn&rsquo;t set up yet&rdquo;:</strong> that template really is incomplete on our side &mdash; it&rsquo;s been flagged for the teckel team automatically. Pick another form in the meantime; nothing on your end is wrong.</li>
+                <li><strong>Anything else:</strong> head to <a class="ext-link" href="https://teckel.io/support" target="_blank" rel="noopener noreferrer">teckel.io/support</a> &mdash; pricing, billing, account changes and anything Benedict can&rsquo;t do himself are handled there.</li>
             </ul>
         </section>
 
         <section>
-            <h2>A note on the cost meter</h2>
+            <h2>A note on the session cost</h2>
             <p>
-                The meter shows what you&rsquo;ve spent <strong>on this page load, for
-                this voice agent, since you arrived</strong>. It does NOT show your
-                account balance. If you ever need to top up, do that through your
-                teckel wallet &mdash; Benedict will let you know if your balance dips
-                below the cost of the action you&rsquo;re about to take.
+                The figure shown when a session ends is what <strong>that session</strong>
+                cost. It does NOT show your account balance &mdash; check and top up
+                your balance in the teckel App.
             </p>
             <p>
-                A single typical form submission (Q&amp;A with around 20 questions,
-                including a verbal walk-through and an email at the end) usually shows
-                somewhere around <strong>a few pence</strong> on the meter. A longer
-                log entry with multiple rows might run to <strong>5&ndash;10p</strong>.
-                Status reports and large grids can reach <strong>15&ndash;20p</strong>.
-                If yours is consistently higher, the most likely cause is repeating
-                yourself &mdash; re-read habits 1 and 3.
+                Costs scale with conversation length and form size &mdash; the six
+                habits above are what keep a session lean. If a session comes in much
+                higher than you expected, the most likely cause is repetition &mdash;
+                re-read habits 1 and 4.
             </p>
         </section>
 
