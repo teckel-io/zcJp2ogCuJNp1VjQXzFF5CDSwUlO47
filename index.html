@@ -1143,43 +1143,79 @@
         }
 
         // ElevenLabs custom client tool: display_settings_link (Phase 4b, 22 Jul 2026)
-        // Loads the practice's Account Settings page in the form iframe. `settings_url` is
-        // the signed URL returned by get_settings_link. Same anti-fabrication discipline:
-        // only ever load a teckel Pages settings.html URL — never an agent-fabricated one.
+        // v2.2.192 (B15, 27 Jul 2026): the agent now passes an 11-char settings_session_id —
+        // get_settings_link stashes the real signed URL server-side and this handler resolves
+        // it browser-side via resolve_view_session, so the LLM never relays the long URL. It
+        // PROVABLY mangles it (master conv_6601…, 27 Jul: one wallet character dropped from
+        // the base64 tail — "signature is invalid"). Same architecture as display_form's
+        // view_session_id (v2.2.55). Legacy settings_url is still accepted so an older server
+        // build keeps working with this page.
         var lastSettingsShown = { url: null, ts: 0 };
         var SETTINGS_LINK_DEBOUNCE_MS = 30 * 1000;
         function isValidSettingsUrl(url) {
             if (!url || typeof url !== 'string') return false;
             return /^https:\/\/teckel-io\.github\.io\/[^?#]*settings\.html\?token=[^\s]+$/.test(url);
         }
-        function displaySettingsLinkImpl(args) {
-            console.log('[teckel] display_settings_link called with args:', args);
-            args = args || {};
+        function showSettingsInIframe(url, sourceNote) {
             var iframe      = document.getElementById('form-viewer');
             var placeholder = document.getElementById('form-viewer-placeholder');
-            var url = (args.settings_url || '').toString().trim();
             if (!isValidSettingsUrl(url)) {
                 showFabricationCard(
                     'display_settings_link was called with a URL that is not a teckel settings page.',
-                    url || '(no settings_url provided)');
-                return Promise.resolve(
-                    'display_settings_link failed: settings_url did not look like a teckel settings page. '
-                    + 'Call get_settings_link first and pass its settings_url through UNCHANGED.');
+                    url || '(no settings url ' + (sourceNote || '') + ')');
+                return 'display_settings_link failed: the settings URL did not look like a teckel '
+                    + 'settings page. Call get_settings_link again and pass its settings_session_id.';
             }
             var nowMs = Date.now();
             if (lastSettingsShown.url === url && (nowMs - lastSettingsShown.ts) < SETTINGS_LINK_DEBOUNCE_MS) {
-                return Promise.resolve(
-                    'display_settings_link already showed this settings page. Do NOT call it again for the same link.');
+                return 'display_settings_link already showed this settings page. Do NOT call it again for the same link.';
             }
-            if (!iframe) return Promise.resolve('display_settings_link failed: no form-viewer element on page.');
+            if (!iframe) return 'display_settings_link failed: no form-viewer element on page.';
             lastSettingsShown = { url: url, ts: nowMs };
             iframe.src = url;
             if (placeholder) placeholder.classList.add('hidden');
             console.log('[teckel] display_settings_link loaded the settings page in the iframe');
-            return Promise.resolve(
-                'display_settings_link completed: the Account Settings page is on screen now. Tell the user '
+            return 'display_settings_link completed: the Account Settings page is on screen now. Tell the user '
                 + 'they can update their admin email or logo there. NEVER claim a setting changed until the '
-                + 'user confirms the page said it saved.');
+                + 'user confirms the page said it saved.';
+        }
+        function displaySettingsLinkImpl(args) {
+            console.log('[teckel] display_settings_link called with args:', args);
+            args = args || {};
+            var sid = (args.settings_session_id || '').toString().trim();
+            if (sid) {
+                if (!/^[A-Za-z0-9_-]{6,24}$/.test(sid)) {
+                    return Promise.resolve(
+                        'display_settings_link failed: settings_session_id did not look like the short '
+                        + 'code from get_settings_link. Pass that code EXACTLY as returned, nothing else.');
+                }
+                var resolveUrl = MCP_BASE.replace(/\/$/, '')
+                    + '/document_analyser/resolve_view_session?id='
+                    + encodeURIComponent(sid);
+                console.log('[teckel] resolving settings_session_id at:', resolveUrl);
+                return fetch(resolveUrl, { method: 'GET', credentials: 'omit' })
+                    .then(function (resp) {
+                        if (resp.status === 404) throw new Error('unknown or mistyped settings code');
+                        if (resp.status === 410) throw new Error('this settings link has expired');
+                        if (!resp.ok) throw new Error('resolve failed: status=' + resp.status);
+                        return resp.json();
+                    })
+                    .then(function (data) {
+                        if (!data || !data.success || data.view_mode !== 'settings' || !data.pdf_url) {
+                            throw new Error('the code did not resolve to a settings page');
+                        }
+                        return showSettingsInIframe(data.pdf_url, 'from resolve');
+                    })
+                    .catch(function (err) {
+                        console.warn('[teckel] display_settings_link resolve failed:', err);
+                        return 'display_settings_link failed: '
+                            + (err && err.message ? err.message : 'could not resolve the settings link')
+                            + '. Do NOT say the page is on screen — it is not. Point the user to the '
+                            + 'emailed link, or call get_settings_link again for a fresh code.';
+                    });
+            }
+            // Legacy path: an older server build whose next_step still passes the full URL.
+            return Promise.resolve(showSettingsInIframe((args.settings_url || '').toString().trim(), 'legacy settings_url'));
         }
 
         // Multi-channel registration — see prior version comments for rationale.
