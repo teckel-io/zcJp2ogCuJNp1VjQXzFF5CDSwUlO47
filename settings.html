@@ -129,6 +129,35 @@
     <div class="msg" id="emailMsg"></div>
   </div>
 
+  <div class="card" id="detailsCard">
+    <h2>Practice details</h2>
+    <!-- 28 Jul 2026 (2.2.194): precise strings are safest TYPED — dictation is the weakest
+         channel for digit runs (phone, CQC, GDC). These five write the letterhead profile
+         via the settings token; the practice NAME stays a voice action (its rename also
+         updates the portal pages, which the voice flow owns). Rows are EDITABILITY-GATED on
+         the server's `editable` list so this page is safe to deploy before or after the
+         matching server build. -->
+    <p class="sub">Shown in the letterhead of your rendered and submitted paperwork. The
+       contact email below is what&rsquo;s <em>printed on documents</em> &mdash; it&rsquo;s
+       separate from the admin email above, where Benedict sends your reports.</p>
+    <label for="pdAddress">Practice address</label>
+    <input type="text" id="pdAddress" disabled autocomplete="street-address" placeholder="">
+    <button class="btn" id="savePdAddress" style="display:none" data-setting="address" data-input="pdAddress">Save address</button>
+    <label for="pdPhone">Phone number</label>
+    <input type="text" id="pdPhone" disabled autocomplete="tel" placeholder="">
+    <button class="btn" id="savePdPhone" style="display:none" data-setting="phone" data-input="pdPhone">Save phone</button>
+    <label for="pdEmail">Contact email (printed on your paperwork)</label>
+    <input type="email" id="pdEmail" disabled placeholder="">
+    <button class="btn" id="savePdEmail" style="display:none" data-setting="email" data-input="pdEmail">Save contact email</button>
+    <label for="pdCqc">CQC registration number</label>
+    <input type="text" id="pdCqc" disabled placeholder="">
+    <button class="btn" id="savePdCqc" style="display:none" data-setting="cqc_registration" data-input="pdCqc">Save CQC number</button>
+    <label for="pdGdc">GDC registration number</label>
+    <input type="text" id="pdGdc" disabled placeholder="">
+    <button class="btn" id="savePdGdc" style="display:none" data-setting="gdc_registration" data-input="pdGdc">Save GDC number</button>
+    <div class="msg" id="detailsMsg"></div>
+  </div>
+
   <div class="card" id="logoCard">
     <h2>Practice logo</h2>
     <p class="sub">Shown on your rendered forms and letterhead. PNG or JPG, up to 2&nbsp;MB.</p>
@@ -197,7 +226,9 @@ function tokenExpired(t){
 }
 function disablePage(text){
   showMsg("pageMsg", "err", text);
-  ["adminEmail","saveEmail","logoFile","favFile","logoOnForms","logoOnBanner"].forEach(function(id){
+  ["adminEmail","saveEmail","logoFile","favFile","logoOnForms","logoOnBanner",
+   "pdAddress","savePdAddress","pdPhone","savePdPhone","pdEmail","savePdEmail",
+   "pdCqc","savePdCqc","pdGdc","savePdGdc"].forEach(function(id){
     var n = el(id); if (n) n.disabled = true;
   });
   document.querySelectorAll(".filebtn").forEach(function(n){ n.style.pointerEvents = "none"; n.style.opacity = ".5"; });
@@ -217,13 +248,36 @@ function loadCurrent(){
   xhr.setRequestHeader("Content-Type", "application/json");
   xhr.onload = function(){
     if (xhr.status >= 200 && xhr.status < 300){
-      var s = {};
-      try { s = (JSON.parse(xhr.responseText || "{}").settings) || {}; } catch (e) {}
+      var s = {}, ed = [];
+      try {
+        var resp = JSON.parse(xhr.responseText || "{}");
+        s  = resp.settings || {};
+        ed = resp.editable || [];
+      } catch (e) {}
       if (s.admin_email) el("adminEmail").value = s.admin_email;
       if (s.practice_name) { el("practiceName").placeholder = s.practice_name; el("hdrPracticeName").textContent = s.practice_name; }
       if (s.logo_ref){ el("logoThumb").src = s.logo_ref; el("logoThumb").style.display = "block"; }
       el("logoOnForms").checked  = (s.logo_on_forms  !== false);
       el("logoOnBanner").checked = (s.logo_on_banner !== false);
+      // 2.2.194 — practice details: populate, and enable each row ONLY when the server
+      // says it is editable (deploy-order safety: an older server keeps these read-only).
+      var pd = { address: "pdAddress", phone: "pdPhone", email: "pdEmail",
+                 cqc_registration: "pdCqc", gdc_registration: "pdGdc" };
+      var anyLocked = false;
+      Object.keys(pd).forEach(function(field){
+        var input = el(pd[field]);
+        var btn = document.querySelector('#detailsCard .btn[data-setting="' + field + '"]');
+        if (!input || !btn) return;
+        if (s[field]) input.value = s[field];
+        var ok = ed.indexOf(field) !== -1;
+        input.disabled = !ok;
+        btn.style.display = ok ? "" : "none";
+        if (!ok) anyLocked = true;
+      });
+      if (anyLocked){
+        showMsg("detailsMsg", "info",
+          "These details are read-only for the moment — ask Benedict to change them by voice.");
+      }
       suppressToggleEvents = false;
     } else {
       // Older server or transient trouble: the page still works, fields just start blank.
@@ -266,6 +320,47 @@ el("saveEmail").addEventListener("click", function(){
     showMsg("emailMsg", "err", "Couldn't reach the server. Please check your connection and try again.");
   };
   xhr.send(JSON.stringify({ settings_token: token, setting: "admin_email", value: v }));
+});
+
+// --- Practice details (2.2.194): one generic handler for the five profile rows. The
+// server does the real validation (email shape, regulator label-strip, wrong-box refusal)
+// and may return a cleaned value — echo it back into the box so what you SEE is what was
+// STORED. Soft-gates arrive as 200 + success:false + a user_message; style those as errors.
+document.querySelectorAll('#detailsCard .btn[data-setting]').forEach(function(btn){
+  btn.addEventListener("click", function(){
+    var field = btn.getAttribute("data-setting");
+    var input = el(btn.getAttribute("data-input"));
+    var v = (input && input.value || "").trim();
+    hideMsg("detailsMsg");
+    if (!v){ showMsg("detailsMsg", "err", "Nothing to save — enter a value first."); return; }
+    if (field === "email" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){
+      showMsg("detailsMsg", "err", "That doesn't look like a complete email address. Please check it.");
+      return;
+    }
+    btn.disabled = true;
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", SET_URL, true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.onload = function(){
+      btn.disabled = false;
+      if (xhr.status >= 200 && xhr.status < 300){
+        var r = {};
+        try { r = JSON.parse(xhr.responseText || "{}"); } catch (e) {}
+        var ok = r.success !== false;
+        var msg = r.message || (r.error && r.error.user_message)
+                  || (ok ? "Saved." : "Sorry, that didn't save. Please try again.");
+        showMsg("detailsMsg", ok ? "ok" : "err", msg);
+        if (ok && r.value && input) input.value = r.value;
+      } else {
+        showMsg("detailsMsg", "err", userMessageFrom(xhr, "Sorry, that didn't save. Please try again."));
+      }
+    };
+    xhr.onerror = function(){
+      btn.disabled = false;
+      showMsg("detailsMsg", "err", "Couldn't reach the server. Please check your connection and try again.");
+    };
+    xhr.send(JSON.stringify({ settings_token: token, setting: field, value: v }));
+  });
 });
 
 // --- Asset uploads (logo / favicon) ---
