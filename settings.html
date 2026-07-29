@@ -310,7 +310,12 @@ el("saveEmail").addEventListener("click", function(){
   xhr.onload = function(){
     el("saveEmail").disabled = false;
     if (xhr.status >= 200 && xhr.status < 300){
-      showMsg("emailMsg", "ok", userMessageFrom(xhr, "Saved — your admin email is updated."));
+      var r = {};
+      try { r = JSON.parse(xhr.responseText || "{}"); } catch (e) {}
+      var ok = r.success !== false;
+      showMsg("emailMsg", ok ? "ok" : "err",
+              r.message || r.user_message || userMessageFrom(xhr,
+                ok ? "Saved — your admin email is updated." : "Sorry, that didn't save. Please try again."));
     } else {
       showMsg("emailMsg", "err", userMessageFrom(xhr, "Sorry, that didn't save. Please try again."));
     }
@@ -347,7 +352,7 @@ document.querySelectorAll('#detailsCard .btn[data-setting]').forEach(function(bt
         var r = {};
         try { r = JSON.parse(xhr.responseText || "{}"); } catch (e) {}
         var ok = r.success !== false;
-        var msg = r.message || (r.error && r.error.user_message)
+        var msg = r.message || r.user_message || (r.error && r.error.user_message)
                   || (ok ? "Saved." : "Sorry, that didn't save. Please try again.");
         showMsg("detailsMsg", ok ? "ok" : "err", msg);
         if (ok && r.value && input) input.value = r.value;
