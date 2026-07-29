@@ -140,22 +140,27 @@
     <p class="sub">Shown in the letterhead of your rendered and submitted paperwork. The
        contact email below is what&rsquo;s <em>printed on documents</em> &mdash; it&rsquo;s
        separate from the admin email above, where Benedict sends your reports.</p>
+    <div class="msg" id="detailsCardMsg"></div>
     <label for="pdAddress">Practice address</label>
     <input type="text" id="pdAddress" disabled autocomplete="street-address" placeholder="">
     <button class="btn" id="savePdAddress" style="display:none" data-setting="address" data-input="pdAddress">Save address</button>
+    <div class="msg" id="pdAddressMsg"></div>
     <label for="pdPhone">Phone number</label>
     <input type="text" id="pdPhone" disabled autocomplete="tel" placeholder="">
     <button class="btn" id="savePdPhone" style="display:none" data-setting="phone" data-input="pdPhone">Save phone</button>
+    <div class="msg" id="pdPhoneMsg"></div>
     <label for="pdEmail">Contact email (printed on your paperwork)</label>
     <input type="email" id="pdEmail" disabled placeholder="">
     <button class="btn" id="savePdEmail" style="display:none" data-setting="email" data-input="pdEmail">Save contact email</button>
+    <div class="msg" id="pdEmailMsg"></div>
     <label for="pdCqc">CQC registration number</label>
     <input type="text" id="pdCqc" disabled placeholder="">
     <button class="btn" id="savePdCqc" style="display:none" data-setting="cqc_registration" data-input="pdCqc">Save CQC number</button>
+    <div class="msg" id="pdCqcMsg"></div>
     <label for="pdGdc">GDC registration number</label>
     <input type="text" id="pdGdc" disabled placeholder="">
     <button class="btn" id="savePdGdc" style="display:none" data-setting="gdc_registration" data-input="pdGdc">Save GDC number</button>
-    <div class="msg" id="detailsMsg"></div>
+    <div class="msg" id="pdGdcMsg"></div>
   </div>
 
   <div class="card" id="logoCard">
@@ -275,7 +280,7 @@ function loadCurrent(){
         if (!ok) anyLocked = true;
       });
       if (anyLocked){
-        showMsg("detailsMsg", "info",
+        showMsg("detailsCardMsg", "info",
           "These details are read-only for the moment — ask Benedict to change them by voice.");
       }
       suppressToggleEvents = false;
@@ -336,10 +341,13 @@ document.querySelectorAll('#detailsCard .btn[data-setting]').forEach(function(bt
     var field = btn.getAttribute("data-setting");
     var input = el(btn.getAttribute("data-input"));
     var v = (input && input.value || "").trim();
-    hideMsg("detailsMsg");
-    if (!v){ showMsg("detailsMsg", "err", "Nothing to save — enter a value first."); return; }
+    // 29 Jul 2026 (Steven): each row reports under ITS OWN Save button — the shared
+    // card-bottom message meant a phone save reported under the GDC button.
+    var msgId = btn.getAttribute("data-input") + "Msg";
+    ["pdAddressMsg","pdPhoneMsg","pdEmailMsg","pdCqcMsg","pdGdcMsg"].forEach(hideMsg);
+    if (!v){ showMsg(msgId, "err", "Nothing to save — enter a value first."); return; }
     if (field === "email" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){
-      showMsg("detailsMsg", "err", "That doesn't look like a complete email address. Please check it.");
+      showMsg(msgId, "err", "That doesn't look like a complete email address. Please check it.");
       return;
     }
     btn.disabled = true;
@@ -354,15 +362,15 @@ document.querySelectorAll('#detailsCard .btn[data-setting]').forEach(function(bt
         var ok = r.success !== false;
         var msg = r.message || r.user_message || (r.error && r.error.user_message)
                   || (ok ? "Saved." : "Sorry, that didn't save. Please try again.");
-        showMsg("detailsMsg", ok ? "ok" : "err", msg);
+        showMsg(msgId, ok ? "ok" : "err", msg);
         if (ok && r.value && input) input.value = r.value;
       } else {
-        showMsg("detailsMsg", "err", userMessageFrom(xhr, "Sorry, that didn't save. Please try again."));
+        showMsg(msgId, "err", userMessageFrom(xhr, "Sorry, that didn't save. Please try again."));
       }
     };
     xhr.onerror = function(){
       btn.disabled = false;
-      showMsg("detailsMsg", "err", "Couldn't reach the server. Please check your connection and try again.");
+      showMsg(msgId, "err", "Couldn't reach the server. Please check your connection and try again.");
     };
     xhr.send(JSON.stringify({ settings_token: token, setting: field, value: v }));
   });
