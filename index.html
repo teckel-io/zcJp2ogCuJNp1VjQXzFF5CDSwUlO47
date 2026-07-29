@@ -228,12 +228,6 @@
             font-size: 15px;
             font-weight: 600;
         }
-        .cost-meter .final-split {
-            color: var(--steel);
-            font-size: 10.5px;
-            margin-top: 3px;
-            line-height: 1.45;
-        }
 
         /* Form viewer pane */
         .form-viewer-shell {
@@ -444,8 +438,11 @@
                     -->
                     <div class="final-block" id="cost-final" style="display:none;">
                         <div class="final-label">Last session total</div>
+                        <!-- 29 Jul 2026 (Steven): the agent/document-analyser split line
+                             was removed from view — clients only see the total. The split is
+                             still recorded server-side (agent_conversations cost columns) and
+                             still read by Benedict's session summary; display-only change. -->
                         <div class="final-total" id="cost-final-total">—</div>
-                        <div class="final-split" id="cost-final-split">—</div>
                     </div>
                 </div>
             </div>
@@ -644,26 +641,16 @@
             try {
                 var block      = document.getElementById('cost-final');
                 var totalEl    = document.getElementById('cost-final-total');
-                var splitEl    = document.getElementById('cost-final-split');
-                if (!block || !totalEl || !splitEl) return;
+                if (!block || !totalEl) return;
                 if (!payload || !payload.ready) {
                     block.style.display = 'none';
                     return;
                 }
-                var chat  = payload.cost_of_chat_agent_in_tc || 0;
-                var da    = payload.cost_of_da_in_tc         || 0;
                 var total = payload.cost_total_in_tc         || 0;
                 var totalStr = Math.ceil(total).toLocaleString('en-GB',
                                   { maximumFractionDigits: 0 }) + ' tc';
                 var totalGbp = formatCostUnit(total / TC_PER_GBP);
                 totalEl.textContent = totalStr + ' · ' + totalGbp;
-                splitEl.textContent = 'agent: '
-                    + Math.ceil(chat).toLocaleString('en-GB',
-                          { maximumFractionDigits: 0 })
-                    + ' tc · document analyser: '
-                    + Math.ceil(da).toLocaleString('en-GB',
-                          { maximumFractionDigits: 0 })
-                    + ' tc';
                 block.style.display = 'block';
                 lastFinalConversationId = payload.conversation_id || lastFinalConversationId;
             } catch (e) {
