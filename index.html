@@ -786,6 +786,9 @@
                                 if (iframe && rollingPdfUrl) {
                                     iframe.src = rollingPdfUrl;
                                 }
+                                // keep the live-refresh loop on the fresh token (2b)
+                                currentFormView = { url: rollingPdfUrl,
+                                                    shownAt: currentFormView.shownAt || Date.now() };
                                 currentCostUrl = rollingCostUrl;
                                 rollingPdfUrl  = null;
                                 rollingCostUrl = null;
@@ -826,6 +829,38 @@
                 costPollInterval = null;
             }
         }
+
+        // -----------------------------------------------------------------
+        // 2b. LIVE FORM REFRESH (2 Aug 2026 — 1 Aug live-drive finding):
+        //     the rendered form did not update after a write, so the user
+        //     could not see a saved signature until the agent re-issued
+        //     request_form_view. The signed pdf_url renders CURRENT state
+        //     on every fetch, so a gentle reload while a FORM is on screen
+        //     keeps the panel honest. 20s cadence, visible tab only,
+        //     capped at 30 minutes from first display; upload/settings
+        //     views and the empty placeholder are never touched (a reload
+        //     mid drag-drop would eat the user's file). The cache-buster
+        //     is an EXTRA query param — the signed token param is
+        //     untouched, so the server's HMAC still verifies.
+        // -----------------------------------------------------------------
+        var FORM_REFRESH_MS  = 20 * 1000;
+        var FORM_REFRESH_CAP = 30 * 60 * 1000;
+        var currentFormView  = { url: null, shownAt: 0 };
+
+        function bustCache(url) {
+            return url + (url.indexOf('?') >= 0 ? '&' : '?') + '_r=' + Date.now();
+        }
+
+        setInterval(function () {
+            if (!currentFormView.url) return;
+            if (document.visibilityState !== 'visible') return;
+            if (Date.now() - currentFormView.shownAt > FORM_REFRESH_CAP) return;
+            var iframe = document.getElementById('form-viewer');
+            if (!iframe) return;
+            // Prefer the freshest token the self-heal poll has cached.
+            var url = rollingPdfUrl || currentFormView.url;
+            iframe.src = bustCache(url);
+        }, FORM_REFRESH_MS);
 
         // -----------------------------------------------------------------
         // URL chain-of-custody validation (v2.2.48 hardening)
@@ -1034,6 +1069,8 @@
                             if (iframe) {
                                 iframe.removeAttribute('srcdoc');   // clear any prior fabrication card
                                 iframe.src = pdfUrl;
+                                // arm the live-refresh loop (2b) for THIS form view
+                                currentFormView = { url: pdfUrl, shownAt: Date.now() };
                                 iframe.addEventListener('load', function () {
                                     console.log('[teckel] iframe loaded successfully');
                                     finishOnce(
@@ -1121,6 +1158,7 @@
             }
             if (!iframe) return Promise.resolve('display_upload_link failed: no form-viewer element on page.');
             lastUploadShown = { url: url, ts: nowMs };
+            currentFormView = { url: null, shownAt: 0 };   // never auto-reload an upload page (2b)
             iframe.src = url;
             if (placeholder) placeholder.classList.add('hidden');
             console.log('[teckel] display_upload_link loaded the upload page in the iframe');
@@ -1159,6 +1197,7 @@
             }
             if (!iframe) return 'display_settings_link failed: no form-viewer element on page.';
             lastSettingsShown = { url: url, ts: nowMs };
+            currentFormView = { url: null, shownAt: 0 };   // never auto-reload the settings page (2b)
             iframe.src = url;
             if (placeholder) placeholder.classList.add('hidden');
             console.log('[teckel] display_settings_link loaded the settings page in the iframe');
@@ -1212,6 +1251,31 @@
         window.display_settings_link = displaySettingsLinkImpl;
 
         window.addEventListener('elevenlabs-convai:call', function (event) {
+            // 2 Aug 2026 (1 Aug live-drive finding): a NEW conversation must start
+            // with a clean panel — a stale autoclave log from the previous session
+            // greeted a brand-new call until the next display_form. Reset the
+            // viewer, both polls' state and every debounce cache BEFORE the tools
+            // register, so the new conversation's first display re-fetches fresh.
+            try {
+                var _iframe      = document.getElementById('form-viewer');
+                var _placeholder = document.getElementById('form-viewer-placeholder');
+                if (_iframe) {
+                    _iframe.removeAttribute('srcdoc');
+                    _iframe.src = 'about:blank';
+                }
+                if (_placeholder) _placeholder.classList.remove('hidden');
+                stopInstanceCostPoll();
+                currentCostUrl  = null;
+                rollingPdfUrl   = null;
+                rollingCostUrl  = null;
+                currentFormView = { url: null, shownAt: 0 };
+                lastDisplayFormBy = {};
+                lastUploadShown   = { url: null, ts: 0 };
+                lastSettingsShown = { url: null, ts: 0 };
+                console.log('[teckel] new conversation — form panel cleared');
+            } catch (e) {
+                console.warn('[teckel] panel clear on new conversation failed', e);
+            }
             try {
                 if (!event || !event.detail || !event.detail.config) {
                     console.warn('[teckel] elevenlabs-convai:call event fired without config; cannot register clientTools');
