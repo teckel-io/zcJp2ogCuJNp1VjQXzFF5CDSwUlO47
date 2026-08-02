@@ -1069,8 +1069,22 @@
                             if (iframe) {
                                 iframe.removeAttribute('srcdoc');   // clear any prior fabrication card
                                 iframe.src = pdfUrl;
-                                // arm the live-refresh loop (2b) for THIS form view
-                                currentFormView = { url: pdfUrl, shownAt: Date.now() };
+                                // arm the live-refresh loop (2b) for THIS form view.
+                                //
+                                // NOT for an uploaded DOCUMENT (view_mode 'evidence',
+                                // v2.2.226). The refresher exists because a FORM being
+                                // filled in must re-render as answers land; a stored
+                                // certificate never changes, and re-setting iframe.src
+                                // reloads the PDF and throws the reader back to page 1.
+                                // Live report (Steven, 2 Aug): "it autoscrolls to the
+                                // top of the document after every refresh — this does
+                                // not work when you are reading a document." Same
+                                // exemption the upload and settings pages already take.
+                                if ((data.view_mode || '') === 'evidence') {
+                                    currentFormView = { url: null, shownAt: 0 };
+                                } else {
+                                    currentFormView = { url: pdfUrl, shownAt: Date.now() };
+                                }
                                 iframe.addEventListener('load', function () {
                                     console.log('[teckel] iframe loaded successfully');
                                     finishOnce(
