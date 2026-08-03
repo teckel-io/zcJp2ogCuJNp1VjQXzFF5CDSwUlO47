@@ -685,6 +685,7 @@
         }
 
         function pollAgentCostOnce() {
+            if (isIdle()) return;   // conversation over — stop polling the server
             if (!sessionAgentId) return;
             var url = MCP_BASE
                     + '/document_analyser/render_agent_session_cost'
@@ -731,8 +732,15 @@
         // and Yusuf's post-conversation webhook has written the three
         // cost columns to agent_conversations.
         // -----------------------------------------------------------------
+        // The final cost only APPEARS once the conversation has ended, i.e. exactly when
+        // the idle watchdog has tripped — so this one cannot simply stop when idle or it
+        // would never land. It keeps asking for a grace window after the last activity,
+        // then gives up: enough for Yusuf's post-call webhook to write the row, without
+        // polling a finished session forever.
+        var FINAL_COST_GRACE_MS = 5 * 60 * 1000;
         function pollFinalCostOnce() {
             if (!sessionAgentId) return;
+            if ((Date.now() - lastActivityAt) > (IDLE_STOP_MS + FINAL_COST_GRACE_MS)) return;
             var url = MCP_BASE
                     + '/document_analyser/render_session_final_cost'
                     + '?agent_id=' + encodeURIComponent(sessionAgentId);
@@ -794,7 +802,8 @@
                                 rollingCostUrl = null;
                             } else {
                                 console.warn('[teckel] iframe token expired and no rolling tokens cached — stopping per-instance poll');
-                                stopInstanceCostPoll();
+                                markActivity();   // a NEW conversation — resume the polls
+                stopInstanceCostPoll();
                             }
                         }
                         return null;
@@ -847,6 +856,27 @@
         var FORM_REFRESH_CAP = 30 * 60 * 1000;
         var currentFormView  = { url: null, shownAt: 0 };
 
+        // -----------------------------------------------------------------
+        // IDLE WATCHDOG (Steven, 3 Aug 2026) — "if the conversation ends, you don't need
+        // to continuously refresh the form on the screen."
+        //
+        // He is right, and the waste was real: this loop re-fetched a signed PDF from the
+        // server every 20 seconds for up to THIRTY MINUTES after the call ended, on every
+        // open tab. The refresh exists only so the on-screen form keeps up with what the
+        // agent is writing — once nobody is writing, every fetch is pure server load.
+        //
+        // The widget gives the page no end-of-call event, so rather than reach into its
+        // shadow DOM (which changes when ElevenLabs ship a new widget) we watch ACTIVITY,
+        // which we already observe first-hand: a new call, any client tool firing, or the
+        // cost meter moving. No activity for IDLE_STOP_MS and the polls go quiet.
+        //
+        // Deliberately SKIP rather than clearInterval: the timers stay alive so the next
+        // sign of life resumes them with no re-arming logic to get wrong.
+        var IDLE_STOP_MS   = 90 * 1000;
+        var lastActivityAt = Date.now();
+        function markActivity() { lastActivityAt = Date.now(); }
+        function isIdle() { return (Date.now() - lastActivityAt) > IDLE_STOP_MS; }
+
         function bustCache(url) {
             return url + (url.indexOf('?') >= 0 ? '&' : '?') + '_r=' + Date.now();
         }
@@ -855,6 +885,7 @@
             if (!currentFormView.url) return;
             if (document.visibilityState !== 'visible') return;
             if (Date.now() - currentFormView.shownAt > FORM_REFRESH_CAP) return;
+            if (isIdle()) return;      // the conversation is over — nothing is writing
             var iframe = document.getElementById('form-viewer');
             if (!iframe) return;
             // Prefer the freshest token the self-heal poll has cached.
@@ -955,6 +986,7 @@
         var DISPLAY_FORM_DEBOUNCE_MS = 30 * 1000;   // 30s
 
         function displayFormImpl(args) {
+            markActivity();   // a tool fired: the conversation is live
             console.log('[teckel] display_form called with args:', args);
             args = args || {};
             var iframe      = document.getElementById('form-viewer');
@@ -1152,6 +1184,7 @@
             return /^https:\/\/teckel-io\.github\.io\/[^?#]*upload\.html\?token=[^\s]+$/.test(url);
         }
         function displayUploadLinkImpl(args) {
+            markActivity();   // a tool fired: the conversation is live
             console.log('[teckel] display_upload_link called with args:', args);
             args = args || {};
             var iframe      = document.getElementById('form-viewer');
@@ -1220,6 +1253,7 @@
                 + 'user confirms the page said it saved.';
         }
         function displaySettingsLinkImpl(args) {
+            markActivity();   // a tool fired: the conversation is live
             console.log('[teckel] display_settings_link called with args:', args);
             args = args || {};
             var sid = (args.settings_session_id || '').toString().trim();
@@ -1390,6 +1424,7 @@
                 + 'the user to click that. Do NOT say the page is already open, and do NOT read the link aloud.';
         }
         function displaySurveyLinkImpl(args) {
+            markActivity();   // a tool fired: the conversation is live
             console.log('[teckel] display_survey_link called with args:', args);
             args = args || {};
             // ONE required argument, deliberately. The EL tool declares a single required
