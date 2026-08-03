@@ -1392,16 +1392,30 @@
         function displaySurveyLinkImpl(args) {
             console.log('[teckel] display_survey_link called with args:', args);
             args = args || {};
-            // Preferred path: the 11-char code, so the LLM never relays the 388-char URL.
+            // ONE required argument, deliberately. The EL tool declares a single required
+            // `survey_link` rather than two optional ones because haiku omits optional
+            // params (measured, repeatedly) — two optionals would be called with neither.
+            // We discriminate here instead: a short code resolves server-side, a URL opens
+            // directly. Aliases are accepted so a differently-worded next_step still lands.
+            var raw = (args.survey_link || args.survey_session_id || args.fill_session_id
+                       || args.survey_url || args.fill_url || args.log_url || '').toString().trim();
+            if (!raw) {
+                return Promise.resolve(
+                    'display_survey_link failed: nothing was passed. Call get_survey_fill_link (or '
+                    + 'get_log_fill_link) first and pass its survey_session_id — or, if the response '
+                    + 'has no session id, its fill_url — as survey_link. Do NOT read the link aloud.');
+            }
+            // Preferred path: the ~11-char code, so the LLM never relays the 388-char URL.
             // It PROVABLY mangles long opaque strings (settings card, 27 Jul: one wallet
             // character dropped from the base64 tail → "signature is invalid"), which is
             // why display_settings_link was rebuilt this way in 2.2.192.
-            var sid = (args.survey_session_id || args.fill_session_id || '').toString().trim();
+            var sid = /^https?:\/\//i.test(raw) ? '' : raw;
             if (sid) {
                 if (!/^[A-Za-z0-9_-]{6,24}$/.test(sid)) {
                     return Promise.resolve(
-                        'display_survey_link failed: survey_session_id did not look like the short code '
-                        + 'from get_survey_fill_link. Pass that code EXACTLY as returned, nothing else.');
+                        'display_survey_link failed: that was neither a teckel self-fill URL nor the '
+                        + 'short code from get_survey_fill_link. Pass exactly what the tool returned, '
+                        + 'nothing else, and do NOT read the link aloud.');
                 }
                 var resolveUrl = MCP_BASE.replace(/\/$/, '')
                     + '/document_analyser/resolve_view_session?id=' + encodeURIComponent(sid);
@@ -1431,8 +1445,7 @@
             }
             // Direct-URL path: keeps this tool working against a server build that has no
             // session stash yet, exactly as display_settings_link keeps its legacy path.
-            return Promise.resolve(openSelfFillTab(
-                (args.survey_url || args.fill_url || args.log_url || '').toString().trim(), 'direct url'));
+            return Promise.resolve(openSelfFillTab(raw, 'direct url'));
         }
 
         // Multi-channel registration — see prior version comments for rationale.
