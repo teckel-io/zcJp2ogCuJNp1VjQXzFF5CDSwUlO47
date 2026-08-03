@@ -1258,11 +1258,189 @@
             return Promise.resolve(showSettingsInIframe((args.settings_url || '').toString().trim(), 'legacy settings_url'));
         }
 
+        // ElevenLabs custom client tool: display_survey_link (CC-7, 3 Aug 2026)
+        // ------------------------------------------------------------------
+        // WHY THIS EXISTS. get_survey_fill_link mints a correct 388-character signed URL
+        // and the agent had no way to deliver it: the only client tools were display_form
+        // / display_upload_link / display_settings_link, so a practitioner asking to fill
+        // a survey on a patient's behalf got the URL RECITED at them — straight through
+        // the server's own "do NOT read the token or the raw link aloud" rule. The ban
+        // was there and it lost, because the branch it needed had no words and no tool.
+        // A prohibition loses to a missing branch. This is the branch.
+        //
+        // WHY A NEW TAB, NOT THE IFRAME (Steven's call, 3 Aug, and he is right). The form
+        // viewer is a SINGLE SLOT and may already hold the form the practitioner is
+        // working on. Loading the survey there would destroy the work in front of them,
+        // and would re-inherit the auto-refresh bug class fixed on 2 Aug. So: a new tab,
+        // and the viewer is never touched — not even on the refusal path, which is why
+        // this tool has its own card instead of calling showFabricationCard (that one
+        // writes iframe.srcdoc, i.e. it clobbers exactly what we are protecting).
+        //
+        // POP-UP BLOCKERS ARE THE REAL RISK, and the reason this is not three lines. A
+        // client tool fires from a voice turn, not from a click, so there is no transient
+        // user activation and the browser may refuse the tab outright. Reporting success
+        // blindly would have the agent announce "it's open" over a tab that never opened
+        // — the exact 2.2.225 class, a capability shipped but not usable. So we detect
+        // the refusal, fall back to an on-screen button the user CAN click (a click IS a
+        // gesture, so it always opens), and tell the agent WHICH of the two happened.
+        // ⚠ Do NOT add 'noopener' to the window.open feature string: per spec that makes
+        //   window.open return null even on SUCCESS, which would misreport every opened
+        //   tab as blocked. We null the handle's `opener` immediately instead.
+        var lastSelfFillShown = { url: null, ts: 0 };
+        var SELF_FILL_LINK_DEBOUNCE_MS = 30 * 1000;
+        function isValidSelfFillUrl(url) {
+            if (!url || typeof url !== 'string') return false;
+            return /^https:\/\/teckel-io\.github\.io\/[^?#]*(survey|log)\.html\?token=[^\s]+$/.test(url);
+        }
+        function selfFillKind(url) {
+            return /log\.html\?/.test(url || '') ? 'log' : 'survey';
+        }
+        function removeSelfFillCard() {
+            var old = document.getElementById('teckel-selffill-card');
+            if (old && old.parentNode) old.parentNode.removeChild(old);
+        }
+        // Built with DOM calls, never innerHTML — the URL is agent-supplied and must not
+        // be able to inject markup even after the validator has passed it.
+        function showSelfFillCard(mode, kind, url, reason) {
+            removeSelfFillCard();
+            var refused = (mode === 'refused');
+            var wrap = document.createElement('div');
+            wrap.id = 'teckel-selffill-card';
+            wrap.setAttribute('role', 'dialog');
+            wrap.style.cssText = 'position:fixed;z-index:2147483000;right:18px;bottom:18px;'
+                + 'max-width:380px;font-family:system-ui,sans-serif;background:#001a35;color:#ffffff;'
+                + 'border:1px solid ' + (refused ? '#c0504d' : 'rgba(193,161,100,0.55)') + ';'
+                + 'border-radius:6px;padding:16px 18px;box-shadow:0 6px 24px rgba(0,0,0,0.45);';
+            var eyebrow = document.createElement('div');
+            eyebrow.style.cssText = 'font-size:11px;letter-spacing:3px;text-transform:uppercase;'
+                + 'margin-bottom:10px;color:' + (refused ? '#ffb3b0' : '#f0d060') + ';';
+            eyebrow.textContent = refused ? 'Link refused' : 'Open in a new tab';
+            wrap.appendChild(eyebrow);
+            var title = document.createElement('div');
+            title.style.cssText = 'font-size:15px;line-height:1.45;margin-bottom:8px;';
+            title.textContent = refused
+                ? 'The voice agent passed an unverified link.'
+                : 'Your browser blocked the new tab.';
+            wrap.appendChild(title);
+            var detail = document.createElement('div');
+            detail.style.cssText = 'color:#b0c4de;font-size:13px;line-height:1.5;margin-bottom:14px;';
+            detail.textContent = refused
+                ? (reason || 'It was not a teckel self-fill page, so nothing was opened.')
+                : ('Click below to open the ' + kind + ' page. It opens in a new tab, so the '
+                   + 'document on screen stays exactly where it is.');
+            wrap.appendChild(detail);
+            if (!refused) {
+                var a = document.createElement('a');
+                a.href = url;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.textContent = 'Open the ' + kind;
+                a.style.cssText = 'display:inline-block;background:#c1a164;color:#001a35;'
+                    + 'text-decoration:none;font-weight:600;font-size:14px;padding:9px 16px;'
+                    + 'border-radius:4px;';
+                a.addEventListener('click', removeSelfFillCard);
+                wrap.appendChild(a);
+            }
+            var close = document.createElement('button');
+            close.type = 'button';
+            close.textContent = 'Dismiss';
+            close.style.cssText = 'display:block;margin-top:12px;background:none;border:none;'
+                + 'color:#b0c4de;font-size:12px;text-decoration:underline;cursor:pointer;padding:0;';
+            close.addEventListener('click', removeSelfFillCard);
+            wrap.appendChild(close);
+            document.body.appendChild(wrap);
+        }
+        function openSelfFillTab(url, sourceNote) {
+            if (!isValidSelfFillUrl(url)) {
+                showSelfFillCard('refused', 'page', null,
+                    'The link the agent supplied was not a teckel survey or log self-fill page.');
+                console.warn('[teckel] display_survey_link REFUSED a non-teckel url ('
+                    + (sourceNote || '') + '):', url);
+                return 'display_survey_link failed: that URL is not a teckel self-fill page. Call '
+                    + 'get_survey_fill_link (or get_log_fill_link) and pass what it returns UNCHANGED. '
+                    + 'Do NOT tell the user the page is open — it is not — and do NOT read the link aloud.';
+            }
+            var kind  = selfFillKind(url);
+            var nowMs = Date.now();
+            if (lastSelfFillShown.url === url && (nowMs - lastSelfFillShown.ts) < SELF_FILL_LINK_DEBOUNCE_MS) {
+                return 'display_survey_link already opened this ' + kind + ' page in a new tab. Do NOT '
+                    + 'call it again for the same link — tell the user to switch to that tab.';
+            }
+            lastSelfFillShown = { url: url, ts: nowMs };
+            var win = null;
+            try {
+                win = window.open(url, '_blank');        // no 'noopener' — see the ⚠ note above
+            } catch (e) {
+                console.warn('[teckel] display_survey_link window.open threw', e);
+                win = null;
+            }
+            if (win) {
+                try { win.opener = null; } catch (e) {}
+                try { win.focus(); } catch (e) {}
+                removeSelfFillCard();
+                console.log('[teckel] display_survey_link opened the ' + kind + ' page in a new tab');
+                return 'display_survey_link completed: the ' + kind + ' page is OPEN IN A NEW TAB. Tell '
+                    + 'the user it is open in a new tab and that the document on screen is untouched. '
+                    + 'NEVER claim it was filled in or submitted until they confirm the page said so.';
+            }
+            showSelfFillCard('blocked', kind, url, null);
+            console.warn('[teckel] display_survey_link — new tab blocked; showed the click-through card');
+            return 'display_survey_link: the browser BLOCKED the new tab (pop-up blocker). It is NOT open. '
+                + 'A button labelled "Open the ' + kind + '" is now on screen at the bottom right — tell '
+                + 'the user to click that. Do NOT say the page is already open, and do NOT read the link aloud.';
+        }
+        function displaySurveyLinkImpl(args) {
+            console.log('[teckel] display_survey_link called with args:', args);
+            args = args || {};
+            // Preferred path: the 11-char code, so the LLM never relays the 388-char URL.
+            // It PROVABLY mangles long opaque strings (settings card, 27 Jul: one wallet
+            // character dropped from the base64 tail → "signature is invalid"), which is
+            // why display_settings_link was rebuilt this way in 2.2.192.
+            var sid = (args.survey_session_id || args.fill_session_id || '').toString().trim();
+            if (sid) {
+                if (!/^[A-Za-z0-9_-]{6,24}$/.test(sid)) {
+                    return Promise.resolve(
+                        'display_survey_link failed: survey_session_id did not look like the short code '
+                        + 'from get_survey_fill_link. Pass that code EXACTLY as returned, nothing else.');
+                }
+                var resolveUrl = MCP_BASE.replace(/\/$/, '')
+                    + '/document_analyser/resolve_view_session?id=' + encodeURIComponent(sid);
+                console.log('[teckel] resolving survey_session_id at:', resolveUrl);
+                return fetch(resolveUrl, { method: 'GET', credentials: 'omit' })
+                    .then(function (resp) {
+                        if (resp.status === 404) throw new Error('unknown or mistyped link code');
+                        if (resp.status === 410) throw new Error('this self-fill link has expired');
+                        if (!resp.ok) throw new Error('resolve failed: status=' + resp.status);
+                        return resp.json();
+                    })
+                    .then(function (data) {
+                        if (!data || !data.success || !data.pdf_url
+                            || (data.view_mode !== 'survey_fill' && data.view_mode !== 'log_fill')) {
+                            throw new Error('the code did not resolve to a self-fill page');
+                        }
+                        return openSelfFillTab(data.pdf_url, 'from resolve');
+                    })
+                    .catch(function (err) {
+                        console.warn('[teckel] display_survey_link resolve failed:', err);
+                        return 'display_survey_link failed: '
+                            + (err && err.message ? err.message : 'could not resolve the link')
+                            + '. Do NOT say the page is on screen — it is not. Offer to EMAIL the link '
+                            + 'instead (call the fill-link tool again with send_email=true), or ask for '
+                            + 'a fresh link and try once more.';
+                    });
+            }
+            // Direct-URL path: keeps this tool working against a server build that has no
+            // session stash yet, exactly as display_settings_link keeps its legacy path.
+            return Promise.resolve(openSelfFillTab(
+                (args.survey_url || args.fill_url || args.log_url || '').toString().trim(), 'direct url'));
+        }
+
         // Multi-channel registration — see prior version comments for rationale.
         window.display_form = displayFormImpl;
         window.displayForm  = displayFormImpl;
         window.display_upload_link = displayUploadLinkImpl;
         window.display_settings_link = displaySettingsLinkImpl;
+        window.display_survey_link = displaySurveyLinkImpl;
 
         window.addEventListener('elevenlabs-convai:call', function (event) {
             // 2 Aug 2026 (1 Aug live-drive finding): a NEW conversation must start
@@ -1286,6 +1464,8 @@
                 lastDisplayFormBy = {};
                 lastUploadShown   = { url: null, ts: 0 };
                 lastSettingsShown = { url: null, ts: 0 };
+                lastSelfFillShown = { url: null, ts: 0 };
+                removeSelfFillCard();   // a stale "open the survey" card must not greet a new call
                 console.log('[teckel] new conversation — form panel cleared');
             } catch (e) {
                 console.warn('[teckel] panel clear on new conversation failed', e);
@@ -1299,7 +1479,8 @@
                 event.detail.config.clientTools.display_form = displayFormImpl;
                 event.detail.config.clientTools.display_upload_link = displayUploadLinkImpl;
                 event.detail.config.clientTools.display_settings_link = displaySettingsLinkImpl;
-                console.log('[teckel] display_form + display_upload_link + display_settings_link registered via elevenlabs-convai:call event');
+                event.detail.config.clientTools.display_survey_link = displaySurveyLinkImpl;
+                console.log('[teckel] display_form + display_upload_link + display_settings_link + display_survey_link registered via elevenlabs-convai:call event');
             } catch (e) {
                 console.error('[teckel] failed to register display_form via event listener', e);
             }
