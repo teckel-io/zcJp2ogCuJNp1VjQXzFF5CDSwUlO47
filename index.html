@@ -248,6 +248,72 @@
             border: 0;
             background: #ffffff;
         }
+        /* v2.2.235 — the form search box. Sits ABOVE the viewer so it reads as a way in
+           to the list, not a control on the document currently shown. */
+        .form-search-bar { position: relative; margin: 0 0 10px 0; }
+        .form-search-input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 9px 13px;
+            font: inherit;
+            font-size: 14px;
+            color: var(--text, #111827);
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid var(--card-border, rgba(0, 0, 0, 0.14));
+            border-radius: 8px;
+        }
+        .form-search-input:disabled { opacity: 0.55; cursor: not-allowed; }
+        .form-search-results {
+            display: none;
+            position: absolute;
+            left: 0; right: 0; top: calc(100% + 4px);
+            z-index: 4;
+            max-height: 320px;
+            overflow-y: auto;
+            background: #ffffff;
+            border: 1px solid var(--card-border, rgba(0, 0, 0, 0.14));
+            border-radius: 8px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.10);
+        }
+        .fs-hit {
+            display: flex; justify-content: space-between; gap: 12px;
+            padding: 8px 13px; font-size: 13px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        .fs-hit:last-child { border-bottom: 0; }
+        .fs-name { color: var(--text, #111827); }
+        .fs-meta { color: var(--text-dim, #6b7280); white-space: nowrap; }
+        .fs-empty { padding: 10px 13px; font-size: 13px; color: var(--text-dim, #6b7280); }
+
+        /* v2.2.232 — manual refresh (Steven, 4 Aug). Deliberately UNOBTRUSIVE and
+           deliberately ALWAYS THERE: it sits over the top-right of the viewer, dimmed
+           until hovered, so it never competes with the form but is where a hand goes
+           looking. It is an addition, not a replacement — the page still redraws by
+           itself when the form actually changes; this is the escape hatch for when a
+           user simply wants to be sure. */
+        .form-refresh-btn {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            z-index: 3;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 11px;
+            font: inherit;
+            font-size: 12px;
+            line-height: 1;
+            color: var(--text-dim, #6b7280);
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+            border-radius: 999px;
+            cursor: pointer;
+            opacity: 0.55;
+            transition: opacity 0.15s ease, color 0.15s ease;
+        }
+        .form-refresh-btn:hover,
+        .form-refresh-btn:focus-visible { opacity: 1; color: var(--text, #111827); }
+        .form-refresh-btn svg { width: 13px; height: 13px; }
         .form-viewer-placeholder {
             position: absolute;
             inset: 0;
@@ -447,11 +513,34 @@
                 </div>
             </div>
 
+            <!-- v2.2.235 (C7) — find a form without spending turns on it. Disabled until
+                 the index arrives with the first form the agent displays; the placeholder
+                 says so rather than looking broken. -->
+            <div class="form-search-bar">
+                <input id="form-search" class="form-search-input" type="search"
+                       autocomplete="off" disabled
+                       placeholder="Search your forms — available once a form is on screen"
+                       aria-label="Search your forms">
+                <div id="form-search-results" class="form-search-results"></div>
+            </div>
+
             <div class="form-viewer-shell">
                 <iframe id="form-viewer" name="form-viewer"
                         src="about:blank"
                         title="form viewer"
                         allow="fullscreen"></iframe>
+                <!-- v2.2.232 — refresh on demand. The page redraws itself when the form
+                     actually changes; this is for the moment a user wants to be sure. -->
+                <button type="button" id="form-refresh-btn" class="form-refresh-btn"
+                        title="Refresh the form shown here">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                         aria-hidden="true">
+                        <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
+                        <polyline points="21 3 21 9 15 9"></polyline>
+                    </svg>
+                    Refresh
+                </button>
                 <div class="form-viewer-placeholder" id="form-viewer-placeholder">
                     <div class="ph-eyebrow">Form viewer</div>
                     <div class="ph-title">Ask Benedict to show you a form and it will appear here.</div>
@@ -819,6 +908,13 @@
                         rollingPdfUrl  = data.refreshed_pdf_url;
                         rollingCostUrl = data.refreshed_cost_url;
                     }
+                    // v2.2.232 — the server now tells us WHETHER THE FORM WOULD LOOK
+                    // DIFFERENT (form_state_stamp covers committed rows and the unsaved
+                    // draft). Record it; the refresh loop below redraws only when it moves.
+                    // A missing stamp is recorded as null, which that loop treats as
+                    // "changed" — see the note there. Never as unchanged.
+                    latestFormStamp = (typeof data.form_state_stamp === 'string'
+                                       && data.form_state_stamp) ? data.form_state_stamp : null;
                 })
                 .catch(function (e) {
                     console.warn('per-instance cost poll failed', e);
@@ -881,17 +977,142 @@
             return url + (url.indexOf('?') >= 0 ? '&' : '?') + '_r=' + Date.now();
         }
 
+        // -----------------------------------------------------------------
+        // v2.2.232 — REDRAW ON CHANGE, NOT ON A TIMER (Steven, 4 Aug).
+        //
+        // What was here reloaded the entire PDF every 20 seconds whether or not a single
+        // character had been written. That flashes, throws the reader back to page one,
+        // and costs a server render every 20s per open tab for nothing. Steven's reaction
+        // on being shown it: a refresh should be something the user asks for, not
+        // something that happens to them.
+        //
+        // Manual-only would be worse in the one workflow this product is built for. This
+        // is a HANDS-FREE voice fill: a fifteen-field checklist would mean fifteen clicks,
+        // or the agent saying "now press refresh", which is exactly the naming-the-
+        // plumbing its prompt forbids. So: event-driven, plus a button.
+        //
+        // The server now returns form_state_stamp, which changes exactly when the render
+        // would differ — it covers committed rows AND the unsaved draft. Nothing written,
+        // nothing happens.
+        //
+        // ⚠ DIRECTION OF FAILURE. A null stamp means "could not tell", and it MUST count
+        // as changed. Treating unknown as unchanged would silently re-create the blank
+        // screen this release exists to end, for exactly the users whose poll is failing.
+        // -----------------------------------------------------------------
+        var latestFormStamp = null;   // newest stamp the cost poll has seen
+        var lastFormStamp   = null;   // stamp the iframe is currently showing
+
+        function redrawForm(reason) {
+            var iframe = document.getElementById('form-viewer');
+            if (!iframe || !currentFormView.url) return false;
+            // Prefer the freshest token the self-heal poll has cached.
+            var url = rollingPdfUrl || currentFormView.url;
+            iframe.src = bustCache(url);
+            lastFormStamp = latestFormStamp;   // may be null — see above
+            console.log('[teckel] form redrawn (' + reason + ')');
+            return true;
+        }
+
         setInterval(function () {
             if (!currentFormView.url) return;
             if (document.visibilityState !== 'visible') return;
             if (Date.now() - currentFormView.shownAt > FORM_REFRESH_CAP) return;
             if (isIdle()) return;      // the conversation is over — nothing is writing
-            var iframe = document.getElementById('form-viewer');
-            if (!iframe) return;
-            // Prefer the freshest token the self-heal poll has cached.
-            var url = rollingPdfUrl || currentFormView.url;
-            iframe.src = bustCache(url);
+            // Unknown stamp -> redraw. Known and unmoved -> leave the reader alone.
+            var stamp = latestFormStamp;
+            if (stamp !== null && stamp === lastFormStamp) return;
+            redrawForm(stamp === null ? 'stamp unknown' : 'form changed');
         }, FORM_REFRESH_MS);
+
+        // The button Steven asked for: always available, always honest, costs nothing.
+        // It bypasses the stamp entirely — if a user asks to refresh, they get a refresh.
+        document.addEventListener('DOMContentLoaded', function () {
+            var btn = document.getElementById('form-refresh-btn');
+            if (!btn) return;
+            btn.addEventListener('click', function () {
+                markActivity();                       // an explicit click is life
+                if (!redrawForm('user asked')) {
+                    console.log('[teckel] refresh clicked with no form on screen');
+                }
+            });
+        });
+
+        // -----------------------------------------------------------------
+        // v2.2.235 (C7) — FIND A FORM WITHOUT TALKING.
+        //
+        // Steven, 3 Aug 23:28: "how many forms total are there?" → 108, read ten at a
+        // time, then six turns of "the 5th one" / "what is the 5th?" / "let's work on the
+        // 4th" before any work began. Finding a form by TALKING is pure turn cost, and
+        // turns are 95.7% of what a completed form costs.
+        //
+        // ⚠ THIS DOES NOT OPEN FORMS, ON PURPOSE. The page cannot speak to the agent —
+        // there is no channel that way — and opening a form needs a signed, per-instance
+        // link only the agent can mint. What it removes is the EXPENSIVE half: browsing
+        // aloud. The user reads the exact name and says it once.
+        // ⚠ It is also why the index carries no ids and no tokens: it exists to let
+        // somebody find a NAME, never to read a record.
+        // -----------------------------------------------------------------
+        var formsIndex = [];
+
+        function setFormsIndex(list) {
+            formsIndex = Array.isArray(list) ? list : [];
+            var box = document.getElementById('form-search');
+            if (box) {
+                box.disabled = false;
+                box.placeholder = 'Search your ' + formsIndex.length + ' forms…';
+            }
+            renderSearchResults(box ? box.value : '');
+        }
+
+        function renderSearchResults(q) {
+            var out = document.getElementById('form-search-results');
+            if (!out) return;
+            q = (q || '').trim().toLowerCase();
+            if (!q) { out.innerHTML = ''; out.style.display = 'none'; return; }
+            // Every word must appear somewhere in the name — so "recep check" finds
+            // "Reception Security Checklist" without needing the words in order. Matching
+            // on the same display name the agent speaks means what the user reads back is
+            // exactly what the agent will recognise.
+            var words = q.split(/\s+/);
+            var hits = formsIndex.filter(function (f) {
+                var hay = (f.name || '').toLowerCase();
+                return words.every(function (w) { return hay.indexOf(w) >= 0; });
+            }).slice(0, 12);
+            if (!hits.length) {
+                out.innerHTML = '<div class="fs-empty">No form matches that.</div>';
+                out.style.display = 'block';
+                return;
+            }
+            var html = hits.map(function (f) {
+                var st = (f.status || '').replace(/_/g, ' ');
+                var when = f.updated ? ' · ' + f.updated : '';
+                return '<div class="fs-hit"><span class="fs-name"></span>'
+                     + '<span class="fs-meta">' + esc(st + when) + '</span></div>';
+            }).join('');
+            out.innerHTML = html;
+            // Names are catalogue data and reach innerHTML, so they are set as TEXT
+            // rather than markup — the one place this feature could carry a payload.
+            var nodes = out.querySelectorAll('.fs-name');
+            for (var i = 0; i < hits.length && i < nodes.length; i++) {
+                nodes[i].textContent = hits[i].name || '';
+            }
+            out.style.display = 'block';
+        }
+
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/[<>"&]/g, function (c) {
+                return ({ '<': '&lt;', '>': '&gt;', '"': '&quot;', '&': '&amp;' })[c];
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var box = document.getElementById('form-search');
+            if (!box) return;
+            box.addEventListener('input', function () {
+                markActivity();
+                renderSearchResults(box.value);
+            });
+        });
 
         // -----------------------------------------------------------------
         // URL chain-of-custody validation (v2.2.48 hardening)
@@ -1057,6 +1278,11 @@
                     }
                     var pdfUrl  = data.pdf_url;
                     var costUrl = data.cost_url;
+                    // v2.2.235 (C7) — the search index rides the resolve payload. It is
+                    // names and status only; see the server note on resolve_view_session.
+                    if (data.forms_index && data.forms_index.length) {
+                        setFormsIndex(data.forms_index);
+                    }
 
                     // Chain-of-custody — server should only ever
                     // emit URLs on its own host, but we still
