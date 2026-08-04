@@ -884,8 +884,8 @@
                                     iframe.src = rollingPdfUrl;
                                 }
                                 // keep the live-refresh loop on the fresh token (2b)
-                                currentFormView = { url: rollingPdfUrl,
-                                                    shownAt: currentFormView.shownAt || Date.now() };
+                                setFormView({ url: rollingPdfUrl,
+                                              shownAt: currentFormView.shownAt || Date.now() });
                                 currentCostUrl = rollingCostUrl;
                                 rollingPdfUrl  = null;
                                 rollingCostUrl = null;
@@ -1002,6 +1002,36 @@
         var latestFormStamp = null;   // newest stamp the cost poll has seen
         var lastFormStamp   = null;   // stamp the iframe is currently showing
 
+        // -----------------------------------------------------------------
+        // v2.2.239 — THE REFRESH BUTTON BELONGS TO THE FORM, NOT TO THE PANEL.
+        //
+        // Steven, 4 Aug: the button overlaps the Account Settings header ("<practice>
+        // / Account settings · secure & private") when that page is scrolled to the top,
+        // and asked the right question — does it need to be on the settings page at all?
+        // It does not. It redraws a rendered FORM; on the settings page, the upload page
+        // or the empty placeholder there is nothing for it to redraw, so it was pure
+        // obstruction. Clicking it there already did nothing but log a line.
+        //
+        // The refresh LOOP has skipped those views since 2.2.176 (it keys off
+        // currentFormView.url). The BUTTON was static markup and never got the same rule,
+        // which is why it disagreed with the panel it sits on.
+        //
+        // ⚠ Structural, not a sprinkle of hide() calls: currentFormView is assigned in
+        // SEVEN places, and a future eighth would have re-created this. setFormView is
+        // now the only door, so the button cannot drift out of step with what is on
+        // screen. Fails VISIBLE-OFF: anything that is not a form hides it.
+        // -----------------------------------------------------------------
+        function syncRefreshBtn() {
+            var btn = document.getElementById('form-refresh-btn');
+            if (!btn) return;                       // markup not ready yet — no-op, not a throw
+            btn.style.display = (currentFormView && currentFormView.url) ? '' : 'none';
+        }
+
+        function setFormView(v) {
+            currentFormView = v || { url: null, shownAt: 0 };
+            syncRefreshBtn();
+        }
+
         function redrawForm(reason) {
             var iframe = document.getElementById('form-viewer');
             if (!iframe || !currentFormView.url) return false;
@@ -1029,6 +1059,10 @@
         document.addEventListener('DOMContentLoaded', function () {
             var btn = document.getElementById('form-refresh-btn');
             if (!btn) return;
+            // v2.2.239 — hide it on first paint. Nothing has called setFormView yet, so
+            // without this the button sits over the placeholder from the moment the page
+            // loads, which is where a user first meets it and where it does least.
+            syncRefreshBtn();
             btn.addEventListener('click', function () {
                 markActivity();                       // an explicit click is life
                 if (!redrawForm('user asked')) {
@@ -1339,9 +1373,9 @@
                                 // not work when you are reading a document." Same
                                 // exemption the upload and settings pages already take.
                                 if ((data.view_mode || '') === 'evidence') {
-                                    currentFormView = { url: null, shownAt: 0 };
+                                    setFormView({ url: null, shownAt: 0 });
                                 } else {
-                                    currentFormView = { url: pdfUrl, shownAt: Date.now() };
+                                    setFormView({ url: pdfUrl, shownAt: Date.now() });
                                 }
                                 iframe.addEventListener('load', function () {
                                     console.log('[teckel] iframe loaded successfully');
@@ -1431,7 +1465,7 @@
             }
             if (!iframe) return Promise.resolve('display_upload_link failed: no form-viewer element on page.');
             lastUploadShown = { url: url, ts: nowMs };
-            currentFormView = { url: null, shownAt: 0 };   // never auto-reload an upload page (2b)
+            setFormView({ url: null, shownAt: 0 });   // never auto-reload an upload page (2b)
             iframe.src = url;
             if (placeholder) placeholder.classList.add('hidden');
             console.log('[teckel] display_upload_link loaded the upload page in the iframe');
@@ -1470,7 +1504,7 @@
             }
             if (!iframe) return 'display_settings_link failed: no form-viewer element on page.';
             lastSettingsShown = { url: url, ts: nowMs };
-            currentFormView = { url: null, shownAt: 0 };   // never auto-reload the settings page (2b)
+            setFormView({ url: null, shownAt: 0 });   // never auto-reload the settings page (2b)
             iframe.src = url;
             if (placeholder) placeholder.classList.add('hidden');
             console.log('[teckel] display_settings_link loaded the settings page in the iframe');
@@ -1734,7 +1768,7 @@
                 currentCostUrl  = null;
                 rollingPdfUrl   = null;
                 rollingCostUrl  = null;
-                currentFormView = { url: null, shownAt: 0 };
+                setFormView({ url: null, shownAt: 0 });
                 lastDisplayFormBy = {};
                 lastUploadShown   = { url: null, ts: 0 };
                 lastSettingsShown = { url: null, ts: 0 };
