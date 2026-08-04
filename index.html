@@ -284,18 +284,31 @@
         .fs-name { color: var(--text, #111827); }
         .fs-meta { color: var(--text-dim, #6b7280); white-space: nowrap; }
         .fs-empty { padding: 10px 13px; font-size: 13px; color: var(--text-dim, #6b7280); }
+        /* v2.2.239 — the list is a FINDING aid, and now says so. A row is clickable
+           because clicking copies the name; the cursor promises only what it delivers. */
+        .fs-hint { padding: 8px 13px; font-size: 12px; color: var(--text-dim, #6b7280);
+                   border-bottom: 1px solid var(--card-border, rgba(0, 0, 0, 0.08)); }
+        .fs-hit { cursor: pointer; }
+        .fs-hit:hover, .fs-hit:focus-visible { background: rgba(0, 0, 0, 0.04); outline: none; }
 
-        /* v2.2.232 — manual refresh (Steven, 4 Aug). Deliberately UNOBTRUSIVE and
-           deliberately ALWAYS THERE: it sits over the top-right of the viewer, dimmed
-           until hovered, so it never competes with the form but is where a hand goes
-           looking. It is an addition, not a replacement — the page still redraws by
-           itself when the form actually changes; this is the escape hatch for when a
-           user simply wants to be sure. */
+        /* v2.2.232 — manual refresh (Steven, 4 Aug). An addition, not a replacement: the
+           page still redraws itself when the form actually changes; this is the escape
+           hatch for when a user simply wants to be sure.
+
+           v2.2.239 — MOVED OUT OF THE VIEWER. It used to float over the top-right of the
+           iframe, which put it squarely on top of the embedded PDF viewer's OWN toolbar —
+           the print icon and the three-dot menu — so those could not be clicked at all
+           (Steven, 4 Aug). ⚠ There is no safe corner to move it to: the browser's PDF
+           chrome is the browser's, it differs between Chrome and Firefox, and it can move
+           on any browser update. Anything overlaying that iframe is a collision waiting to
+           happen. So it now lives in its own strip ABOVE the viewer, in page chrome we
+           own, where it cannot cover anything. */
+        .viewer-tools {
+            display: flex;
+            justify-content: flex-end;
+            margin: 0 0 8px 0;
+        }
         .form-refresh-btn {
-            position: absolute;
-            top: 10px;
-            right: 14px;
-            z-index: 3;
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -523,11 +536,11 @@
                 <div id="form-search-results" class="form-search-results"></div>
             </div>
 
-            <div class="form-viewer-shell">
-                <iframe id="form-viewer" name="form-viewer"
-                        src="about:blank"
-                        title="form viewer"
-                        allow="fullscreen"></iframe>
+            <!-- v2.2.239 — the refresh control lives HERE, above the viewer, not floating
+                 over it. Inside the shell it covered the embedded PDF viewer's own print
+                 and menu icons, making them unclickable. Page chrome belongs in page
+                 chrome. -->
+            <div class="viewer-tools" id="viewer-tools">
                 <!-- v2.2.232 — refresh on demand. The page redraws itself when the form
                      actually changes; this is for the moment a user wants to be sure. -->
                 <button type="button" id="form-refresh-btn" class="form-refresh-btn"
@@ -540,6 +553,13 @@
                     </svg>
                     Refresh
                 </button>
+            </div>
+
+            <div class="form-viewer-shell">
+                <iframe id="form-viewer" name="form-viewer"
+                        src="about:blank"
+                        title="form viewer"
+                        allow="fullscreen"></iframe>
                 <div class="form-viewer-placeholder" id="form-viewer-placeholder">
                     <div class="ph-eyebrow">Form viewer</div>
                     <div class="ph-title">Ask Benedict to show you a form and it will appear here.</div>
@@ -1021,9 +1041,12 @@
         // screen. Fails VISIBLE-OFF: anything that is not a form hides it.
         // -----------------------------------------------------------------
         function syncRefreshBtn() {
-            var btn = document.getElementById('form-refresh-btn');
-            if (!btn) return;                       // markup not ready yet — no-op, not a throw
-            btn.style.display = (currentFormView && currentFormView.url) ? '' : 'none';
+            // v2.2.239 — hide the STRIP, not just the button: the strip carries the
+            // bottom margin, so hiding only the button would leave a gap above the viewer
+            // on every non-form view.
+            var row = document.getElementById('viewer-tools');
+            if (!row) return;                       // markup not ready yet — no-op, not a throw
+            row.style.display = (currentFormView && currentFormView.url) ? 'flex' : 'none';
         }
 
         function setFormView(v) {
@@ -1116,10 +1139,26 @@
                 out.style.display = 'block';
                 return;
             }
-            var html = hits.map(function (f) {
+            // v2.2.239 — SAY WHAT THE LIST IS FOR (Steven, 4 Aug: "I see 4 forms listed
+            // but I can't choose any of them").
+            //
+            // He is right that it looked broken, and the behaviour was right: this page
+            // CANNOT open a form. There is no channel from the page to the agent, and a
+            // form link is signed per instance and only the agent can mint one. So the
+            // list was always a finding aid — read the name, say it once — which saves the
+            // expensive half (browsing aloud) without pretending to do the other half.
+            //
+            // ⚠ But an unexplained list of rows IS a picker as far as a user is concerned.
+            // A dead affordance is a defect even when the underlying behaviour is correct.
+            // So the list now says what to do, and a click does the one useful thing the
+            // page actually can: copy the exact name to paste or read back.
+            var html = '<div class="fs-hint">Say a name to Benedict to open it'
+                     + ' &mdash; or click to copy it.</div>'
+                     + hits.map(function (f) {
                 var st = (f.status || '').replace(/_/g, ' ');
                 var when = f.updated ? ' · ' + f.updated : '';
-                return '<div class="fs-hit"><span class="fs-name"></span>'
+                return '<div class="fs-hit" role="button" tabindex="0"'
+                     + ' title="Click to copy this name"><span class="fs-name"></span>'
                      + '<span class="fs-meta">' + esc(st + when) + '</span></div>';
             }).join('');
             out.innerHTML = html;
@@ -1129,6 +1168,36 @@
             for (var i = 0; i < hits.length && i < nodes.length; i++) {
                 nodes[i].textContent = hits[i].name || '';
             }
+            // Click/Enter copies the exact name. ⚠ It must NEVER claim success it did not
+            // have: navigator.clipboard is unavailable on an insecure origin and can be
+            // refused by permissions, so the confirmation is written only inside .then(),
+            // and the failure branch tells the user what to do instead. Same rule as the
+            // agent's — do not say "done" without the thing being done.
+            var rows = out.querySelectorAll('.fs-hit');
+            Array.prototype.forEach.call(rows, function (row, i) {
+                function copy() {
+                    markActivity();
+                    var name = (hits[i] && hits[i].name) || '';
+                    var meta = row.querySelector('.fs-meta');
+                    if (!name || !meta) return;
+                    var restore = meta.textContent;
+                    function flash(msg) {
+                        meta.textContent = msg;
+                        setTimeout(function () { meta.textContent = restore; }, 1600);
+                    }
+                    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+                        flash('select the name to copy');
+                        return;
+                    }
+                    navigator.clipboard.writeText(name)
+                        .then(function () { flash('copied — now say it'); })
+                        .catch(function () { flash('select the name to copy'); });
+                }
+                row.addEventListener('click', copy);
+                row.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); copy(); }
+                });
+            });
             out.style.display = 'block';
         }
 
