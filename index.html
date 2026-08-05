@@ -910,8 +910,13 @@
                                 rollingCostUrl = null;
                             } else {
                                 console.warn('[teckel] iframe token expired and no rolling tokens cached — stopping per-instance poll');
-                                markActivity();   // a NEW conversation — resume the polls
-                stopInstanceCostPoll();
+                                // ⚠ v2.2.239: a markActivity() call sat here, carrying the
+                                // comment "a NEW conversation — resume the polls" — which
+                                // belongs to a different site entirely. It reset the idle
+                                // clock in the branch that is SHUTTING THE POLL DOWN, so a
+                                // dead session bought itself another 90 seconds of redraws.
+                                // The mangled indentation on the next line was the tell.
+                                stopInstanceCostPoll();
                             }
                         }
                         return null;
@@ -1070,6 +1075,22 @@
             if (document.visibilityState !== 'visible') return;
             if (Date.now() - currentFormView.shownAt > FORM_REFRESH_CAP) return;
             if (isIdle()) return;      // the conversation is over — nothing is writing
+            // ⚠ v2.2.239 — NO POLL MEANS NO SIGNAL, SO DO NOT REDRAW (Steven, 5 Aug: "the
+            // pdf viewer keeps refreshing even though the conversation with benedict
+            // ended"). form_state_stamp arrives ONLY from the per-instance cost poll. When
+            // that poll is not running — the call ended, or its token expired with no
+            // rolling pair — latestFormStamp is stuck at null, and the "unknown counts as
+            // CHANGED" rule below then fires on EVERY tick, forever: the redraw sets
+            // lastFormStamp = null, and null === null is never reached because the guard
+            // short-circuits on `stamp !== null`. A self-sustaining 20-second reload with
+            // nothing behind it.
+            //
+            // Treating unknown as changed is still right while a poll is live — that is
+            // the rule that ended the blank-screen defect, and it must not be weakened.
+            // But with no poll there is no information at all, and redrawing on no
+            // information is what the user is watching. The Refresh button covers the
+            // case where they want one anyway.
+            if (!costPollInterval) return;
             // Unknown stamp -> redraw. Known and unmoved -> leave the reader alone.
             var stamp = latestFormStamp;
             if (stamp !== null && stamp === lastFormStamp) return;
