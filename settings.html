@@ -182,15 +182,23 @@
     <div class="msg" id="favMsg"></div>
   </div>
 
-  <div class="card">
+  <div class="card" id="nameCard">
     <h2>Practice name</h2>
     <!-- 27 Jul 2026 (U7b, analyser 2.2.193): renames DO reach the portal website now —
          the sync anchors on the name the page itself displays as well as the previous
          DB name, so a diverged page self-heals on the next rename. "Coming soon" is
          retired; say what actually happens. Changing the name stays a VOICE action. -->
-    <p class="sub">Ask Benedict to change your practice name by voice — it updates your
-       letterhead, your submitted forms, and the name shown on this portal website.</p>
+    <!-- v2.2.239 (D21, Steven 4 Aug): typeable here as well as by voice. Both doors
+         run the SAME server handler, so both update the letterhead, the submitted forms
+         and the name on this portal website. The row stays read-only until the server
+         lists practice_name as editable, so an older server just greys it out. -->
+    <p class="sub">Type a new name here, or ask Benedict to change it by voice — either way
+       it updates your letterhead, your submitted forms, and the name shown on this portal
+       website.</p>
     <input type="text" id="practiceName" disabled placeholder="">
+    <button class="btn" id="savePracticeName" style="display:none"
+            data-setting="practice_name" data-input="practiceName">Save practice name</button>
+    <div class="msg" id="practiceNameMsg"></div>
   </div>
 
   <div class="foot">teckel Document Analyser — secure settings</div>
@@ -260,18 +268,24 @@ function loadCurrent(){
         ed = resp.editable || [];
       } catch (e) {}
       if (s.admin_email) el("adminEmail").value = s.admin_email;
-      if (s.practice_name) { el("practiceName").placeholder = s.practice_name; el("hdrPracticeName").textContent = s.practice_name; }
+      // v2.2.239 — into .value, not just .placeholder: the field is editable now, and a
+      // user must be able to see and amend what is there rather than retype it blind.
+      if (s.practice_name) { el("practiceName").value = s.practice_name;
+                             el("practiceName").placeholder = s.practice_name;
+                             el("hdrPracticeName").textContent = s.practice_name; }
       if (s.logo_ref){ el("logoThumb").src = s.logo_ref; el("logoThumb").style.display = "block"; }
       el("logoOnForms").checked  = (s.logo_on_forms  !== false);
       el("logoOnBanner").checked = (s.logo_on_banner !== false);
       // 2.2.194 — practice details: populate, and enable each row ONLY when the server
       // says it is editable (deploy-order safety: an older server keeps these read-only).
       var pd = { address: "pdAddress", phone: "pdPhone", email: "pdEmail",
-                 cqc_registration: "pdCqc", gdc_registration: "pdGdc" };
+                 cqc_registration: "pdCqc", gdc_registration: "pdGdc",
+                 practice_name: "practiceName" };
       var anyLocked = false;
       Object.keys(pd).forEach(function(field){
         var input = el(pd[field]);
-        var btn = document.querySelector('#detailsCard .btn[data-setting="' + field + '"]');
+        var btn = document.querySelector('#detailsCard .btn[data-setting="' + field + '"], '
+                                       + '#nameCard .btn[data-setting="' + field + '"]');
         if (!input || !btn) return;
         if (s[field]) input.value = s[field];
         var ok = ed.indexOf(field) !== -1;
@@ -336,7 +350,7 @@ el("saveEmail").addEventListener("click", function(){
 // server does the real validation (email shape, regulator label-strip, wrong-box refusal)
 // and may return a cleaned value — echo it back into the box so what you SEE is what was
 // STORED. Soft-gates arrive as 200 + success:false + a user_message; style those as errors.
-document.querySelectorAll('#detailsCard .btn[data-setting]').forEach(function(btn){
+document.querySelectorAll('#detailsCard .btn[data-setting], #nameCard .btn[data-setting]').forEach(function(btn){
   btn.addEventListener("click", function(){
     var field = btn.getAttribute("data-setting");
     var input = el(btn.getAttribute("data-input"));
@@ -344,7 +358,7 @@ document.querySelectorAll('#detailsCard .btn[data-setting]').forEach(function(bt
     // 29 Jul 2026 (Steven): each row reports under ITS OWN Save button — the shared
     // card-bottom message meant a phone save reported under the GDC button.
     var msgId = btn.getAttribute("data-input") + "Msg";
-    ["pdAddressMsg","pdPhoneMsg","pdEmailMsg","pdCqcMsg","pdGdcMsg"].forEach(hideMsg);
+    ["pdAddressMsg","pdPhoneMsg","pdEmailMsg","pdCqcMsg","pdGdcMsg","practiceNameMsg"].forEach(hideMsg);
     if (!v){ showMsg(msgId, "err", "Nothing to save — enter a value first."); return; }
     if (field === "email" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){
       showMsg(msgId, "err", "That doesn't look like a complete email address. Please check it.");
