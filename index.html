@@ -1839,6 +1839,45 @@
         window.display_settings_link = displaySettingsLinkImpl;
         window.display_survey_link = displaySurveyLinkImpl;
 
+        // -----------------------------------------------------------------
+        // D47 (11 Aug 2026) — verified-session id for the PIN cache.
+        // A random UUID, PER TAB (sessionStorage — Yusuf chose tab scope),
+        // presented as a dynamic variable on EVERY conversation from this
+        // tab. The server caches "this browser session verified a PIN"
+        // against it, so a reconnect can skip the code ask while the cache
+        // is fresh. The key is namespaced per agent because every tenant
+        // portal shares the github.io origin; the server's agent_id binding
+        // is what actually prevents cross-practice replay — this is just
+        // hygiene. The page NEVER sees or stores the PIN itself.
+        // -----------------------------------------------------------------
+        function getBrowserSessionId() {
+            var aid = discoverAgentId() || 'unknown';
+            var key = 'teckel_bsid__' + aid;
+            try {
+                var v = sessionStorage.getItem(key);
+                if (!v) {
+                    v = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+                        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                            var r = Math.random() * 16 | 0;
+                            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                        });
+                    sessionStorage.setItem(key, v);
+                }
+                return v;
+            } catch (e) {
+                // Storage blocked (private mode etc.) — fall back to a per-page id:
+                // the cache then lasts one page load, which degrades to today's
+                // behaviour rather than breaking anything.
+                if (!window.__teckelBsidFallback) {
+                    window.__teckelBsidFallback = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                        var r = Math.random() * 16 | 0;
+                        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                    });
+                }
+                return window.__teckelBsidFallback;
+            }
+        }
+
         window.addEventListener('elevenlabs-convai:call', function (event) {
             // 2 Aug 2026 (1 Aug live-drive finding): a NEW conversation must start
             // with a clean panel — a stale autoclave log from the previous session
@@ -1872,6 +1911,13 @@
                     console.warn('[teckel] elevenlabs-convai:call event fired without config; cannot register clientTools');
                     return;
                 }
+                // D47 — hand the per-tab session id to the conversation as a
+                // dynamic variable on every call. Unused until the agent's
+                // silent-check tool and prompt branch reference it; passing an
+                // extra dynamic variable is inert on the EL side.
+                event.detail.config.dynamicVariables = Object.assign(
+                    {}, event.detail.config.dynamicVariables || {},
+                    { browser_session_id: getBrowserSessionId() });
                 event.detail.config.clientTools = event.detail.config.clientTools || {};
                 event.detail.config.clientTools.display_form = displayFormImpl;
                 event.detail.config.clientTools.display_upload_link = displayUploadLinkImpl;
