@@ -1918,6 +1918,31 @@
                 event.detail.config.dynamicVariables = Object.assign(
                     {}, event.detail.config.dynamicVariables || {},
                     { browser_session_id: getBrowserSessionId() });
+                // D47 v2 (11 Aug) — REGISTER the (conversation -> browser session)
+                // pair server-side the moment EL issues the conversation id. The
+                // silent verified-session check is keyed on the conversation id
+                // (which EL always supplies to tools), so nothing about this page
+                // can ever break a conversation — an old page that never registers
+                // just means "no cached session" and Benedict asks for the PIN.
+                // Fire-and-forget by design: ANY failure here (endpoint not yet
+                // deployed, network, ad-blocker) must cost nothing but the skip.
+                var _prevOnConnect = event.detail.config.onConnect;
+                event.detail.config.onConnect = function (info) {
+                    try {
+                        if (info && info.conversationId) {
+                            var aid = discoverAgentId();
+                            fetch(MCP_BASE + '/document_analyser/register_browser_session'
+                                + '?conversation_id=' + encodeURIComponent(info.conversationId)
+                                + '&browser_session_id=' + encodeURIComponent(getBrowserSessionId())
+                                + '&agent_id=' + encodeURIComponent(aid || ''),
+                                { method: 'POST', credentials: 'omit' })
+                                .catch(function () { /* silent — see note above */ });
+                        }
+                    } catch (e) { /* silent — registration must never break a call */ }
+                    if (typeof _prevOnConnect === 'function') {
+                        try { _prevOnConnect(info); } catch (e) { /* not ours */ }
+                    }
+                };
                 event.detail.config.clientTools = event.detail.config.clientTools || {};
                 event.detail.config.clientTools.display_form = displayFormImpl;
                 event.detail.config.clientTools.display_upload_link = displayUploadLinkImpl;
