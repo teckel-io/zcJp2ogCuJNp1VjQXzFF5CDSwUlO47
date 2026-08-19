@@ -182,6 +182,19 @@
     <div class="msg" id="favMsg"></div>
   </div>
 
+  <div class="card" id="transcriptsCard">
+    <h2>Session transcripts</h2>
+    <!-- v2.2.263 (19 Aug 2026): text-transcripts opt-in. Provisioning defaults this
+         OFF; the checkbox stays disabled until the server lists text_transcripts as
+         editable, so an older server or a disabled deployment greys it out (same
+         deploy-order rule as the practice details). A failed save REVERTS the box —
+         a checkbox that shows ON when the flag never changed would be the display-card
+         fabrication class. Audio transcripts deliberately have no row yet. -->
+    <p class="sub">Receive a written transcript by email after each Benedict session.</p>
+    <div class="row"><input type="checkbox" id="textTranscripts" disabled><label for="textTranscripts" style="margin:0">Email text transcripts</label></div>
+    <div class="msg" id="transcriptsMsg"></div>
+  </div>
+
   <div class="card" id="nameCard">
     <h2>Practice name</h2>
     <!-- 27 Jul 2026 (U7b, analyser 2.2.193): renames DO reach the portal website now —
@@ -240,6 +253,7 @@ function tokenExpired(t){
 function disablePage(text){
   showMsg("pageMsg", "err", text);
   ["adminEmail","saveEmail","logoFile","favFile","logoOnForms","logoOnBanner",
+   "textTranscripts",
    "pdAddress","savePdAddress","pdPhone","savePdPhone","pdEmail","savePdEmail",
    "pdCqc","savePdCqc","pdGdc","savePdGdc"].forEach(function(id){
     var n = el(id); if (n) n.disabled = true;
@@ -276,6 +290,10 @@ function loadCurrent(){
       if (s.logo_ref){ el("logoThumb").src = s.logo_ref; el("logoThumb").style.display = "block"; }
       el("logoOnForms").checked  = (s.logo_on_forms  !== false);
       el("logoOnBanner").checked = (s.logo_on_banner !== false);
+      // v2.2.263 — transcripts toggle: default-off mirror; enabled ONLY when the server
+      // lists it (older server / disabled deployment keeps the row greyed out).
+      el("textTranscripts").checked  = (s.text_transcripts === true);
+      el("textTranscripts").disabled = (ed.indexOf("text_transcripts") === -1);
       // 2.2.194 — practice details: populate, and enable each row ONLY when the server
       // says it is editable (deploy-order safety: an older server keeps these read-only).
       var pd = { address: "pdAddress", phone: "pdPhone", email: "pdEmail",
@@ -453,6 +471,28 @@ function saveToggle(setting, checked, msgId){
 }
 el("logoOnForms").addEventListener("change", function(){ saveToggle("logo_on_forms",  el("logoOnForms").checked,  "logoMsg"); });
 el("logoOnBanner").addEventListener("change", function(){ saveToggle("logo_on_banner", el("logoOnBanner").checked, "logoMsg"); });
+// v2.2.263 — transcripts toggle saves like the display toggles but REVERTS on failure:
+// the box must never show a state the backend flag doesn't hold.
+el("textTranscripts").addEventListener("change", function(){
+  if (suppressToggleEvents) return;
+  var box = el("textTranscripts"), wanted = box.checked;
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", SET_URL, true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.onload = function(){
+    if (xhr.status >= 200 && xhr.status < 300){
+      showMsg("transcriptsMsg", "ok", userMessageFrom(xhr, "Preference saved."));
+    } else {
+      box.checked = !wanted;
+      showMsg("transcriptsMsg", "err", userMessageFrom(xhr, "Couldn't change that just now — nothing was saved."));
+    }
+  };
+  xhr.onerror = function(){
+    box.checked = !wanted;
+    showMsg("transcriptsMsg", "err", "Couldn't reach the server just now — nothing was saved.");
+  };
+  xhr.send(JSON.stringify({ settings_token: token, setting: "text_transcripts", value: wanted ? "true" : "false" }));
+});
 </script>
 <div style="text-align:center; color:#8aa0b8; opacity:.7; font-size:12px; padding:26px 0 18px;">&copy; teckel.io</div>
 </body>
