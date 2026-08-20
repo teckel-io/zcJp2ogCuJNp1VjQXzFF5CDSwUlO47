@@ -1641,6 +1641,85 @@
             return Promise.resolve(showSettingsInIframe((args.settings_url || '').toString().trim(), 'legacy settings_url'));
         }
 
+        // ElevenLabs custom client tool: display_category_directory (D50 layer 2, 20 Aug 2026)
+        // ------------------------------------------------------------------
+        // WHY THIS EXISTS. Dr Nasir asked to see the document directory tree; Steven asked
+        // twice and reported "I couldn't get the directory to display" — because no such
+        // tool existed and Benedict (correctly) declined rather than pretending.
+        //
+        // Same architecture as display_settings_link, deliberately: the agent carries ONLY
+        // an opaque 11-char id, this handler resolves it via resolve_view_session, and
+        // directory.html then fetches its OWN content from the server. No catalogue
+        // content ever passes through the LLM, so none of it can be garbled or invented.
+        var lastDirectoryShown = { url: null, ts: 0 };
+        var DIRECTORY_DEBOUNCE_MS = 30 * 1000;
+        function isValidDirectoryUrl(url) {
+            if (!url || typeof url !== 'string') return false;
+            return /^https:\/\/teckel-io\.github\.io\/[^?#]*directory\.html\?token=[^\s]+$/.test(url);
+        }
+        function showDirectoryInIframe(url) {
+            var iframe      = document.getElementById('form-viewer');
+            var placeholder = document.getElementById('form-viewer-placeholder');
+            if (!isValidDirectoryUrl(url)) {
+                showFabricationCard(
+                    'display_category_directory was called with a URL that is not a teckel directory page.',
+                    url || '(no directory url)');
+                return 'display_category_directory failed: the URL did not look like a teckel directory '
+                    + 'page. Call get_directory_link again and pass its directory_session_id.';
+            }
+            var nowMs = Date.now();
+            if (lastDirectoryShown.url === url && (nowMs - lastDirectoryShown.ts) < DIRECTORY_DEBOUNCE_MS) {
+                return 'display_category_directory already showed this directory. Do NOT call it again.';
+            }
+            if (!iframe) return 'display_category_directory failed: no form-viewer element on page.';
+            lastDirectoryShown = { url: url, ts: nowMs };
+            setFormView({ url: null, shownAt: 0 });   // read-only view: never auto-reload it
+            iframe.src = url;
+            if (placeholder) placeholder.classList.add('hidden');
+            console.log('[teckel] display_category_directory loaded the directory in the iframe');
+            return 'display_category_directory completed: the document directory is on screen now. '
+                + 'Do NOT read the categories aloud unless the user asks — they can see them.';
+        }
+        function displayCategoryDirectoryImpl(args) {
+            markActivity();   // a tool fired: the conversation is live
+            console.log('[teckel] display_category_directory called with args:', args);
+            args = args || {};
+            var sid = (args.directory_session_id || '').toString().trim();
+            if (!sid) {
+                return Promise.resolve(
+                    'display_category_directory failed: no directory_session_id. Call get_directory_link '
+                    + 'first and pass the short code it returns, EXACTLY as given.');
+            }
+            if (!/^[A-Za-z0-9_-]{6,24}$/.test(sid)) {
+                return Promise.resolve(
+                    'display_category_directory failed: directory_session_id did not look like the short '
+                    + 'code from get_directory_link. Pass that code EXACTLY as returned, nothing else.');
+            }
+            var resolveUrl = MCP_BASE.replace(/\/$/, '')
+                + '/document_analyser/resolve_view_session?id='
+                + encodeURIComponent(sid);
+            return fetch(resolveUrl, { method: 'GET', credentials: 'omit' })
+                .then(function (resp) {
+                    if (resp.status === 404) throw new Error('unknown or mistyped directory code');
+                    if (resp.status === 410) throw new Error('this directory link has expired');
+                    if (!resp.ok) throw new Error('resolve failed: status=' + resp.status);
+                    return resp.json();
+                })
+                .then(function (data) {
+                    if (!data || !data.success || data.view_mode !== 'directory' || !data.pdf_url) {
+                        throw new Error('the code did not resolve to a directory page');
+                    }
+                    return showDirectoryInIframe(data.pdf_url);
+                })
+                .catch(function (err) {
+                    console.warn('[teckel] display_category_directory resolve failed:', err);
+                    return 'display_category_directory failed: '
+                        + (err && err.message ? err.message : 'could not resolve the directory link')
+                        + '. Do NOT say the directory is on screen — it is not. Offer to read the '
+                        + 'categories out instead.';
+                });
+        }
+
         // ElevenLabs custom client tool: display_survey_link (CC-7, 3 Aug 2026)
         // ------------------------------------------------------------------
         // WHY THIS EXISTS. get_survey_fill_link mints a correct 388-character signed URL
@@ -1948,6 +2027,7 @@
                 event.detail.config.clientTools.display_upload_link = displayUploadLinkImpl;
                 event.detail.config.clientTools.display_settings_link = displaySettingsLinkImpl;
                 event.detail.config.clientTools.display_survey_link = displaySurveyLinkImpl;
+                event.detail.config.clientTools.display_category_directory = displayCategoryDirectoryImpl;
                 console.log('[teckel] display_form + display_upload_link + display_settings_link + display_survey_link registered via elevenlabs-convai:call event');
             } catch (e) {
                 console.error('[teckel] failed to register display_form via event listener', e);
