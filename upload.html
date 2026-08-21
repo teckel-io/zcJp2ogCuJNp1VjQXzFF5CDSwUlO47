@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   teckel Document Analyser — EVIDENCE UPLOAD page (Phase 4a, v2.2.169).
-  Portal drag-and-drop upload of ONE supporting-evidence file to a form instance.
+  Portal drag-and-drop upload of supporting-evidence files to a form instance.
 
   Flow:
     POST {API_BASE}/document_analyser/submit_upload   (multipart/form-data)
@@ -18,6 +18,43 @@
   steel #b0c4de, header band, gold CTA), matching Settings_MASTER_Template.html so the
   two popups read as one product. PRESENTATION ONLY: the upload logic, element ids,
   token handling and error envelopes are byte-identical to v2.2.169 (live-tested).
+
+  ────────────────────────────────────────────────────────────────────────────────
+  21 Aug 2026 — MULTI-SELECT (Steven: "she should be able to tick several files and
+  upload them behind the scenes"). Natural pair with detach (2.2.277): choosing five
+  files is only safe if one can be taken back off, and it now can.
+
+  ⚠ ONE TOKEN, MANY FILES — deliberate, and verified rather than assumed.
+  _verify_upload_token checks signature, expiry and scope=='upload' ONLY; it consumes
+  nothing, so the same capability serves every file in the batch within its TTL. That
+  was confirmed by driving two files through the LIVE endpoint on one token before this
+  page shipped, because reading the code only tells you what was intended.
+
+  ⚠ UPLOADS ARE SEQUENTIAL, NOT PARALLEL. Each file is a distinct multipart POST that
+  streams through a 15 MB cap, magic-byte sniff and an encrypted-IPFS store; firing ten
+  at once buys the user nothing and risks the whole batch on one stall. One at a time,
+  with the queue visible, is both calmer to watch and easier to report honestly on.
+
+  ⚠ A PARTIAL BATCH MUST READ AS PARTIAL. If three of five land, the page says exactly
+  that and names the two that did not, with the server's own reason per file. It must
+  never round up to "uploaded" — the same honesty floor the voice side works to, where
+  claiming an action that did not happen is a structural defect, not a wording nit.
+
+  ⚠ PER-FILE VALIDATION, NOT PER-BATCH. One oversized or wrong-type file marks only
+  itself rejected and leaves the rest uploadable — an earlier single-file page cleared
+  the whole selection on a bad pick, which for a five-file batch would mean starting over.
+
+  ⚠ THE PRACTICE-NAME TOKEN (D43/D58) — note the token is deliberately NOT written out in
+  this comment: the re-sync fills EVERY occurrence, so a token quoted in prose would have
+  the practice name substituted into it and this paragraph would stop making sense. (The
+  same class as the placeholder agent id that already hides in an HTML comment elsewhere
+  in the portal, which is why the scanners read comment-stripped markup.)
+  The header node below used to be the literal "Practice Portal"
+  while the 2.2.239 rename engine wrote the REAL name into it, so every rename made the
+  page diverge from the template, the audit flagged it STALE, and a re-sync stripped the
+  name back — round and round on MASTER and Dental Dynamo. Provisioning and the re-sync
+  tool both fill this token from the tenant's own index.html, which carries exactly the
+  string the rename engine writes, so the two now agree instead of fighting.
 -->
 <html lang="en">
 <head>
@@ -90,6 +127,31 @@
   .msg.err { background-color: var(--err-bg); color: var(--err-fg); border: 1px solid rgba(243, 163, 163, .25); }
 
   .file { margin-top: 14px; font-size: .9rem; color: var(--steel); }
+
+  /* The queue. Every chosen file gets a row and keeps it: a rejected file stays on
+     screen with its reason, because silently dropping it is how a user comes to believe
+     they uploaded something they did not. */
+  ul.queue { list-style: none; margin: 16px 0 0; padding: 0; }
+  ul.queue li { display: flex; align-items: center; gap: 10px; padding: 9px 11px;
+                border: 1px solid var(--card-border); border-radius: 9px; margin-bottom: 8px;
+                background-color: rgba(176, 196, 222, 0.03); font-size: .9rem; }
+  ul.queue .nm   { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; color: var(--white); }
+  ul.queue .sz   { flex: 0 0 auto; color: var(--steel); font-size: .8rem; }
+  ul.queue .st   { flex: 0 0 auto; font-size: .8rem; font-weight: 600; letter-spacing: .2px; }
+  ul.queue .st.queued   { color: var(--steel); }
+  ul.queue .st.uploading{ color: var(--gold); }
+  ul.queue .st.done     { color: var(--ok-fg); }
+  ul.queue .st.failed,
+  ul.queue .st.rejected { color: var(--err-fg); }
+  ul.queue .why  { flex: 1 0 100%; color: var(--err-fg); font-size: .78rem; opacity: .9; }
+  /* Remove is a text button, not an icon: at 12px an icon is a guess, and removing the
+     wrong file from a compliance upload is not a small mistake. */
+  ul.queue .rm { flex: 0 0 auto; background: none; border: 0; color: var(--steel);
+                 font-family: inherit; font-size: .8rem; cursor: pointer; padding: 2px 4px;
+                 text-decoration: underline; }
+  ul.queue .rm:hover { color: var(--err-fg); }
+  ul.queue .rm[disabled] { opacity: .35; cursor: default; text-decoration: none; }
+  .count { margin-top: 14px; font-size: .85rem; color: var(--steel); }
   .bar { height: 6px; background-color: rgba(176, 196, 222, .15); border-radius: 4px;
          overflow: hidden; margin-top: 14px; display: none; }
   .bar.show { display: block; }
@@ -114,15 +176,17 @@
 <div class="wrap">
   <div class="card">
     <h1>Attach supporting evidence</h1>
-    <p class="sub">Add a certificate, inspection report, or photo to your form. It's stored
-       securely and privately for your practice.</p>
+    <p class="sub">Add certificates, inspection reports or photos to your form — as many as
+       you need. They're stored securely and privately for your practice.</p>
 
-    <div id="drop" tabindex="0" role="button" aria-label="Choose or drop a file to upload">
-      <div class="big">Drag a file here, or tap to choose</div>
-      <div class="small">PDF, JPG, PNG, DOC, DOCX or TXT — up to 15&nbsp;MB</div>
+    <div id="drop" tabindex="0" role="button" aria-label="Choose or drop files to upload">
+      <div class="big">Drag files here, or tap to choose</div>
+      <div class="small">PDF, JPG, PNG, DOC, DOCX or TXT — up to 15&nbsp;MB each. You can pick several at once.</div>
     </div>
-    <input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt">
-    <div class="file" id="fileName"></div>
+    <input type="file" id="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt">
+
+    <ul class="queue" id="list" aria-live="polite"></ul>
+    <div class="count" id="count"></div>
     <div class="bar" id="bar"><span id="barFill"></span></div>
 
     <button class="btn" id="send" disabled>Upload</button>
@@ -139,11 +203,18 @@ var MAX_BYTES  = 15 * 1024 * 1024;
 var ALLOWED    = ["pdf", "jpg", "jpeg", "png", "doc", "docx", "txt"];
 
 var token = new URLSearchParams(location.search).get("token") || "";
-var chosen = null;
+
+/* The queue. One entry per file the user chose, each carrying its own state and, when
+   something went wrong, the reason — kept on screen rather than cleared, so "it vanished"
+   can never be the user's experience of a rejection.
+   state: queued | uploading | done | failed | rejected */
+var queue = [];
+var busy  = false;
 
 var drop    = document.getElementById("drop");
 var fileInp = document.getElementById("file");
-var nameEl  = document.getElementById("fileName");
+var listEl  = document.getElementById("list");
+var countEl = document.getElementById("count");
 var sendBtn = document.getElementById("send");
 var msgEl   = document.getElementById("msg");
 var bar     = document.getElementById("bar");
@@ -162,42 +233,123 @@ function ext(name){
   return i >= 0 ? name.slice(i + 1).toLowerCase() : "";
 }
 
-function pick(f){
-  if (!f) return;
-  var e = ext(f.name);
-  if (ALLOWED.indexOf(e) === -1){
-    chosen = null; sendBtn.disabled = true; nameEl.textContent = "";
-    showMsg("err", "That file type isn't accepted. Please choose a PDF, image (JPG/PNG), Word document or text file.");
-    return;
-  }
-  if (f.size > MAX_BYTES){
-    chosen = null; sendBtn.disabled = true; nameEl.textContent = "";
-    showMsg("err", "That file is too large. Please choose a file under 15 MB.");
-    return;
-  }
-  chosen = f;
-  sendBtn.disabled = false;
-  nameEl.textContent = "Selected: " + f.name;
-  msgEl.className = "msg";
+function fmtSize(n){
+  if (n < 1024) return n + " B";
+  if (n < 1024 * 1024) return Math.round(n / 1024) + " KB";
+  return (n / (1024 * 1024)).toFixed(1) + " MB";
 }
 
-drop.addEventListener("click", function(){ fileInp.click(); });
-drop.addEventListener("keydown", function(ev){ if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); fileInp.click(); } });
-fileInp.addEventListener("change", function(){ pick(fileInp.files[0]); });
-["dragenter","dragover"].forEach(function(t){ drop.addEventListener(t, function(ev){ ev.preventDefault(); drop.classList.add("over"); }); });
-["dragleave","drop"].forEach(function(t){ drop.addEventListener(t, function(ev){ ev.preventDefault(); drop.classList.remove("over"); }); });
-drop.addEventListener("drop", function(ev){ if (ev.dataTransfer && ev.dataTransfer.files) pick(ev.dataTransfer.files[0]); });
+/* Render the queue from scratch each time. The list is a handful of rows, so the cost is
+   nothing and there is no half-updated state to get wrong.
+   ⚠ Every filename goes in via textContent, NEVER innerHTML: a filename is user-supplied
+   text and the one string on this page an attacker controls. */
+function render(){
+  listEl.textContent = "";
+  queue.forEach(function(item, idx){
+    var li = document.createElement("li");
 
-sendBtn.addEventListener("click", function(){
-  if (!chosen) return;
-  if (!token){ showMsg("err", "This link is missing its security token. Please ask for a new upload link."); return; }
-  sendBtn.disabled = true;
-  bar.classList.add("show");
+    var nm = document.createElement("span");
+    nm.className = "nm";
+    nm.textContent = item.name;
+    li.appendChild(nm);
+
+    var sz = document.createElement("span");
+    sz.className = "sz";
+    sz.textContent = fmtSize(item.size);
+    li.appendChild(sz);
+
+    var st = document.createElement("span");
+    st.className = "st " + item.state;
+    st.textContent = { queued: "waiting", uploading: "uploading…", done: "uploaded",
+                       failed: "failed", rejected: "not accepted" }[item.state];
+    li.appendChild(st);
+
+    // An uploaded file is NOT removed from the list by this button — the link to the form
+    // is the server's business now (detach_evidence is how it comes back off). Removing it
+    // here would only hide it, and looking like an undo it is not is worse than no button.
+    if (item.state !== "done"){
+      var rm = document.createElement("button");
+      rm.className = "rm";
+      rm.type = "button";
+      rm.textContent = "remove";
+      rm.disabled = busy;
+      rm.setAttribute("aria-label", "Remove " + item.name + " from the list");
+      rm.addEventListener("click", function(){
+        if (busy) return;
+        queue.splice(idx, 1);
+        render();
+      });
+      li.appendChild(rm);
+    }
+
+    if (item.why){
+      var why = document.createElement("span");
+      why.className = "why";
+      why.textContent = item.why;
+      li.appendChild(why);
+    }
+    listEl.appendChild(li);
+  });
+  refresh();
+}
+
+function pending(){ return queue.filter(function(i){ return i.state === "queued" || i.state === "failed"; }); }
+
+function refresh(){
+  var n = pending().length;
+  var done = queue.filter(function(i){ return i.state === "done"; }).length;
+  countEl.textContent = queue.length
+    ? (done ? done + " uploaded · " : "") + (n ? n + " ready to upload" : (done ? "nothing left to upload" : ""))
+    : "";
+  sendBtn.disabled = busy || n === 0 || !token;
+  sendBtn.textContent = n > 1 ? "Upload " + n + " files" : "Upload";
+}
+
+function add(files){
+  if (!files || !files.length) return;
+  for (var i = 0; i < files.length; i++){
+    var f = files[i];
+    if (!f) continue;
+    // Same file chosen twice (easy to do across two drops) — keep the first, say nothing.
+    var dup = queue.some(function(q){ return q.name === f.name && q.size === f.size && q.state !== "rejected"; });
+    if (dup) continue;
+
+    var item = { file: f, name: f.name, size: f.size, state: "queued", why: "" };
+    // ⚠ PER FILE. A bad pick marks ITSELF rejected and leaves the rest uploadable.
+    if (ALLOWED.indexOf(ext(f.name)) === -1){
+      item.state = "rejected";
+      item.why = "Not an accepted type — PDF, JPG, PNG, DOC, DOCX or TXT only.";
+    } else if (f.size > MAX_BYTES){
+      item.state = "rejected";
+      item.why = "Too large — the limit is 15 MB per file.";
+    }
+    queue.push(item);
+  }
   msgEl.className = "msg";
+  render();
+}
+
+drop.addEventListener("click", function(){ if (!busy) fileInp.click(); });
+drop.addEventListener("keydown", function(ev){ if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); if (!busy) fileInp.click(); } });
+fileInp.addEventListener("change", function(){
+  add(fileInp.files);
+  // Clear the input so choosing the SAME file again still fires a change event.
+  fileInp.value = "";
+});
+["dragenter","dragover"].forEach(function(t){ drop.addEventListener(t, function(ev){ ev.preventDefault(); if (!busy) drop.classList.add("over"); }); });
+["dragleave","drop"].forEach(function(t){ drop.addEventListener(t, function(ev){ ev.preventDefault(); drop.classList.remove("over"); }); });
+drop.addEventListener("drop", function(ev){ if (!busy && ev.dataTransfer && ev.dataTransfer.files) add(ev.dataTransfer.files); });
+
+/* Upload ONE file. Resolves with nothing; the item carries its own outcome, so the caller
+   never has to correlate a result back to a file. */
+function uploadOne(item, done){
+  item.state = "uploading"; item.why = ""; render();
+  barFill.style.width = "0%";
+  bar.classList.add("show");
 
   var fd = new FormData();
   fd.append("upload_token", token);
-  fd.append("file", chosen, chosen.name);
+  fd.append("file", item.file, item.name);
 
   var xhr = new XMLHttpRequest();
   xhr.open("POST", SUBMIT_URL, true);
@@ -205,26 +357,94 @@ sendBtn.addEventListener("click", function(){
     if (e.lengthComputable) barFill.style.width = Math.round(e.loaded / e.total * 100) + "%";
   };
   xhr.onload = function(){
-    bar.classList.remove("show");
     var body = {};
     try { body = JSON.parse(xhr.responseText || "{}"); } catch (e) {}
     if (xhr.status >= 200 && xhr.status < 300 && body.success){
-      showMsg("ok", "Uploaded — your file is attached to the form. You can close this page.");
-      drop.style.display = "none"; sendBtn.style.display = "none"; nameEl.textContent = "";
+      item.state = "done"; item.why = "";
     } else {
       var d = body.detail || body;
-      var um = (d && d.envelope && d.envelope.user_message) || (d && d.user_message) ||
-               "Sorry, that didn't upload. Please check the file and try again.";
-      showMsg("err", um);
-      sendBtn.disabled = false;
+      // The server's own words where it gave them — it knows why better than this page does.
+      item.state  = "failed";
+      item.why    = (d && d.envelope && d.envelope.user_message) || (d && d.user_message) ||
+                    "Didn't upload. Please try again.";
+      item.status = xhr.status;
     }
+    render();
+    done();
   };
   xhr.onerror = function(){
-    bar.classList.remove("show");
-    showMsg("err", "Couldn't reach the server. Please check your connection and try again.");
-    sendBtn.disabled = false;
+    item.state = "failed";
+    item.why   = "Couldn't reach the server.";
+    item.status = 0;
+    render();
+    done();
   };
   xhr.send(fd);
+}
+
+/* Walk the batch one file at a time, then report what ACTUALLY happened. */
+function runBatch(){
+  var batch = pending();
+  if (!batch.length) return;
+  busy = true;
+  msgEl.className = "msg";
+  render();
+
+  var i = 0;
+  (function next(){
+    if (i >= batch.length){
+      busy = false;
+      bar.classList.remove("show");
+      render();
+      finish(batch);
+      return;
+    }
+    var item = batch[i++];
+    // A token that died mid-batch is not this file's fault, and retrying the rest cannot
+    // work either — stop and say so once, rather than N times.
+    uploadOne(item, function(){
+      if (item.state === "failed" && (item.status === 401 || item.status === 403)){
+        busy = false;
+        bar.classList.remove("show");
+        batch.slice(i).forEach(function(rest){
+          rest.state = "queued";
+          rest.why = "";
+        });
+        render();
+        showMsg("err", "This upload link is no longer valid, so the rest weren't sent. " +
+                       "Ask Benedict for a fresh upload link and they'll go straight through.");
+        return;
+      }
+      next();
+    });
+  })();
+}
+
+/* ⚠ THE HONESTY FLOOR. Three of five landing must READ as three of five, naming the two
+   that did not and why. Rounding a partial batch up to "uploaded" would be the page-side
+   version of the agent claiming an action it never performed. */
+function finish(batch){
+  var ok   = batch.filter(function(i){ return i.state === "done"; }).length;
+  var bad  = batch.filter(function(i){ return i.state === "failed"; });
+  if (!bad.length){
+    showMsg("ok", ok === 1
+      ? "Uploaded — your file is attached to the form. You can close this page."
+      : "All " + ok + " files uploaded and attached to the form. You can close this page.");
+  } else if (!ok){
+    showMsg("err", bad.length === 1
+      ? "That file didn't upload — the reason is next to it above."
+      : "None of the " + bad.length + " files uploaded — each reason is listed above.");
+  } else {
+    showMsg("err", ok + " of " + batch.length + " uploaded. " +
+                   bad.length + (bad.length === 1 ? " file didn't" : " files didn't") +
+                   " — the reason is next to each one above. Press Upload to try those again.");
+  }
+}
+
+sendBtn.addEventListener("click", function(){
+  if (busy) return;
+  if (!token){ showMsg("err", "This link is missing its security token. Please ask for a new upload link."); return; }
+  runBatch();
 });
 
 // Expiry / missing-token handling: decode the token's exp client-side (no signature check —
@@ -239,7 +459,12 @@ function disableUpload(text){
   showMsg("err", text);
   drop.style.pointerEvents = "none"; drop.style.opacity = "0.5";
   sendBtn.style.display = "none"; fileInp.disabled = true;
+  // ⚠ `busy` too, not just the styling: pointer-events stops clicks and drops, but the
+  // drop zone is keyboard-focusable and Enter would otherwise still open the file picker
+  // on a page that has just said the link is dead.
+  busy = true;
 }
+refresh();
 if (!token)
   disableUpload("This upload link is missing its security code. Please ask Benedict for a new upload link.");
 else if (tokenExpired(token))
