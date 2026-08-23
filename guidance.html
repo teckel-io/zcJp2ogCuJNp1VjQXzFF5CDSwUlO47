@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guidance document</title>
+<!--
+    guidance.html — the on-screen GUIDANCE VIEWER (Tier 3, 24 Aug 2026, analyser 2.2.292).
+
+    Loaded in the portal's form-viewer iframe by the display_guidance client tool.
+    Reads its own content:
+
+      POST {API_BASE}/document_analyser/get_guidance_data  (JSON: guidance_token)
+
+    ⚠ THE AGENT NEVER SUPPLIES THE CONTENT. It carries an opaque session id; the portal
+    resolves that to this URL and this page fetches its own text. That is the same rule
+    the directory page follows, and it matters more here: 2.2.282 moved quoting to the
+    SERVER precisely because a model asked to reproduce a span paraphrased it. Document
+    text must not pass through the LLM on its way to the screen either.
+
+    ⚠ WHICH DOCUMENT IS A SIGNED CLAIM, NOT A QUERY PARAMETER. This page sends only its
+    token. Editing the URL cannot open a different document — see get_guidance_data.
+
+    ⚠ WE RENDER OUR EXTRACTED TEXT, NOT THE ORIGINAL FILE. The caveat below is not
+    decoration: layout, tables and images are lost in extraction, so anyone who needs the
+    document as issued must be told to ask for it by email. The server sends the caveat
+    wording; this page always shows it.
+
+    ⚠ NO PARAGRAPH OR PAGE NUMBERS ANYWHERE ON THIS PAGE (Steven's standing rule). The
+    server sends block_ord ONLY so this page can scroll to and highlight the right passage.
+    It is an anchor, never a label — the numbering does not correspond to anything the
+    reader can find in the original file, so showing it would send them hunting.
+
+    ⚠ ALL DOCUMENT TEXT IS INSERTED WITH textContent, NEVER innerHTML. The corpus is 190
+    third-party documents; none of it is trusted markup.
+
+    This page is READ-ONLY. It writes nothing and offers no actions.
+-->
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a1a; --muted: #5c6670; --line: #e3e7ea;
+    --accent: #0b6b62; --chip: #f2f6f5; --mark: #fff4c2; --markline: #e0b400;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14181b; --fg:#e8eaec; --muted:#9aa4ad; --line:#2a3136;
+            --accent:#4fd1c5; --chip:#1c2226; --mark:#3a3520; --markline:#c9a227; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:16px 16px 40px; background:var(--bg); color:var(--fg);
+         font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  h1 { font-size:18px; margin:0 0 2px; line-height:1.3; }
+  .sub { color:var(--muted); font-size:12px; margin-bottom:12px; }
+  /* The caveat is sticky: in a 620x560 iframe a note at the top scrolls away in one
+     flick, and "this is not the original file" is exactly the thing a user must not
+     miss when they are about to act on what they read. */
+  .caveat { position:sticky; top:0; z-index:2; background:var(--chip);
+            border:1px solid var(--line); border-left:3px solid var(--accent);
+            border-radius:8px; padding:8px 11px; font-size:12px; color:var(--muted);
+            margin-bottom:14px; }
+  .block { padding:7px 11px; border-radius:7px; margin:0 0 3px;
+           white-space:pre-wrap; overflow-wrap:break-word; }
+  .block.focus { background:var(--mark); border-left:3px solid var(--markline);
+                 padding-left:8px; }
+  .msg { padding:14px; border:1px solid var(--line); border-radius:10px; color:var(--muted); }
+  .err { border-color:#d9534f; color:#d9534f; }
+</style>
+</head>
+<body>
+<h1 id="title">Loading…</h1>
+<div class="sub" id="sub"></div>
+<div class="caveat" id="caveat" hidden></div>
+<div id="doc"></div>
+
+<script>
+(function () {
+  "use strict";
+  var API_BASE = "https://mcp2.bh.tkllabs.io:9779";
+  var DATA_URL = API_BASE + "/document_analyser/get_guidance_data";
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    // textContent, ALWAYS — see the header note. Document text is third-party content.
+    if (text !== undefined && text !== null) n.textContent = String(text);
+    return n;
+  }
+  function fail(msg) {
+    document.getElementById("title").textContent = "Document";
+    document.getElementById("sub").textContent = "";
+    var t = document.getElementById("doc");
+    t.textContent = "";
+    t.appendChild(el("div", "msg err", msg));
+  }
+
+  var token = new URLSearchParams(window.location.search).get("token");
+  if (!token) {
+    fail("This document link is incomplete. Please ask Benedict to show the document again.");
+    return;
+  }
+
+  fetch(DATA_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ guidance_token: token })
+  }).then(function (r) {
+    // A dead or expired token is the ordinary case (short TTL by design) — say something
+    // a dentist can act on rather than surfacing a status code.
+    if (r.status === 401 || r.status === 403) { throw new Error("expired"); }
+    if (!r.ok) { throw new Error("http " + r.status); }
+    return r.json();
+  }).then(function (data) {
+    var blocks = (data && data.blocks) || [];
+    document.getElementById("title").textContent = (data && data.title) || "Guidance document";
+
+    if (data && data.extraction_caveat) {
+      var cav = document.getElementById("caveat");
+      cav.textContent = data.extraction_caveat;
+      cav.hidden = false;
+    }
+
+    if (!blocks.length) {
+      // Reachable only if the document lost its blocks between the mint and this fetch —
+      // get_guidance_link refuses to mint a view of an unreadable document. Say the useful
+      // thing anyway rather than showing an empty page that looks like a rendering fault.
+      document.getElementById("doc").appendChild(el("div", "msg",
+        "There's no readable text in this document. Ask Benedict to email you the file itself."));
+      return;
+    }
+
+    var focus = (data && typeof data.focus_ord === "number") ? data.focus_ord : null;
+    var frag = document.createDocumentFragment();
+    var focusNode = null;
+    blocks.forEach(function (b) {
+      var d = el("div", "block", b.block_text || "");
+      // The anchor, never a label: block_ord decides the highlight and nothing else.
+      // It is not written into the page in any visible form.
+      if (focus !== null && b.block_ord === focus) {
+        d.className = "block focus";
+        focusNode = d;
+      }
+      frag.appendChild(d);
+    });
+    document.getElementById("doc").appendChild(frag);
+
+    if (focusNode) {
+      document.getElementById("sub").textContent = "Showing the passage Benedict quoted.";
+      // "center", not "start" — the top of the scroll box sits under the sticky caveat,
+      // so a start-aligned block would be half-hidden behind it on arrival.
+      try { focusNode.scrollIntoView({ block: "center" }); }
+      catch (e) { focusNode.scrollIntoView(); }
+    }
+  }).catch(function (e) {
+    if (String(e && e.message) === "expired") {
+      fail("This document link has expired. Ask Benedict to show it again and it will "
+           + "open with a fresh link.");
+    } else {
+      fail("I couldn't load that document just now. Ask Benedict to show it again.");
+    }
+  });
+})();
+</script>
+</body>
+</html>
