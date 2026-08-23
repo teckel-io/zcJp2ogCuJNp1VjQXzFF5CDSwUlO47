@@ -541,6 +541,20 @@
                  and menu icons, making them unclickable. Page chrome belongs in page
                  chrome. -->
             <div class="viewer-tools" id="viewer-tools">
+                <!-- v2.2.292 — "Back to my form". Shown ONLY when a read-only view
+                     (guidance, directory, upload, settings) has replaced a form the user
+                     was on. Without it the only way back is to ask Benedict, which costs
+                     a whole conversational turn for something that is a click. -->
+                <button type="button" id="form-back-btn" class="form-refresh-btn"
+                        title="Go back to the form you were filling in" style="display:none">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                         aria-hidden="true">
+                        <path d="M19 12H5"></path>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    Back to my form
+                </button>
                 <!-- v2.2.232 — refresh on demand. The page redraws itself when the form
                      actually changes; this is for the moment a user wants to be sure. -->
                 <button type="button" id="form-refresh-btn" class="form-refresh-btn"
@@ -1045,18 +1059,62 @@
         // now the only door, so the button cannot drift out of step with what is on
         // screen. Fails VISIBLE-OFF: anything that is not a form hides it.
         // -----------------------------------------------------------------
+        // v2.2.292 — THE FORM URL THE "BACK TO MY FORM" BUTTON RESTORES.
+        //
+        // ⚠ WHY A SECOND VARIABLE AND NOT currentFormView. Every read-only view (guidance,
+        // directory, upload, settings) calls setFormView({url:null}) ON PURPOSE — that is
+        // what stops the auto-refresh poll reloading a page that is not a form, and what
+        // hides the refresh button. So at the exact moment the user wants to go back, the
+        // form URL has already been thrown away. rollingPdfUrl is not a fallback either:
+        // it is only populated while the self-heal poll is running and is nulled at 401.
+        // This variable exists solely to survive that deliberate forgetting.
+        //
+        // ⚠ It is CLEARED ON A NEW CONVERSATION (see the reset block), never by a swap.
+        // Restoring the previous call's form would use a dead token and, on a shared
+        // reception machine, could put the last user's document back on screen.
+        var lastFormUrl = null;
+
         function syncRefreshBtn() {
             // v2.2.239 — hide the STRIP, not just the button: the strip carries the
             // bottom margin, so hiding only the button would leave a gap above the viewer
             // on every non-form view.
-            var row = document.getElementById('viewer-tools');
+            // v2.2.292 — the strip now carries TWO buttons with opposite conditions, so it
+            // shows when EITHER applies. Refresh is for the form you are looking at; Back is
+            // for the form you have left. They are never both useful at once.
+            var row  = document.getElementById('viewer-tools');
+            var rBtn = document.getElementById('form-refresh-btn');
+            var bBtn = document.getElementById('form-back-btn');
             if (!row) return;                       // markup not ready yet — no-op, not a throw
-            row.style.display = (currentFormView && currentFormView.url) ? 'flex' : 'none';
+            var onForm  = !!(currentFormView && currentFormView.url);
+            var canGoBack = !onForm && !!lastFormUrl;
+            if (rBtn) rBtn.style.display = onForm ? 'inline-flex' : 'none';
+            if (bBtn) bBtn.style.display = canGoBack ? 'inline-flex' : 'none';
+            row.style.display = (onForm || canGoBack) ? 'flex' : 'none';
         }
 
         function setFormView(v) {
             currentFormView = v || { url: null, shownAt: 0 };
+            // Remember every REAL form we show. Deliberately not cleared when v.url is
+            // null — that null is a read-only view arriving, which is precisely the case
+            // the Back button exists for.
+            if (currentFormView.url) lastFormUrl = currentFormView.url;
             syncRefreshBtn();
+        }
+
+        // v2.2.292 — restore the form the user was on before a read-only view replaced it.
+        // Prefer the freshest token the self-heal poll cached, exactly as redrawForm does.
+        function goBackToForm() {
+            var iframe = document.getElementById('form-viewer');
+            var url    = rollingPdfUrl || lastFormUrl;
+            if (!iframe || !url) return false;
+            var placeholder = document.getElementById('form-viewer-placeholder');
+            iframe.src = bustCache(url);
+            if (placeholder) placeholder.classList.add('hidden');
+            // Back on a form again: restore the auto-refresh contract this view had before
+            // it was swapped away, so the form resumes redrawing itself when it changes.
+            setFormView({ url: url, shownAt: Date.now() });
+            console.log('[teckel] returned to the form view');
+            return true;
         }
 
         function redrawForm(reason) {
@@ -1112,6 +1170,17 @@
                     console.log('[teckel] refresh clicked with no form on screen');
                 }
             });
+            // v2.2.292 — the return half. Same contract: an explicit click is life, and the
+            // click does the whole job without a conversational turn.
+            var back = document.getElementById('form-back-btn');
+            if (back) {
+                back.addEventListener('click', function () {
+                    markActivity();
+                    if (!goBackToForm()) {
+                        console.log('[teckel] back clicked with no form to return to');
+                    }
+                });
+            }
         });
 
         // -----------------------------------------------------------------
@@ -1720,6 +1789,88 @@
                 });
         }
 
+        // ElevenLabs custom client tool: display_guidance (Tier 3, 24 Aug 2026)
+        // ------------------------------------------------------------------
+        // WHY THIS EXISTS. Guidance was the ONLY document class with no on-screen view:
+        // forms, evidence, the directory and the survey all render, but a guidance answer
+        // could only ever be SPOKEN. So every "what does the guidance say…" ended with the
+        // user leaving the product to hunt the PDF, which is where every problem in Dr
+        // Nasir's 23 Aug session began.
+        //
+        // Same session-id indirection as the directory: the agent carries an opaque code,
+        // never a URL and never the document text.
+        var lastGuidanceShown = { url: null, ts: 0 };
+        var GUIDANCE_DEBOUNCE_MS = 30 * 1000;
+        function isValidGuidanceUrl(url) {
+            if (!url || typeof url !== 'string') return false;
+            return /^https:\/\/teckel-io\.github\.io\/[^?#]*guidance\.html\?token=[^\s]+$/.test(url);
+        }
+        function showGuidanceInIframe(url) {
+            var iframe      = document.getElementById('form-viewer');
+            var placeholder = document.getElementById('form-viewer-placeholder');
+            if (!isValidGuidanceUrl(url)) {
+                showFabricationCard(
+                    'display_guidance was called with a URL that is not a teckel guidance page.',
+                    url || '(no guidance url)');
+                return 'display_guidance failed: the URL did not look like a teckel guidance '
+                    + 'page. Call get_guidance_link again and pass its guidance_session_id.';
+            }
+            var nowMs = Date.now();
+            if (lastGuidanceShown.url === url && (nowMs - lastGuidanceShown.ts) < GUIDANCE_DEBOUNCE_MS) {
+                return 'display_guidance already showed this document. Do NOT call it again.';
+            }
+            if (!iframe) return 'display_guidance failed: no form-viewer element on page.';
+            lastGuidanceShown = { url: url, ts: nowMs };
+            // Read-only view: never auto-reload it. This also hides the refresh button and
+            // — because lastFormUrl survives it — reveals "Back to my form" if a form was up.
+            setFormView({ url: null, shownAt: 0 });
+            iframe.src = url;
+            if (placeholder) placeholder.classList.add('hidden');
+            console.log('[teckel] display_guidance loaded the document in the iframe');
+            return 'display_guidance completed: the document is on screen now. Do NOT read it '
+                + 'aloud — they can see it. What is shown is the text teckel extracted, NOT '
+                + 'the original file; if they need the original, offer it by email.';
+        }
+        function displayGuidanceImpl(args) {
+            markActivity();   // a tool fired: the conversation is live
+            console.log('[teckel] display_guidance called with args:', args);
+            args = args || {};
+            var sid = (args.guidance_session_id || '').toString().trim();
+            if (!sid) {
+                return Promise.resolve(
+                    'display_guidance failed: no guidance_session_id. Call get_guidance_link '
+                    + 'first and pass the short code it returns, EXACTLY as given.');
+            }
+            if (!/^[A-Za-z0-9_-]{6,24}$/.test(sid)) {
+                return Promise.resolve(
+                    'display_guidance failed: guidance_session_id did not look like the short '
+                    + 'code from get_guidance_link. Pass that code EXACTLY as returned, nothing else.');
+            }
+            var resolveUrl = MCP_BASE.replace(/\/$/, '')
+                + '/document_analyser/resolve_view_session?id='
+                + encodeURIComponent(sid);
+            return fetch(resolveUrl, { method: 'GET', credentials: 'omit' })
+                .then(function (resp) {
+                    if (resp.status === 404) throw new Error('unknown or mistyped document code');
+                    if (resp.status === 410) throw new Error('this document link has expired');
+                    if (!resp.ok) throw new Error('resolve failed: status=' + resp.status);
+                    return resp.json();
+                })
+                .then(function (data) {
+                    if (!data || !data.success || data.view_mode !== 'guidance' || !data.pdf_url) {
+                        throw new Error('the code did not resolve to a guidance document');
+                    }
+                    return showGuidanceInIframe(data.pdf_url);
+                })
+                .catch(function (err) {
+                    console.warn('[teckel] display_guidance resolve failed:', err);
+                    return 'display_guidance failed: '
+                        + (err && err.message ? err.message : 'could not resolve the document link')
+                        + '. Do NOT say the document is on screen — it is not. Offer to email '
+                        + 'it instead.';
+                });
+        }
+
         // ElevenLabs custom client tool: display_survey_link (CC-7, 3 Aug 2026)
         // ------------------------------------------------------------------
         // WHY THIS EXISTS. get_survey_fill_link mints a correct 388-character signed URL
@@ -1975,6 +2126,12 @@
                 currentCostUrl  = null;
                 rollingPdfUrl   = null;
                 rollingCostUrl  = null;
+                // v2.2.292 — clear the Back target BEFORE setFormView, and only here. A new
+                // conversation must not offer a way back to the LAST call's form: its token
+                // is dead, and on a shared reception machine it would put the previous
+                // user's document back on screen. Read-only swaps must NOT clear it — that
+                // is the whole point of the button.
+                lastFormUrl = null;
                 setFormView({ url: null, shownAt: 0 });
                 lastDisplayFormBy = {};
                 lastUploadShown   = { url: null, ts: 0 };
@@ -2028,6 +2185,7 @@
                 event.detail.config.clientTools.display_settings_link = displaySettingsLinkImpl;
                 event.detail.config.clientTools.display_survey_link = displaySurveyLinkImpl;
                 event.detail.config.clientTools.display_category_directory = displayCategoryDirectoryImpl;
+                event.detail.config.clientTools.display_guidance = displayGuidanceImpl;
                 console.log('[teckel] display_form + display_upload_link + display_settings_link + display_survey_link registered via elevenlabs-convai:call event');
             } catch (e) {
                 console.error('[teckel] failed to register display_form via event listener', e);
