@@ -47,6 +47,33 @@
   li { padding:4px 0; border-top:1px solid var(--line); }
   li:first-child { border-top:none; }
   .cad { color:var(--muted); font-size:12px; }
+  /* v2.2.297 — the traffic light. Each chip carries a WORD as well as a colour: roughly
+     8% of men cannot separate red from green, and a compliance status you cannot read is
+     worse than no status. Colour is the fast signal, the word is the actual information. */
+  .chip { display:inline-block; margin-left:8px; padding:1px 8px; border-radius:999px;
+          font-size:11px; font-weight:600; white-space:nowrap; border:1px solid transparent; }
+  .chip.red   { background:#fdecea; color:#8c1d13; border-color:#f2b8b2; }
+  .chip.pink  { background:#fdeaf4; color:#8c1358; border-color:#f2b2d4; }
+  /* ⚠ YELLOW vs AMBER is the weakest distinction in this palette, so they are pulled
+     apart deliberately: yellow is pale and lemon (never submitted — status unknown),
+     amber is deeper and orange (due within a month — a real date). Both carry their own
+     word, which is what a reader actually relies on. */
+  .chip.yellow{ background:#fdfae0; color:#6b5c00; border-color:#e8dc94; }
+  .chip.amber { background:#fdefdb; color:#8a4b00; border-color:#f0c890; }
+  .chip.green { background:#e9f7ef; color:#14653b; border-color:#aedcc3; }
+  /* ⚠ Grey must never read as "fine". It is flat, unsaturated and visually QUIETER than
+     green — it means "we cannot say", and it is the COMMON case today (250 of 373). */
+  .chip.grey  { background:#f0f2f4; color:#5c6670; border-color:#dfe3e7; }
+  @media (prefers-color-scheme: dark) {
+    .chip.red   { background:#3a1a17; color:#f7b4ac; border-color:#7d2f26; }
+    .chip.pink  { background:#3a1730; color:#f5b0d6; border-color:#7d2a60; }
+    .chip.yellow{ background:#302e10; color:#e5dc8d; border-color:#5f5a1f; }
+    .chip.amber { background:#33240f; color:#f0b775; border-color:#70491d; }
+    .chip.green { background:#12301f; color:#8fdcb0; border-color:#2c6642; }
+    .chip.grey  { background:#22282c; color:#9aa4ad; border-color:#39424a; }
+  }
+  .tally { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 14px; }
+  .started { color:var(--muted); font-size:11px; margin-left:6px; }
   .msg { padding:14px; border:1px solid var(--line); border-radius:10px; color:var(--muted); }
   .err { border-color:#d9534f; color:#d9534f; }
 </style>
@@ -54,6 +81,7 @@
 <body>
 <h1>Your document directory</h1>
 <div class="sub" id="sub">Loading…</div>
+<div class="tally" id="tally"></div>
 <div id="tree"></div>
 
 <script>
@@ -105,6 +133,21 @@
     document.getElementById("sub").textContent =
       data.form_count + " forms across " + data.category_count + " categories";
 
+    // ⚠ `bands` ABSENT means the status join failed — show nothing rather than a row of
+    // zeros, because "no colours available" and "everything is green" must never look alike.
+    if (data && data.bands) {
+      var order = [["red", "overdue"], ["yellow", "never submitted"],
+                   ["pink", "due within a week"],
+                   ["amber", "due within a month"], ["green", "due later"],
+                   ["grey", "no schedule set"]];
+      var tally = document.getElementById("tally");
+      order.forEach(function (pair) {
+        var n = data.bands[pair[0]] || 0;
+        if (!n) { return; }                       // an empty band is noise, not information
+        tally.appendChild(el("span", "chip " + pair[0], n + " " + pair[1]));
+      });
+    }
+
     var frag = document.createDocumentFragment();
     cats.forEach(function (c, i) {
       var d = el("details", "cat");
@@ -117,6 +160,12 @@
       (c.forms || []).forEach(function (f) {
         var li = el("li");
         li.appendChild(el("span", null, f.title || f.form_id));
+        // The SERVER decides the band and the words; this page paints them and computes
+        // nothing about compliance. Same rule as the rest of the directory.
+        if (f.band && f.band_label) {
+          li.appendChild(el("span", "chip " + f.band, f.band_label));
+        }
+        if (f.started) { li.appendChild(el("span", "started", "started")); }
         if (f.cadence) { li.appendChild(el("span", "cad", "  ·  " + f.cadence)); }
         ul.appendChild(li);
       });
