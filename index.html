@@ -89,6 +89,19 @@
             font-weight: 600;
             letter-spacing: 0.3px;
         }
+        #benedict-disabled-banner.tc-banner {
+            margin: 12px 16px 0;
+            padding: 12px 16px;
+            border: 1px solid #f0b429;
+            border-left: 4px solid #f0b429;
+            border-radius: 6px;
+            background: #2b2205;
+            color: #ffe9b0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        #benedict-disabled-banner.tc-banner strong { color: #ffd166; }
+        #benedict-disabled-banner.tc-banner span   { display: block; margin-top: 4px; }
         header.site-header .practice-sub {
             color: var(--steel);
             font-size: 13px;
@@ -456,6 +469,16 @@
         </div>
     </header>
 
+    <!-- Benedict-unavailable banner (25 Aug 2026). Hidden until PROVEN otherwise:
+         see checkBenedictAvailability() for why absence of evidence never renders it. -->
+    <div id="benedict-disabled-banner" class="tc-banner" hidden>
+        <strong>Benedict is currently switched off &mdash; your teckel credits have run
+        out.</strong>
+        <span>Please top up your teckel credits in the teckel App and try again.
+        Reactivation is not instant: allow up to about <strong>ten minutes</strong> from
+        the moment your top-up clears. Your forms and records are unaffected.</span>
+    </div>
+
     <div class="page-shell">
 
         <!--
@@ -806,6 +829,43 @@
             return null;
         }
 
+        // ── Is Benedict actually reachable by the public? ───────────────────────
+        // WHY (Steven, 25 Aug 2026). Running out of teckel credits DISABLES the agent
+        // by design — a teckel-side hourly job sets ElevenLabs `enable_auth=true`, which
+        // makes the widget 401 for anonymous visitors. The page then looks completely
+        // healthy and the microphone simply does nothing, which is the worst possible
+        // failure: indistinguishable from the practice having nothing to say.
+        //
+        // The signal is the agent's own PUBLIC widget endpoint, which is a READ (it mints
+        // nothing) and is CORS-open. Verified live on a test rig 25 Aug:
+        //     enable_auth=false -> HTTP 200      enable_auth=true -> HTTP 401
+        //
+        // ⚠ ABSENCE OF EVIDENCE IS NEVER EVIDENCE OF AN OUTAGE. Only 401/403 raises the
+        // banner. A 429 (this endpoint is anonymous and throttled), a network failure or
+        // any other status renders NOTHING. The guard learned this the hard way: an
+        // earlier version treated every non-200 as blocked, "healed" a healthy agent and
+        // reported it still broken. A banner accusing a practice of unpaid credits when
+        // the truth is a rate limit is worse than showing nothing at all.
+        function checkBenedictAvailability() {
+            var aid = discoverAgentId();
+            if (!aid) return;                       // no agent on the page: say nothing
+            fetch('https://api.elevenlabs.io/v1/convai/agents/'
+                  + encodeURIComponent(aid) + '/widget',
+                  { method: 'GET', credentials: 'omit' })
+                .then(function (resp) {
+                    if (resp.status === 401 || resp.status === 403) {
+                        var el = document.getElementById('benedict-disabled-banner');
+                        if (el) el.hidden = false;
+                        console.warn('[teckel] Benedict is not startable for the public '
+                                     + '(HTTP ' + resp.status + ') — credits banner shown');
+                    }
+                })
+                .catch(function (e) {
+                    // Deliberately silent: we could not tell, so we claim nothing.
+                    console.warn('[teckel] availability check inconclusive', e);
+                });
+        }
+
         function pollAgentCostOnce() {
             if (isIdle()) return;   // conversation over — stop polling the server
             if (!sessionAgentId) return;
@@ -831,6 +891,7 @@
         }
 
         function startAgentCostPoll() {
+            checkBenedictAvailability();
             sessionAgentId = discoverAgentId();
             if (!sessionAgentId) {
                 console.warn('[teckel] no agent-id found on the page — cost meter will stay dormant');
