@@ -100,6 +100,23 @@
             font-size: 14px;
             line-height: 1.5;
         }
+        #profile-incomplete-banner.tc-banner {
+            margin: 12px 16px 0;
+            padding: 12px 16px;
+            border: 1px solid #4a90d9;
+            border-left: 4px solid #4a90d9;
+            border-radius: 6px;
+            background: #0b1e2d;
+            color: #cfe4f7;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        /* Deliberately BLUE, not the amber used for "Benedict is off". Amber says something
+           is broken and you cannot work; this says something is incomplete and you still
+           can. A colour is believed faster than a sentence (24 Aug), so the two must not
+           look alike. Every chip elsewhere carries a word for the same reason. */
+        #profile-incomplete-banner.tc-banner strong { color: #9ecbf5; }
+        #profile-incomplete-banner.tc-banner span   { display: block; margin-top: 4px; }
         #benedict-disabled-banner.tc-banner strong { color: #ffd166; }
         #benedict-disabled-banner.tc-banner span   { display: block; margin-top: 4px; }
         header.site-header .practice-sub {
@@ -477,6 +494,14 @@
         <span>Please top up your teckel credits in the teckel App and try again.
         Reactivation is not instant: allow up to about <strong>ten minutes</strong> from
         the moment your top-up clears. Your forms and records are unaffected.</span>
+    </div>
+
+    <!-- Practice-profile-incomplete banner (26 Aug 2026). Hidden until the server has
+         PROVEN which fields are blank; an inconclusive answer renders nothing, same
+         contract as the credits banner above. Text is written by fillProfileBanner(). -->
+    <div id="profile-incomplete-banner" class="tc-banner" hidden>
+        <strong id="profile-incomplete-head"></strong>
+        <span id="profile-incomplete-detail"></span>
     </div>
 
     <div class="page-shell">
@@ -866,6 +891,64 @@
                 });
         }
 
+        // ── PRACTICE-PROFILE COMPLETENESS BANNER (26 Aug 2026) ───────────────────────
+        // A live practice ran for weeks with no practice profile at all, so every form it
+        // rendered carried NO letterhead. The feature had shipped; only the data was
+        // missing, and nothing anywhere reported it (N60). This is that report.
+        //
+        // ⚠ SAME CONTRACT AS THE CREDITS BANNER: render only on a definite answer. A
+        // non-OK response, a network failure, or ok=false renders NOTHING. Telling a
+        // practice its details are incomplete when the truth is that we could not look is
+        // worse than saying nothing — the 2.2.298 lesson, applied deliberately here.
+        //
+        // ⚠ The server returns FIELD NAMES ONLY, never values. Do not "improve" this by
+        // showing current values: the endpoint is unauthenticated and the page is public.
+        function fillProfileBanner(data) {
+            if (!data || data.ok !== true || data.complete === true) return;
+            var missing = data.missing || [];
+            if (!missing.length) return;            // nothing required is blank: say nothing
+
+            var head = document.getElementById('profile-incomplete-head');
+            var det  = document.getElementById('profile-incomplete-detail');
+            var box  = document.getElementById('profile-incomplete-banner');
+            if (!head || !det || !box) return;
+
+            // NAME THE FIELDS when the profile is mostly there — Steven, 26 Aug: "even
+            // better, name the fields that are blank if mostly filled". A practice one
+            // field short should be told WHICH field; one that has filled in nothing needs
+            // a different, shorter sentence than a list of everything.
+            if (data.filled === 0) {
+                head.textContent = 'Your practice details have not been set up yet.';
+                det.textContent  = 'Until they are, forms you submit or print carry no '
+                                 + 'letterhead — no practice name, address or contact '
+                                 + 'details. You can add them from the Settings menu.';
+            } else {
+                var list = missing.length === 1
+                    ? missing[0]
+                    : missing.slice(0, -1).join(', ') + ' and ' + missing[missing.length - 1];
+                head.textContent = 'Your practice profile is incomplete — '
+                                 + 'still to add: ' + list + '.';
+                det.textContent  = 'These appear on the letterhead of every form you submit '
+                                 + 'or print. You can add them from the Settings menu ('
+                                 + data.filled + ' of ' + data.total + ' already set).';
+            }
+            box.hidden = false;
+        }
+
+        function checkPracticeProfile() {
+            var aid = discoverAgentId();
+            if (!aid) return;                       // no agent on the page: say nothing
+            fetch(MCP_BASE + '/document_analyser/practice_profile_status'
+                  + '?agent_id=' + encodeURIComponent(aid),
+                  { method: 'GET', credentials: 'omit' })
+                .then(function (resp) { return resp.ok ? resp.json() : null; })
+                .then(fillProfileBanner)
+                .catch(function (e) {
+                    // Deliberately silent: we could not tell, so we claim nothing.
+                    console.warn('[teckel] profile check inconclusive', e);
+                });
+        }
+
         function pollAgentCostOnce() {
             if (isIdle()) return;   // conversation over — stop polling the server
             if (!sessionAgentId) return;
@@ -892,6 +975,7 @@
 
         function startAgentCostPoll() {
             checkBenedictAvailability();
+            checkPracticeProfile();
             sessionAgentId = discoverAgentId();
             if (!sessionAgentId) {
                 console.warn('[teckel] no agent-id found on the page — cost meter will stay dormant');
