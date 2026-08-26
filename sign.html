@@ -99,7 +99,7 @@
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 
   // ── the drawing pad ───────────────────────────────────────────────────────────────
-  // Collects POINTS and emits SVG path `d` strings. ⚠ It never builds an <svg>: the
+  // Collects POINTS and emits SVG path `d` strings. ⚠ It never builds SVG markup: the
   // server composes the markup from validated path data, which is what keeps anything
   // drawn here from becoming markup in a rendered page or a PDF.
   function makePad(canvas) {
