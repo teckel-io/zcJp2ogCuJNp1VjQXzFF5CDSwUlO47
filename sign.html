@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign this form</title>
+<!--
+    sign.html — the SIGNING PAGE (digital signatures layer 4b, analyser 2.2.306).
+
+    Opened with ?token=<opaque session handle>&instance_id=<id>, from the link
+    open_signature_session returns. ⚠ There is deliberately NO client tool named here: a
+    tool must be BOUND before anything names it, or the agent is told to call something it
+    does not have. If a display_* tool is added later, it ships in the same change that
+    binds it.
+
+      POST {API_BASE}/document_analyser/get_signature_session   {token, instance_id}
+      POST {API_BASE}/document_analyser/capture_signature       {token, instance_id, ...}
+
+    ⚠ THE AGENT NEVER SIGNS, and it never supplies the roster either. It carries an opaque
+    handle; this page fetches the names itself. Same rule as the guidance viewer, and it
+    matters more here: a model asked to hold a list of who must sign a legal instrument can
+    supply a plausible name that is not on it.
+
+    ⚠ WE SEND PATH DATA, NEVER AN SVG. The server refuses anything that is not stroke data
+    and composes the markup itself, so nothing drawn here can become markup on a page or in
+    a PDF. Do not "helpfully" build an SVG string in this file and post it.
+
+    ⚠ THE DATE IS NOT ON THIS PAGE. It is stamped by the server when the signature lands. A
+    date typed or chosen in a browser is just a text field, and can be back-dated.
+
+    ⚠ ATTRIBUTION IS `witnessed_session`. Whoever is at this screen signs in the practice
+    owner's authenticated session; nobody authenticates as themselves. That is honest and
+    it is what the record stores. Do not word anything on this page to imply otherwise —
+    "verified", "authenticated" and "identity confirmed" are all false here.
+
+    ⚠ NO CLIENT NAMES, TOWNS, CLINICIANS OR REGISTRATION NUMBERS ANYWHERE IN THIS FILE,
+    INCLUDING IN THESE COMMENTS. This page is served from every tenant's portal, so a
+    comment naming one practice is public page source on all the others. That leak has
+    happened twice (20-26 Aug) and teckel__test_page_privacy_v1_0.py scans RAW BYTES,
+    comments included, precisely because every other scanner strips them.
+-->
+<style>
+  :root { --ink:#12203a; --muted:#5b6b85; --line:#d8e0ec; --bg:#f6f8fb; --ok:#1f7a45; --warn:#8a6100; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+         color:var(--ink); background:var(--bg); }
+  .wrap { max-width:760px; margin:0 auto; padding:20px 16px 64px; }
+  h1 { font-size:1.25rem; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:.92rem; margin:0 0 18px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px;
+          padding:16px; margin:0 0 16px; }
+  .declaration { font-size:1.02rem; line-height:1.5; margin:0 0 14px; }
+  ul.people { list-style:none; margin:0; padding:0; }
+  ul.people li { display:flex; align-items:center; gap:10px; padding:9px 0;
+                 border-bottom:1px solid var(--line); }
+  ul.people li:last-child { border-bottom:0; }
+  .who { flex:1; }
+  .state { font-size:.85rem; }
+  .state.done { color:var(--ok); }
+  .state.todo { color:var(--warn); }
+  button { font:inherit; border-radius:8px; border:1px solid var(--line);
+           background:#fff; padding:8px 14px; cursor:pointer; }
+  button.primary { background:var(--ink); color:#fff; border-color:var(--ink); }
+  button[disabled] { opacity:.45; cursor:not-allowed; }
+  canvas { width:100%; height:200px; border:1px dashed var(--line); border-radius:10px;
+           background:#fff; touch-action:none; display:block; }
+  .padrow { display:flex; gap:8px; justify-content:flex-end; margin-top:10px; }
+  .msg { padding:10px 12px; border-radius:8px; margin:0 0 14px; font-size:.93rem; }
+  .msg.err { background:#fdecec; color:#7a1f1f; }
+  .msg.ok  { background:#e9f6ee; color:var(--ok); }
+  .foot { color:var(--muted); font-size:.85rem; line-height:1.5; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="hd">Sign this form</h1>
+  <p class="sub" id="sub">Loading…</p>
+  <div id="msg" class="msg" hidden></div>
+  <div id="slots"></div>
+  <p class="foot" id="foot" hidden>
+    Each person signs here themselves, on this screen. The date is added by the system when
+    a signature is saved — it is not typed. This records that a signature was given during
+    this session on this practice's account; it does not verify anyone's identity.
+  </p>
+</div>
+<script>
+(function () {
+  "use strict";
+  var API_BASE = 'https://mcp2.bh.tkllabs.io:9779';
+  var params   = new URLSearchParams(location.search);
+  var TOKEN    = params.get('token') || '';
+  var IID      = params.get('instance_id') || '';
+
+  function say(text, kind) {
+    var m = document.getElementById('msg');
+    m.textContent = text; m.className = 'msg ' + (kind || ''); m.hidden = false;
+  }
+  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+  // ── the drawing pad ───────────────────────────────────────────────────────────────
+  // Collects POINTS and emits SVG path `d` strings. ⚠ It never builds an <svg>: the
+  // server composes the markup from validated path data, which is what keeps anything
+  // drawn here from becoming markup in a rendered page or a PDF.
+  function makePad(canvas) {
+    var ctx = canvas.getContext('2d'), paths = [], cur = null, drawing = false;
+    function fit() {
+      var r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111';
+      redraw();
+    }
+    function pt(e) {
+      var r = canvas.getBoundingClientRect();
+      // Scale to the 600x200 viewBox the server composes with, so the stored signature is
+      // resolution-independent and matches what was drawn.
+      return { x: +(((e.clientX - r.left) / r.width) * 600).toFixed(1),
+               y: +(((e.clientY - r.top) / r.height) * 200).toFixed(1),
+               cx: e.clientX - r.left, cy: e.clientY - r.top };
+    }
+    function redraw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      var r = canvas.getBoundingClientRect();
+      paths.concat(cur ? [cur] : []).forEach(function (p) {
+        if (!p.pts.length) return;
+        ctx.beginPath();
+        p.pts.forEach(function (q, i) {
+          var X = (q.x / 600) * r.width, Y = (q.y / 200) * r.height;
+          if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+        });
+        ctx.stroke();
+      });
+    }
+    function down(e) { drawing = true; cur = { pts: [pt(e)] }; canvas.setPointerCapture(e.pointerId); redraw(); }
+    function move(e) { if (!drawing) return; cur.pts.push(pt(e)); redraw(); }
+    function up()    { if (!drawing) return; drawing = false; if (cur && cur.pts.length) paths.push(cur); cur = null; redraw(); }
+    canvas.addEventListener('pointerdown', down);
+    canvas.addEventListener('pointermove', move);
+    canvas.addEventListener('pointerup', up);
+    canvas.addEventListener('pointercancel', up);
+    canvas.addEventListener('pointerleave', up);
+    window.addEventListener('resize', fit);
+    fit();
+    return {
+      clear: function () { paths = []; cur = null; redraw(); },
+      isEmpty: function () { return paths.length === 0; },
+      // ⚠ Path data ONLY — every command is M or L, digits, dot, space. Nothing here can
+      // carry a quote or an angle bracket, and the server refuses it anyway if it does.
+      toPaths: function () {
+        return paths.filter(function (p) { return p.pts.length > 0; }).map(function (p) {
+          return 'M' + p.pts.map(function (q, i) {
+            return (i ? 'L' : '') + q.x + ' ' + q.y;
+          }).join(' ');
+        });
+      }
+    };
+  }
+
+  function post(path, payload) {
+    return fetch(API_BASE + '/document_analyser/' + path, {
+      method: 'POST', credentials: 'omit',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (r) {
+      return r.json().catch(function () { return null; }).then(function (j) {
+        if (!r.ok) { var e = new Error('http ' + r.status); e.body = j; throw e; }
+        return j;
+      });
+    });
+  }
+
+  function render(data) {
+    var host = document.getElementById('slots');
+    host.innerHTML = '';
+    // ⚠ ABSENT IS NOT "UNSIGNED". A form with no signature slots must say so plainly and
+    // must never render as though something is outstanding.
+    if (!data || data.state === 'absent' || !data.slots || !data.slots.length) {
+      document.getElementById('sub').textContent =
+        'This form does not have digital signatures set up.';
+      return;
+    }
+    document.getElementById('sub').textContent =
+      data.signed + ' of ' + data.required + ' signature' + (data.required === 1 ? '' : 's') + ' given.';
+    document.getElementById('foot').hidden = false;
+
+    data.slots.forEach(function (slot) {
+      var card = document.createElement('div');
+      card.className = 'card';
+      var head = slot.declaration
+        ? '<p class="declaration">' + esc(slot.declaration) + '</p>'
+        : '<p class="declaration">' + esc(slot.base_key || 'Signature') + '</p>';
+      card.innerHTML = head + '<ul class="people"></ul>';
+      var ul = card.querySelector('ul');
+
+      slot.signatories.forEach(function (p) {
+        var li = document.createElement('li');
+        li.innerHTML = '<span class="who">' + esc(p.name) + '</span>'
+                     + '<span class="state ' + (p.signed ? 'done' : 'todo') + '">'
+                     + (p.signed ? 'signed' : 'not yet signed') + '</span>';
+        if (!p.signed) {
+          var b = document.createElement('button');
+          b.textContent = 'Sign';
+          b.onclick = function () { openPad(slot, p.name, card); };
+          li.appendChild(b);
+        }
+        ul.appendChild(li);
+      });
+      host.appendChild(card);
+    });
+  }
+
+  function openPad(slot, name, card) {
+    var old = card.querySelector('.padbox');
+    if (old) old.remove();
+    var box = document.createElement('div');
+    box.className = 'padbox';
+    box.innerHTML = '<p class="sub" style="margin:12px 0 6px">'
+                  + esc(name) + ' — sign in the box below.</p>'
+                  + '<canvas></canvas>'
+                  + '<div class="padrow"><button class="clear">Clear</button>'
+                  + '<button class="primary save">Save signature</button></div>';
+    card.appendChild(box);
+    var pad = makePad(box.querySelector('canvas'));
+    box.querySelector('.clear').onclick = function () { pad.clear(); };
+    box.querySelector('.save').onclick = function () {
+      if (pad.isEmpty()) { say('Please sign in the box before saving.', 'err'); return; }
+      var btn = this; btn.disabled = true;
+      post('capture_signature', {
+        token: TOKEN, instance_id: IID, slot_key: slot.slot_key,
+        signatory_name: name, paths: pad.toPaths()
+      }).then(function () {
+        say('Saved — thank you, ' + name + '.', 'ok');
+        return load();
+      }).catch(function (e) {
+        btn.disabled = false;
+        var d = e && e.body && e.body.detail;
+        // Show the server's own words: it knows why, and guessing here would be worse.
+        say((d && (d.user_message || d.detail)) || 'That signature could not be saved. Please try again.', 'err');
+      });
+    };
+  }
+
+  function load() {
+    return post('get_signature_session', { token: TOKEN, instance_id: IID })
+      .then(render)
+      .catch(function (e) {
+        var d = e && e.body && e.body.detail;
+        document.getElementById('sub').textContent = '';
+        say((d && d.user_message) || 'This signing session is not valid any more. Ask for the form again.', 'err');
+      });
+  }
+
+  if (!TOKEN || !IID) {
+    say('This signing link is incomplete. Ask for the form again.', 'err');
+    document.getElementById('sub').textContent = '';
+  } else {
+    load();
+  }
+})();
+</script>
+</body>
+</html>
