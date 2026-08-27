@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Who signs your forms</title>
+<!--
+    signatures.html — the SIGNING ADMIN screen (digital signatures layer 3 UI, 2.2.307).
+
+    Opened from the account settings link with ?token=<settings token>[&storage_key=...].
+
+      POST {API_BASE}/document_analyser/signature_admin_data   {settings_token, storage_key?}
+      POST {API_BASE}/document_analyser/signature_admin_save   {settings_token, action, ...}
+
+    ⚠ THE TOKEN IS THE AUTHORITY. The practice's wallet is a SIGNED CLAIM inside it — this
+    page never sends a wallet, and could not usefully edit one if it tried.
+
+    ⚠ THE SYSTEM NEVER DECIDES WHICH SIGNATURES ARE STAFF. Measured across the catalogue,
+    130 of 528 signature fields are ambiguous, and 111 of 116 patient-side ones sit in
+    ordinary Q&A forms rather than consent forms. The "signatures already on this form"
+    list is a SHORTLIST FOR A HUMAN, not a classification. The owner promotes; we never
+    guess. Anything she does not promote stays paper.
+
+    ⚠ TWO ROUTES, AND THEY ARE NOT ALTERNATIVES. Promoting an existing field serves the 96
+    forms that already carry a signature line; a named-staff block serves the 283 that
+    carry none. Removing either one strands a third of the catalogue.
+
+    ⚠ A BLOCK WITH NOBODY ON IT CANNOT BE SIGNED. The server refuses it three times over.
+    Never present an empty roster as a saveable state.
+
+    ⚠ NO CLIENT NAMES, TOWNS, CLINICIANS OR REGISTRATION NUMBERS ANYWHERE IN THIS FILE,
+    INCLUDING IN THESE COMMENTS — it is served from every tenant's portal.
+-->
+<style>
+  :root { --ink:#12203a; --muted:#5b6b85; --line:#d8e0ec; --bg:#f6f8fb; --ok:#1f7a45; --warn:#8a6100; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+         color:var(--ink); background:var(--bg); }
+  .wrap { max-width:820px; margin:0 auto; padding:20px 16px 64px; }
+  h1 { font-size:1.3rem; margin:0 0 4px; }
+  h2 { font-size:1.05rem; margin:0 0 10px; }
+  .sub { color:var(--muted); font-size:.92rem; margin:0 0 18px; line-height:1.5; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; margin:0 0 16px; }
+  ul { list-style:none; margin:0; padding:0; }
+  li.row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); }
+  li.row:last-child { border-bottom:0; }
+  .who { flex:1; }
+  .meta { color:var(--muted); font-size:.85rem; }
+  input[type=text] { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; width:100%; }
+  .grid { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:8px; align-items:center; }
+  button { font:inherit; border-radius:8px; border:1px solid var(--line); background:#fff; padding:8px 14px; cursor:pointer; }
+  button.primary { background:var(--ink); color:#fff; border-color:var(--ink); }
+  button.link { border:0; background:none; color:#8a1f1f; padding:4px; text-decoration:underline; cursor:pointer; }
+  button[disabled] { opacity:.45; cursor:not-allowed; }
+  .msg { padding:10px 12px; border-radius:8px; margin:0 0 14px; font-size:.93rem; }
+  .msg.err { background:#fdecec; color:#7a1f1f; }
+  .msg.ok { background:#e9f6ee; color:var(--ok); }
+  .note { background:#eef3fb; border-left:3px solid #6b8cc4; padding:10px 12px; border-radius:6px;
+          color:var(--muted); font-size:.88rem; line-height:1.5; margin:10px 0 0; }
+  label.pick { display:flex; align-items:center; gap:8px; padding:5px 0; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Who signs your forms</h1>
+  <p class="sub" id="sub">Loading…</p>
+  <div id="msg" class="msg" hidden></div>
+
+  <div class="card">
+    <h2>Your people</h2>
+    <p class="sub">Add everyone who might need to sign something. You choose who signs which
+      form separately — adding someone here does not put them on any form.</p>
+    <ul id="staff"></ul>
+    <div class="grid" style="margin-top:12px">
+      <input type="text" id="s_name"  placeholder="Full name" aria-label="Full name">
+      <input type="text" id="s_role"  placeholder="Job title (optional)" aria-label="Job title">
+      <input type="text" id="s_group" placeholder="Groups, comma separated (optional)" aria-label="Groups">
+      <button class="primary" id="s_add">Add</button>
+    </div>
+    <p class="note">Removing someone takes them off future forms. It never removes a
+      signature they have already given — that stays on the record it was applied to.</p>
+  </div>
+
+  <div class="card" id="formcard" hidden>
+    <h2 id="formtitle">This form</h2>
+    <div id="slots"></div>
+
+    <div id="promote" hidden>
+      <h2 style="margin-top:18px">Signatures already on this form</h2>
+      <p class="sub">These are printed on the form itself. Turn one into a digital signature
+        and it will be signed on screen instead of on paper. Leave the rest as they are —
+        they will still print, and can be signed by hand.</p>
+      <ul id="promotable"></ul>
+    </div>
+
+    <h2 style="margin-top:18px">Add a signature block</h2>
+    <p class="sub">For "everyone must sign to say they have read this". Choose who has to
+      sign, and what they are signing to.</p>
+    <input type="text" id="b_decl" aria-label="Declaration">
+    <div id="b_people" style="margin:10px 0"></div>
+    <button class="primary" id="b_add">Add this block</button>
+    <p class="note" id="refnote" hidden>This is a reference document rather than a form that
+      gets filled in. You cannot add questions to it — but you can record who has read it.</p>
+  </div>
+</div>
+<script>
+(function () {
+  "use strict";
+  var API_BASE = 'https://mcp2.bh.tkllabs.io:9779';
+  var q = new URLSearchParams(location.search);
+  var TOKEN = q.get('token') || '';
+  var SK    = q.get('storage_key') || '';
+  var STATE = { staff: [], slots: [], form: null };
+
+  function say(t, k) { var m = document.getElementById('msg'); m.textContent = t; m.className = 'msg ' + (k||''); m.hidden = false; }
+  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+  function post(path, payload) {
+    return fetch(API_BASE + '/document_analyser/' + path, {
+      method: 'POST', credentials: 'omit',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (r) {
+      return r.json().catch(function () { return null; }).then(function (j) {
+        if (!r.ok) { var e = new Error('http ' + r.status); e.body = j; throw e; }
+        // ⚠ A soft gate arrives as HTTP 200 with success:false. Treating that as success is
+        // how a refusal gets reported to the user as "saved".
+        if (j && j.success === false) { var g = new Error('gate'); g.body = { detail: j }; throw g; }
+        return j;
+      });
+    });
+  }
+  function fail(e, fallback) {
+    var d = e && e.body && e.body.detail;
+    say((d && (d.user_message || d.detail)) || fallback, 'err');
+  }
+
+  function save(payload, okMsg) {
+    payload.settings_token = TOKEN;
+    payload.storage_key = SK || undefined;
+    return post('signature_admin_save', payload)
+      .then(function () { say(okMsg, 'ok'); return load(); })
+      .catch(function (e) { fail(e, 'That could not be saved.'); });
+  }
+
+  function renderStaff() {
+    var ul = document.getElementById('staff'); ul.innerHTML = '';
+    if (!STATE.staff.length) {
+      ul.innerHTML = '<li class="row"><span class="meta">Nobody added yet.</span></li>';
+      return;
+    }
+    STATE.staff.forEach(function (p) {
+      var li = document.createElement('li'); li.className = 'row';
+      var bits = [p.job_title, (p.groups || []).join(', ')].filter(Boolean).join(' · ');
+      li.innerHTML = '<span class="who">' + esc(p.full_name) +
+                     (bits ? ' <span class="meta">' + esc(bits) + '</span>' : '') + '</span>';
+      var b = document.createElement('button'); b.className = 'link'; b.textContent = 'Remove';
+      b.onclick = function () { save({ action: 'remove_staff', staff_id: p.staff_id }, 'Removed.'); };
+      li.appendChild(b); ul.appendChild(li);
+    });
+  }
+
+  function renderPickers() {
+    var host = document.getElementById('b_people'); host.innerHTML = '';
+    if (!STATE.staff.length) {
+      host.innerHTML = '<p class="sub">Add people above first — a block with nobody on it cannot be signed.</p>';
+      document.getElementById('b_add').disabled = true;
+      return;
+    }
+    document.getElementById('b_add').disabled = false;
+    STATE.staff.forEach(function (p) {
+      var l = document.createElement('label'); l.className = 'pick';
+      l.innerHTML = '<input type="checkbox" value="' + esc(p.staff_id) + '"> ' + esc(p.full_name);
+      host.appendChild(l);
+    });
+  }
+
+  function renderSlots() {
+    var host = document.getElementById('slots'); host.innerHTML = '';
+    if (!STATE.slots.length) {
+      host.innerHTML = '<p class="sub">No digital signatures on this form yet.</p>';
+      return;
+    }
+    var ul = document.createElement('ul');
+    STATE.slots.forEach(function (s) {
+      var li = document.createElement('li'); li.className = 'row';
+      var what = s.declaration || s.base_key || 'Signature';
+      var who  = (s.signatory_groups || []).concat(
+                   (s.signatory_staff_ids || []).map(function (id) {
+                     var m = STATE.staff.filter(function (p) { return p.staff_id === id; })[0];
+                     return m ? m.full_name : 'someone no longer listed';
+                   })).join(', ');
+      li.innerHTML = '<span class="who">' + esc(what) +
+                     '<br><span class="meta">' + esc(who || '—') + '</span></span>';
+      var b = document.createElement('button'); b.className = 'link'; b.textContent = 'Remove';
+      b.onclick = function () { save({ action: 'remove_slot', slot_key: s.slot_key }, 'Removed.'); };
+      li.appendChild(b); ul.appendChild(li);
+    });
+    host.appendChild(ul);
+  }
+
+  function renderPromotable() {
+    var f = STATE.form; if (!f) return;
+    var box = document.getElementById('promote');
+    var ul = document.getElementById('promotable'); ul.innerHTML = '';
+    if (!f.promotable || !f.promotable.length) { box.hidden = true; return; }
+    box.hidden = false;
+    var taken = {};
+    STATE.slots.forEach(function (s) { if (s.base_key) taken[s.base_key.toLowerCase()] = 1; });
+    f.promotable.forEach(function (fld) {
+      var li = document.createElement('li'); li.className = 'row';
+      var done = taken[(fld.question_text || '').toLowerCase()];
+      li.innerHTML = '<span class="who">' + esc(fld.question_text) + '</span>';
+      if (done) {
+        li.innerHTML += '<span class="meta">already digital</span>';
+      } else {
+        var b = document.createElement('button'); b.textContent = 'Make digital';
+        b.onclick = function () {
+          var picked = Array.prototype.slice.call(
+            document.querySelectorAll('#b_people input:checked')).map(function (c) { return c.value; });
+          if (!picked.length) { say('Tick who signs this one, above, then try again.', 'err'); return; }
+          save({ action: 'promote_field', base_key: fld.question_text,
+                 signatory_staff_ids: picked }, 'That signature is now digital.');
+        };
+        li.appendChild(b);
+      }
+      ul.appendChild(li);
+    });
+  }
+
+  function load() {
+    return post('signature_admin_data', { settings_token: TOKEN, storage_key: SK || undefined })
+      .then(function (d) {
+        STATE.staff = d.staff || [];
+        STATE.slots = d.slots || [];
+        STATE.form  = d.form || null;
+        document.getElementById('sub').textContent = STATE.form
+          ? 'Signatures on ' + STATE.form.title
+          : 'Add the people who sign things. Open a form to choose who signs it.';
+        document.getElementById('formcard').hidden = !STATE.form;
+        if (STATE.form) {
+          document.getElementById('formtitle').textContent = STATE.form.title;
+          document.getElementById('refnote').hidden = !STATE.form.is_reference;
+        }
+        renderStaff(); renderPickers(); renderSlots(); renderPromotable();
+      })
+      .catch(function (e) {
+        document.getElementById('sub').textContent = '';
+        fail(e, 'This link is not valid any more. Ask Benedict for a new settings link.');
+      });
+  }
+
+  document.getElementById('s_add').onclick = function () {
+    var n = document.getElementById('s_name').value.trim();
+    if (!n) { say('Enter a name first.', 'err'); return; }
+    var g = document.getElementById('s_group').value.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+    save({ action: 'add_staff', full_name: n,
+           job_title: document.getElementById('s_role').value.trim(), groups: g }, 'Added.')
+      .then(function () {
+        document.getElementById('s_name').value = '';
+        document.getElementById('s_role').value = '';
+        document.getElementById('s_group').value = '';
+      });
+  };
+
+  document.getElementById('b_add').onclick = function () {
+    var picked = Array.prototype.slice.call(
+      document.querySelectorAll('#b_people input:checked')).map(function (c) { return c.value; });
+    // ⚠ Never let an empty roster look saveable. The server refuses it anyway; this just
+    // says so before she waits for a round trip.
+    if (!picked.length) { say('Choose at least one person — a block with nobody on it cannot be signed.', 'err'); return; }
+    save({ action: 'add_block', signatory_staff_ids: picked,
+           declaration: document.getElementById('b_decl').value.trim() }, 'Signature block added.');
+  };
+
+  document.getElementById('b_decl').value = 'I confirm I have read and understood this document.';
+  if (!TOKEN) {
+    document.getElementById('sub').textContent = '';
+    say('This link is incomplete. Ask Benedict for your settings link.', 'err');
+  } else {
+    load();
+  }
+})();
+</script>
+</body>
+</html>
