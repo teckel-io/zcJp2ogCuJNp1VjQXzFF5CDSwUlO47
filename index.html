@@ -119,6 +119,34 @@
         #profile-incomplete-banner.tc-banner span   { display: block; margin-top: 4px; }
         #benedict-disabled-banner.tc-banner strong { color: #ffd166; }
         #benedict-disabled-banner.tc-banner span   { display: block; margin-top: 4px; }
+        /* App-safety banner (28 Aug 2026). ⚠ A THIRD COLOUR, ON PURPOSE. Amber = you
+           cannot work; blue = something is incomplete but you can. This is neither: it is
+           a standing caution about an action that destroys access, and it is the only
+           banner here that is TRUE ON EVERY PAGE LOAD rather than derived from a server
+           answer. Given its own slate treatment so it is not mistaken for either. */
+        #app-safety-banner.tc-banner {
+            margin: 12px 16px 0;
+            padding: 12px 16px;
+            border: 1px solid #8a93a6;
+            border-left: 4px solid #8a93a6;
+            border-radius: 6px;
+            background: #161b24;
+            color: #d7dce5;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        #app-safety-banner.tc-banner strong { color: #eef1f6; }
+        #app-safety-banner.tc-banner span   { display: block; margin-top: 4px; }
+        #app-safety-banner .tc-banner-actions { margin-top: 10px; }
+        #app-safety-banner .tc-banner-actions a,
+        #app-safety-banner .tc-banner-actions button {
+            font: inherit; color: #cfe4f7; background: transparent;
+            border: 1px solid #4a5468; border-radius: 4px;
+            padding: 5px 10px; margin-right: 8px; cursor: pointer; text-decoration: none;
+            display: inline-block;
+        }
+        #app-safety-banner .tc-banner-actions a:hover,
+        #app-safety-banner .tc-banner-actions button:hover { border-color: #9ecbf5; }
         header.site-header .practice-sub {
             color: var(--steel);
             font-size: 13px;
@@ -502,6 +530,35 @@
     <div id="profile-incomplete-banner" class="tc-banner" hidden>
         <strong id="profile-incomplete-head"></strong>
         <span id="profile-incomplete-detail"></span>
+    </div>
+
+    <!-- App-safety banner (28 Aug 2026).
+         ⚠ ITS CONTRACT IS THE OPPOSITE OF THE TWO ABOVE, DELIBERATELY. Those are hidden
+         until the server PROVES a condition; showing them on no evidence would accuse the
+         practice of something untrue. This one states a fact that is always true — a
+         reinstall destroys access to the account — so it renders on every load UNLESS the
+         reader has dismissed it. Absence of evidence is not a reason to hide it.
+         ⚠ WHY IT WARNS RATHER THAN ASKING FOR A BACKUP. The first draft asked "have you
+         saved your account off-App?". There is no way for a user to answer that today: an
+         imported account cannot be re-exported, there is no print path, and screenshotting
+         the code is exactly what the guide forbids because phone screenshots sync to a
+         photo cloud. Prompting for an impossible backup would push people toward the one
+         action we tell them never to take. So it warns against the destructive act instead,
+         which is both actionable and the thing that actually prevents the loss.
+         ⚠ IT DOES NOT SAY "I can explain how" — Benedict's prompt contains nothing about
+         wallet export or recovery, so offering that would be a fabricated capability. The
+         link goes to the guide, which is live and correct. -->
+    <div id="app-safety-banner" class="tc-banner" hidden>
+        <strong>Never uninstall the teckel App &mdash; always update it.</strong>
+        <span>Reinstalling creates a fresh, empty account, and your practice&rsquo;s records
+        are not reachable from it. The same applies before you replace, wipe or repair the
+        phone your account was created on &mdash; talk to us first and we can move your
+        records across.</span>
+        <div class="tc-banner-actions">
+            <a href="guide.html#app-safety">What this means</a>
+            <button type="button" id="app-safety-dismiss">Got it &mdash; don&rsquo;t show
+            again</button>
+        </div>
     </div>
 
     <div class="page-shell">
@@ -973,9 +1030,45 @@
                 });
         }
 
+        // App-safety banner (28 Aug 2026) — see the markup comment for why this one shows
+        // by default while its two neighbours hide by default.
+        //
+        // ⚠ DISMISSAL IS PER-DEVICE, AND THAT IS THE DESIGN, NOT A SHORTCUT. A server-side
+        //   "dismissed" flag on the practice was my first instinct and it is exactly wrong:
+        //   the moment this warning matters most is a FRESH INSTALL or a NEW PHONE, which is
+        //   precisely when a server flag would say "already dismissed" and stay silent.
+        //   localStorage is per-device, so a new device re-warns the person at risk.
+        // ⚠ AND THE DISMISSAL IS AN ASSERTION, NOT EVIDENCE. "Got it" records that someone
+        //   clicked a button on this browser. It never means the practice is protected, and
+        //   nothing should ever read it as coverage.
+        function initAppSafetyBanner() {
+            var el = document.getElementById('app-safety-banner');
+            if (!el) { return; }
+            var KEY = 'teckel.appSafetyBannerDismissed.v1';
+            var dismissed = false;
+            try {
+                dismissed = window.localStorage.getItem(KEY) === '1';
+            } catch (e) {
+                // ⚠ FAIL TOWARDS SHOWING IT. Private browsing and blocked site-data both
+                // throw here. A warning shown twice is a minor irritation; a warning
+                // silently suppressed by a storage error is the failure we are guarding.
+                dismissed = false;
+            }
+            if (dismissed) { return; }
+            el.hidden = false;
+            var btn = document.getElementById('app-safety-dismiss');
+            if (btn) {
+                btn.addEventListener('click', function () {
+                    el.hidden = true;
+                    try { window.localStorage.setItem(KEY, '1'); } catch (e) { /* see above */ }
+                });
+            }
+        }
+
         function startAgentCostPoll() {
             checkBenedictAvailability();
             checkPracticeProfile();
+            initAppSafetyBanner();
             sessionAgentId = discoverAgentId();
             if (!sessionAgentId) {
                 console.warn('[teckel] no agent-id found on the page — cost meter will stay dormant');
