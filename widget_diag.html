@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>teckel — widget diagnostic</title>
+<style>
+  body{font:15px/1.5 system-ui,sans-serif;background:#0d1117;color:#d7dce5;margin:0;padding:16px}
+  h1{font-size:17px;margin:0 0 4px} p.sub{color:#8a93a6;margin:0 0 16px;font-size:13px}
+  table{border-collapse:collapse;width:100%;margin-bottom:16px}
+  td{padding:7px 8px;border-bottom:1px solid #222a36;vertical-align:top;font-size:14px}
+  td.k{color:#8a93a6;width:47%} td.v{font-weight:600}
+  .ok{color:#7fd77f} .bad{color:#ff8f8f} .warn{color:#ffd166}
+  button{font:inherit;background:#1b2430;color:#cfe4f7;border:1px solid #4a5468;
+         border-radius:5px;padding:9px 13px;margin:0 8px 8px 0}
+  #verdict{padding:12px;border-radius:6px;border-left:4px solid #4a5468;background:#161b24;
+           margin-bottom:16px;font-size:14px}
+  /* ⚠ REPRODUCED VERBATIM FROM teckel.io — this is the suspect. The element's base state
+     is opacity:0 and it becomes visible ONLY if the animation runs. */
+  elevenlabs-convai{position:fixed!important;top:20px!important;right:20px!important;
+    z-index:9999!important;opacity:0;transform:translateY(10px);
+    animation:fadeInUp 1s ease-out 0.5s forwards}
+  @keyframes fadeInUp{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+</style></head><body>
+<h1>Voice widget diagnostic</h1>
+<p class="sub">Reproduces teckel.io's loader and CSS exactly, using this practice's own test
+agent. Open in the browser that fails, and in one that works, and compare.</p>
+<div id="verdict">Waiting…</div>
+<table id="t"></table>
+<button id="force">Inject the SDK now</button>
+<button id="reveal">Force it visible (opacity:1)</button>
+<button id="again">Re-check</button>
+<elevenlabs-convai agent-id="agent_0501kvv0504efvtvmb85kjqm9w2j"></elevenlabs-convai>
+<script>
+var DIAG = { scriptError:null, jsError:null };
+window.addEventListener('error', function(e){
+  var f = (e && e.filename) || '';
+  if (f.indexOf('convai-widget-embed') !== -1 && !DIAG.jsError) {
+    DIAG.jsError = String((e && e.message) || 'error');
+  }
+}, true);
+
+// ── teckel.io's loader, copied in shape: gesture-triggered, 15s fallback ────────────
+var events = ['mousemove','pointerdown','touchstart','wheel','keydown'];
+function inject(ev){
+  if (ev && ev.isTrusted === false) { return; }
+  events.forEach(function(e){ window.removeEventListener(e, inject); });
+  if (document.getElementById('teckel-ethera-sdk')) { return; }
+  var s = document.createElement('script');
+  s.id='teckel-ethera-sdk';
+  s.src='https://unpkg.com/@elevenlabs/convai-widget-embed@0.14.2/dist/index.js';
+  s.async=true;
+  s.onerror=function(){ DIAG.scriptError='the runtime did not download'; render(); };
+  s.onload=function(){ setTimeout(render, 1500); };
+  document.body.appendChild(s);
+  render();
+}
+events.forEach(function(e){ window.addEventListener(e, inject, {passive:true}); });
+window.addEventListener('load', function(){ setTimeout(inject, 15000); });
+
+function row(k,v,cls){ return '<tr><td class="k">'+k+'</td><td class="v '+(cls||'')+'">'+v+'</td></tr>'; }
+function render(){
+  var el = document.querySelector('elevenlabs-convai');
+  var cs = el ? getComputedStyle(el) : null;
+  var r  = el ? el.getBoundingClientRect() : null;
+  var registered = false;
+  try { registered = !!(window.customElements && window.customElements.get('elevenlabs-convai')); } catch(e){}
+  var injected = !!document.getElementById('teckel-ethera-sdk');
+  var opacity = cs ? cs.opacity : 'n/a';
+  var html = '';
+  html += row('SDK script injected', injected ? 'yes' : 'not yet', injected?'ok':'warn');
+  html += row('runtime downloaded', DIAG.scriptError ? 'NO — '+DIAG.scriptError : (injected?'yes (no error)':'—'), DIAG.scriptError?'bad':(injected?'ok':''));
+  html += row('error inside the bundle', DIAG.jsError ? DIAG.jsError : 'none', DIAG.jsError?'bad':'ok');
+  html += row('custom element registered', registered ? 'yes' : 'NO', registered?'ok':'bad');
+  html += row('computed opacity', opacity, (opacity==='0')?'bad':'ok');
+  html += row('computed visibility / display', cs ? (cs.visibility+' / '+cs.display) : 'n/a');
+  html += row('animation name', cs ? (cs.animationName || 'none') : 'n/a', (cs && cs.animationName==='none')?'warn':'');
+  html += row('size on screen', r ? Math.round(r.width)+' × '+Math.round(r.height) : 'n/a',
+              (r && (r.width<2||r.height<2))?'bad':'ok');
+  html += row('shadow DOM attached', el && el.shadowRoot ? 'yes' : 'no', (el&&el.shadowRoot)?'ok':'warn');
+  html += row('prefers-reduced-motion', (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'REDUCE (animations suppressed)' : 'no-preference',
+              (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)?'bad':'ok');
+  html += row('browser', navigator.userAgent.slice(0,110));
+  document.getElementById('t').innerHTML = html;
+
+  var v = document.getElementById('verdict');
+  if (!injected) { v.innerHTML = 'SDK not injected yet — tap the screen, or press <b>Inject the SDK now</b>.'; }
+  else if (DIAG.scriptError) { v.innerHTML = '<b class="bad">The runtime could not be downloaded.</b> Something is blocking it.'; }
+  else if (DIAG.jsError) { v.innerHTML = '<b class="bad">The runtime failed to run in this browser.</b> ' + DIAG.jsError; }
+  else if (!registered) { v.innerHTML = '<b class="warn">Downloaded, but the element never registered.</b>'; }
+  else if (opacity === '0') { v.innerHTML = '<b class="bad">FOUND IT — the widget loaded correctly but is invisible (opacity 0).</b> The fade-in animation did not run, so it never became visible. Tap <b>Force it visible</b> to confirm it is really there.'; }
+  else { v.innerHTML = '<b class="ok">The widget loaded and is visible.</b> opacity ' + opacity + '.'; }
+}
+document.getElementById('force').addEventListener('click', function(){ inject(); });
+document.getElementById('again').addEventListener('click', render);
+document.getElementById('reveal').addEventListener('click', function(){
+  var el = document.querySelector('elevenlabs-convai');
+  if (el) { el.style.setProperty('opacity','1','important');
+            el.style.setProperty('transform','none','important'); }
+  render();
+});
+render();
+setTimeout(render, 4000); setTimeout(render, 9000); setTimeout(render, 18000);
+</script></body></html>
