@@ -124,6 +124,14 @@
            a standing caution about an action that destroys access, and it is the only
            banner here that is TRUE ON EVERY PAGE LOAD rather than derived from a server
            answer. Given its own slate treatment so it is not mistaken for either. */
+        #widget-missing-banner.tc-banner {
+            margin: 12px 16px 0; padding: 12px 16px;
+            border: 1px solid #f0b429; border-left: 4px solid #f0b429;
+            border-radius: 6px; background: #2b2205; color: #ffe9b0;
+            font-size: 14px; line-height: 1.5;
+        }
+        #widget-missing-banner.tc-banner strong { color: #ffd166; }
+        #widget-missing-banner.tc-banner span   { display: block; margin-top: 4px; }
         #app-safety-banner.tc-banner {
             margin: 12px 16px 0;
             padding: 12px 16px;
@@ -548,6 +556,14 @@
          ⚠ IT DOES NOT SAY "I can explain how" — Benedict's prompt contains nothing about
          wallet export or recovery, so offering that would be a fabricated capability. The
          link goes to the guide, which is live and correct. -->
+    <!-- Widget-unavailable notice (clone only). ⚠ HIDDEN UNTIL PROVEN, like the credits
+         and profile banners: it renders only when customElements.get('elevenlabs-convai')
+         is STILL UNDEFINED well after load, which is not an inference — if the custom
+         element never registered, the widget cannot appear, full stop. -->
+    <div id="widget-missing-banner" class="tc-banner" hidden>
+        <strong>The assistant could not load in this browser.</strong>
+        <span id="widget-missing-detail"></span>
+    </div>
     <div id="app-safety-banner" class="tc-banner" hidden>
         <strong>Never uninstall the teckel App &mdash; always update it.</strong>
         <span>Reinstalling creates a fresh, empty account, and your practice&rsquo;s records
@@ -693,7 +709,28 @@
     </footer>
 
     <!-- ElevenLabs widget runtime -->
-    <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
+    <script>
+        // ⚠ DIAGNOSTIC BUILD (clone tenant only, 29 Aug 2026). Yusuf's Note10+ shows the
+        // widget in Samsung Internet and NOT in Opera, on the same device. Server side is
+        // healthy: the runtime serves 200 (1.5MB, correct MIME) and all four agents'
+        // widget endpoints return 200 anonymously, so this is neither the auth-flip
+        // outage nor a CDN outage. Disabling Opera's ad/tracker blocking changed nothing,
+        // so that hypothesis is dead too. Rather than keep guessing from a laptop that
+        // cannot reproduce it, the page now records WHY it failed, on the device.
+        // ⚠ VERSION LEFT UNPINNED HERE ON PURPOSE — production is unpinned, so pinning
+        //   would change two things at once and prove nothing.
+        window.__tcWidgetDiag = { scriptError: null, jsError: null, started: Date.now() };
+        window.addEventListener('error', function (e) {
+            var src = (e && e.filename) || '';
+            if (src.indexOf('convai-widget-embed') !== -1 && !window.__tcWidgetDiag.jsError) {
+                // A parse/runtime failure INSIDE the bundle lands here with the bundle's
+                // URL — that is the signature of an engine that cannot run it.
+                window.__tcWidgetDiag.jsError = String((e && e.message) || 'script error');
+            }
+        }, true);
+    </script>
+    <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"
+            onerror="window.__tcWidgetDiag.scriptError = 'the runtime did not download';"></script>
 
     <!-- teckel custom client-tool handlers — identical for every tenant page.
          display_form: opens a form in the iframe and (optionally) starts the
@@ -1041,6 +1078,47 @@
         // ⚠ AND THE DISMISSAL IS AN ASSERTION, NOT EVIDENCE. "Got it" records that someone
         //   clicked a button on this browser. It never means the practice is protected, and
         //   nothing should ever read it as coverage.
+        // ⚠ PROVEN, NOT GUESSED. The signal is whether the custom element REGISTERED.
+        //   If customElements.get('elevenlabs-convai') is undefined 12s after load, the
+        //   runtime did not take effect and the widget cannot render -- there is no reading
+        //   of that which is "fine". Absence of the element tag itself is NOT used, because
+        //   the tag is always in the markup whether or not the runtime ran.
+        function checkWidgetMounted() {
+            setTimeout(function () {
+                var registered = false;
+                try {
+                    registered = !!(window.customElements
+                                    && window.customElements.get('elevenlabs-convai'));
+                } catch (e) { registered = false; }
+                if (registered) { return; }
+                var d = window.__tcWidgetDiag || {};
+                var why;
+                if (d.scriptError) {
+                    why = 'The assistant software could not be downloaded. Something on this '
+                        + 'device or network is blocking it -- an ad blocker, a VPN, a data '
+                        + 'saver, or a firewall.';
+                } else if (d.jsError) {
+                    why = 'The assistant software downloaded but this browser could not run '
+                        + 'it. The browser is probably too old a version. Details: '
+                        + d.jsError;
+                } else if (!window.customElements) {
+                    why = 'This browser does not support the technology the assistant needs. '
+                        + 'Please use an up-to-date browser.';
+                } else {
+                    why = 'The assistant software downloaded but did not start. Try '
+                        + 'reloading; if it persists, try a different browser.';
+                }
+                var el = document.getElementById('widget-missing-banner');
+                var det = document.getElementById('widget-missing-detail');
+                if (det) {
+                    det.textContent = why + ' You can still use every page of this portal; '
+                        + 'only the voice assistant is affected.';
+                }
+                if (el) { el.hidden = false; }
+                console.warn('[teckel] widget did not mount', d);
+            }, 12000);
+        }
+
         function initAppSafetyBanner() {
             var el = document.getElementById('app-safety-banner');
             if (!el) { return; }
@@ -1069,6 +1147,7 @@
             checkBenedictAvailability();
             checkPracticeProfile();
             initAppSafetyBanner();
+            checkWidgetMounted();
             sessionAgentId = discoverAgentId();
             if (!sessionAgentId) {
                 console.warn('[teckel] no agent-id found on the page — cost meter will stay dormant');
