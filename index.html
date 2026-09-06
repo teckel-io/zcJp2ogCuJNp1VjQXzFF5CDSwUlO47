@@ -549,11 +549,11 @@
          wallet export or recovery, so offering that would be a fabricated capability. The
          link goes to the guide, which is live and correct. -->
     <div id="app-safety-banner" class="tc-banner" hidden>
-        <strong>Never uninstall the teckel App &mdash; always update it.</strong>
-        <span>Reinstalling creates a fresh, empty account, and your practice&rsquo;s records
-        are not reachable from it. The same applies before you replace, wipe or repair the
-        phone your account was created on &mdash; talk to us first and we can move your
-        records across.</span>
+        <strong>Back up your account in the teckel App &mdash; today.</strong>
+        <span>The App can now back up your account and put it back on a new phone, or on
+        this one after a reinstall. Until you do that, reinstalling still creates a fresh,
+        empty account and your practice&rsquo;s records are not reachable from it. Open the
+        App, go to <em>Accounts</em>, and tap <em>Migrate account</em>.</span>
         <div class="tc-banner-actions">
             <a href="guide.html#app-safety">What this means</a>
             <button type="button" id="app-safety-dismiss">Got it &mdash; don&rsquo;t show
@@ -1044,7 +1044,7 @@
         function initAppSafetyBanner() {
             var el = document.getElementById('app-safety-banner');
             if (!el) { return; }
-            var KEY = 'teckel.appSafetyBannerDismissed.v1';
+            var KEY = 'teckel.appSafetyBannerDismissed.v2';
             var dismissed = false;
             try {
                 dismissed = window.localStorage.getItem(KEY) === '1';
