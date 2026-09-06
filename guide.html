@@ -340,8 +340,11 @@
                 Benedict will first ask for your <strong>six-digit access code</strong>.
                 Open the teckel App on your phone, navigate to your Account with your
                 teckel credit (tc) balance, tap &ldquo;Generate Access Code&rdquo;
-                (your temporary six-digit code appears on screen), and read it out
-                loud to Benedict (or type it). A code stays valid for about <strong>15 minutes</strong> from the
+                (a box opens in the middle of the screen headed <em>Access Code</em>,
+                showing your temporary six-digit code in large figures), and read it
+                out loud to Benedict (or type it). Take your time &mdash; the box stays
+                open until you tap <em>Close</em>, so you can read the code across to
+                another device without it disappearing part-way through. A code stays valid for about <strong>15 minutes</strong> from the
                 moment you generate it &mdash; and within that window the <em>same</em>
                 code simply works again, so if a call drops you can reconnect and say
                 the code you already have. After the window closes, generate a fresh
@@ -881,10 +884,47 @@
                     &mdash; treat it like the key to the building, and keep it inside the
                     practice.</li>
             </ul>
+            <h3 id="app-safety">Back up your account &mdash; the most useful two minutes in this guide</h3>
+            <p>
+                The App can take a <strong>backup of your account</strong> and put it back
+                on another phone &mdash; or on the same phone after a reinstall. It is the
+                answer to most of what follows in this section, and it is worth doing today
+                rather than on the day something goes wrong.
+            </p>
+            <p>
+                Open <strong>Accounts</strong>, find the account you work in, and tap
+                <strong>Migrate account</strong> on its card (it sits on the same row as
+                <em>Manage API Key</em>). Step 1 offers two directions:
+            </p>
+            <ul>
+                <li><strong>Migrate FROM this device</strong> &mdash; back this phone&rsquo;s
+                    account up, to an email address and a passphrase you choose.</li>
+                <li><strong>Migrate TO this device</strong> &mdash; restore an account you
+                    backed up earlier, using that same email address and passphrase.</li>
+            </ul>
+            <div class="callout">
+                <strong>A backup only helps if you took it beforehand.</strong> Everything
+                below about lost phones and reinstalls still applies in full to an account
+                that has never been backed up &mdash; which is every account until someone
+                does this. That is the whole reason it is worth two minutes now.
+            </div>
+            <div class="callout">
+                <strong>The passphrase is yours to keep.</strong> Choose something you can
+                find again and write it down somewhere the practice controls. Keep it
+                <em>apart</em> from the email account it goes with &mdash; a backup and its
+                passphrase sitting in the same inbox protect very little. If the passphrase
+                is lost the backup cannot be restored, so treat it with the same care as the
+                private-key code above. If you don&rsquo;t see <em>Migrate account</em> on an
+                account&rsquo;s card, ask us at
+                <a href="https://teckel.io/support">teckel.io/support</a> before assuming
+                anything.
+            </div>
             <h3>Moving to a new phone</h3>
             <p>
-                This is the safe case: your old phone is still working, so it can show the
-                code for the new one to scan.
+                If you have a backup, this is simply <em>Migrate TO this device</em> on the
+                new phone &mdash; you do not need the old one to hand. What follows is the
+                other route, which works when both phones are in front of you: your old
+                phone is still working, so it can show the code for the new one to scan.
             </p>
             <ol>
                 <li>The App creates a brand-new account for you automatically. On the
@@ -918,7 +958,7 @@
                     many accounts as you like, so more than one can carry it. The nickname
                     is the only label that stays meaningful to you.</li>
             </ol>
-            <h3 id="app-safety">&#9888; Reinstalling the App on the same phone &mdash; read this first</h3>
+            <h3>&#9888; Reinstalling the App on the same phone &mdash; read this first</h3>
             <p>
                 <strong>Update the App; do not uninstall and reinstall it.</strong> Use the
                 update offered by Google Play or the App Store. A reinstall is not the same
@@ -943,7 +983,8 @@
                 sooner we do it the less there is to reconcile.
             </p>
             <p>
-                <strong>There is no workaround, and this is deliberate.</strong> Only the
+                <strong>If you have not backed up, there is no workaround &mdash; and that
+                part is deliberate.</strong> Only the
                 device where an account was first created can export it. A copy that arrived
                 by import cannot be exported onward &mdash; the App blocks it on purpose, so
                 that an account cannot be passed from device to device without limit. So
@@ -953,6 +994,13 @@
                 <a href="https://teckel.io/support">teckel.io/support</a> <em>before</em> you
                 uninstall anything, not afterwards.
             </p>
+            <div class="callout">
+                <strong>With a backup, a reinstall stops being the thing that loses your
+                records.</strong> Take one first (see <em>Back up your account</em> above),
+                then restore with <em>Migrate TO this device</em> afterwards. That is the
+                difference between a reinstall being routine and being the one action to
+                avoid.
+            </div>
             <div class="callout">
                 <strong>Look after the phone the account was created on.</strong> That device
                 is the only one that can ever export your account &mdash; every other copy is
@@ -964,6 +1012,9 @@
                 imported onto other devices keep working normally, so day-to-day nothing
                 changes; it is the ability to move the account again that depends on that
                 one phone.
+                <em>This is about exporting.</em> A backup taken with
+                <strong>Migrate account</strong> is a separate route off that phone, and it
+                is the one to set up while the phone still works.
             </div>
             <p>
                 <strong>Sharing across your team.</strong> The same export and import let
@@ -977,10 +1028,11 @@
                 <strong>Do this while you still have the old phone.</strong> The transfer
                 needs your old device to hand, showing the code, and the new one to scan
                 it. So move your wallet across <em>before</em> you replace or reset a
-                phone, not afterwards. If a phone is lost, broken or wiped without the
-                wallet having been moved, that wallet cannot be recovered: the App will
-                simply create a fresh, empty Account 1, and records created under the
-                previous wallet cannot be reached from the phone. If that happens, contact
+                phone, not afterwards. If a phone is lost, broken or wiped and the account was
+                never backed up <em>and</em> never moved, that account cannot be recovered
+                from the phone: the App will simply create a fresh, empty Account 1, and
+                records created under the previous account cannot be reached. A backup
+                taken beforehand is exactly what removes this outcome. If that happens, contact
                 <a href="https://teckel.io/support">teckel.io/support</a> before you start
                 working in the new account &mdash; we can usually move your records across.
                 This is also why the emailed copies below matter &mdash; they are yours, they are readable, and they do not
@@ -1306,6 +1358,23 @@
                 &mdash; so you can top up in the teckel App before it matters.
             </p>
 
+            <h3>If you were given a promo or referral code</h3>
+            <p>
+                The App&rsquo;s setup wizard has an optional
+                <strong>Promo or referral code</strong> box, on the same step where you give
+                your notifications email. If your practice was given a code &mdash; at a
+                show, or by a colleague referring you &mdash; type it there. Whatever offer
+                is running at the time is described on that screen, above the box; it changes
+                from time to time, so read what it says rather than relying on this guide for
+                the details. Leave the box empty if you don&rsquo;t have one; it is optional
+                and nothing depends on it.
+            </p>
+            <p>
+                The same step has an optional tick box to hear about future teckel credit
+                bonuses and other promotions. It is <strong>not</strong> ticked by default,
+                nothing else in the product depends on it, and every email it produces
+                carries an unsubscribe link.
+            </p>
             <h3>What happens if I run out of teckel credits?</h3>
             <p>
                 <strong>Benedict is switched off until you top up.</strong> He is not
