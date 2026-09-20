@@ -546,14 +546,29 @@
          action we tell them never to take. So it warns against the destructive act instead,
          which is both actionable and the thing that actually prevents the loss.
          ⚠ IT DOES NOT SAY "I can explain how" — Benedict's prompt contains nothing about
-         wallet export or recovery, so offering that would be a fabricated capability. The
-         link goes to the guide, which is live and correct. -->
+         account export or recovery, so offering that would be a fabricated capability. The
+         link goes to the guide, which is live and correct.
+         ⚠ 20 Sep 2026 — REFRAMED FROM "back up" TO "MIGRATE" (Steven). Migrate account is
+         what the user actually taps, and the honest sell is RECOVERY, not a warning about
+         destruction. Two things are deliberate and must not be trimmed:
+           · it names "Migrate FROM this device". The Migrate account screen offers TWO
+             directions and only FROM protects you; the previous copy stopped at "tap
+             Migrate account" and left the user to guess at the fork.
+           · it names the passphrase. Urging speed without it is what produces a forgettable
+             passphrase, and a lost passphrase means the backup CANNOT be restored at all.
+         Dismissal key bumped .v2 -> .v3 for the same reason it was bumped on 6 Sep: everyone
+         who dismissed the old banner has it recorded, and without the bump the new advice
+         would never reach them. The banner suite tests exactly this. -->
     <div id="app-safety-banner" class="tc-banner" hidden>
-        <strong>Back up your account in the teckel App &mdash; today.</strong>
-        <span>The App can now back up your account and put it back on a new phone, or on
-        this one after a reinstall. Until you do that, reinstalling still creates a fresh,
-        empty account and your practice&rsquo;s records are not reachable from it. Open the
-        App, go to <em>Accounts</em>, and tap <em>Migrate account</em>.</span>
+        <strong>Migrate your account in the teckel App &mdash; today, not on the day you
+        need it.</strong>
+        <span>Migrating saves your account to an email address and a passphrase you choose
+        &mdash; write the passphrase down somewhere the practice controls. Once it is saved,
+        a lost phone, a new phone or a reinstall is something you can recover from, and
+        <strong>you do not need the old phone to do it</strong>. Until then, a reinstall
+        creates a fresh, empty account and your practice&rsquo;s records are not reachable
+        from it. Open the App, go to <em>Accounts</em>, tap <em>Migrate account</em>, and
+        choose <em>Migrate FROM this device</em>.</span>
         <div class="tc-banner-actions">
             <a href="guide.html#app-safety">What this means</a>
             <button type="button" id="app-safety-dismiss">Got it &mdash; don&rsquo;t show
@@ -1044,7 +1059,7 @@
         function initAppSafetyBanner() {
             var el = document.getElementById('app-safety-banner');
             if (!el) { return; }
-            var KEY = 'teckel.appSafetyBannerDismissed.v2';
+            var KEY = 'teckel.appSafetyBannerDismissed.v3';
             var dismissed = false;
             try {
                 dismissed = window.localStorage.getItem(KEY) === '1';
