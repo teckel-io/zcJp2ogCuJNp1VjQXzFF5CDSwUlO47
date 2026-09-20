@@ -178,6 +178,26 @@
             min-width: 0;
         }
 
+        /* ⚠ THE z-index IS LOAD-BEARING — DO NOT DROP IT (20 Sep 2026, Yusuf).
+           `position: sticky` CREATES A STACKING CONTEXT. That trapped the ElevenLabs
+           widget's own `z-index: 1000` INSIDE this card, so when the user hit "Expand
+           widget" the panel — which EL turns into a viewport-covering `position: fixed`
+           overlay — lost to anything positioned in `.right-pane`, because this card sits
+           at `z-index: auto` and comes EARLIER in the document.
+           What that looked like: the search box's placeholder printed straight THROUGH the
+           white panel (two strings superimposed and both legible), and the FORM VIEWER
+           panel covered the widget's lower-right corner — hiding its own Send and Call
+           buttons, so an expanded widget could not be used by mouse at all.
+           ⚠ The giveaway was that the app-safety banner behaved correctly: it is
+           UNPOSITIONED, so it paints below. Only the POSITIONED right-pane elements
+           punched through. That is the signature of a trapped stacking context, not of a
+           widget that needs a bigger z-index — EL already had 1000.
+           Any value > 4 works (`.form-search-results` is the highest thing on the page at
+           4); 10 leaves headroom. Overlay-on-expand is EL's own design and is fine — the
+           bug was only that the page painted over the overlay.
+           ⚠ The mobile breakpoint below sets `position: static`, where z-index is ignored —
+           that is CORRECT and not an oversight: static creates no stacking context, so the
+           widget's 1000 already competes at page level and wins. Verified at 420px. */
         .agent-card {
             background-color: var(--card-bg);
             border: 1px solid var(--card-border);
@@ -185,6 +205,7 @@
             padding: 22px 22px 24px 22px;
             position: sticky;
             top: 28px;
+            z-index: 10;
         }
         .agent-card .label {
             font-size: 11px;
