@@ -195,6 +195,30 @@
     <div class="msg" id="transcriptsMsg"></div>
   </div>
 
+  <div class="card" id="signaturesCard">
+    <h2>Who signs your forms</h2>
+    <!-- 20 Sep 2026 (Steven, after a practice asked for staff signatures). ⚠ THE FEATURE WAS
+         ALREADY LIVE AND UNREACHABLE. Every signature route, signatures.html and sign.html
+         had been served on all 8 tenants since August, and the database held 0 staff,
+         0 slots and 0 signatures — because nothing anywhere linked to the page and the
+         guide did not mention it. A practice asked us for a feature it already had.
+         ⚠ WHY THIS LINK IS BUILT IN JS AND NOT HARD-CODED: signatures.html is authorised
+         by the SAME signed settings token this page carries (`_verify_settings_token`
+         server-side — NOT a Bearer, NOT the sign.html session token). A hard-coded link
+         straight to signatures.html lands on a page that cannot authenticate and shows an
+         error, which is worse than no link at all. The href is set below, only when the
+         token is present and unexpired.
+         ⚠ NO storage_key is passed deliberately. Without one the page shows "Your people"
+         — the staff roster — which is the step that must happen FIRST and is the only one
+         that makes sense outside a particular form. Choosing which forms they sign is
+         per-form and is reached through Benedict. -->
+    <p class="sub">Add the people at your practice who sign things, then choose which forms
+       they sign. Signing happens on screen, not on paper &mdash; ask Benedict to open a form
+       for signing when someone is with you.</p>
+    <div class="row"><a id="signaturesLink" class="btn" href="#" rel="noopener">Open signing setup</a></div>
+    <div class="msg" id="signaturesMsg"></div>
+  </div>
+
   <div class="card" id="nameCard">
     <h2>Practice name</h2>
     <!-- 27 Jul 2026 (U7b, analyser 2.2.193): renames DO reach the portal website now —
@@ -265,6 +289,23 @@ if (!token){
 } else if (tokenExpired(token)) {
   disablePage("This settings link has expired. Just ask Benedict for a new settings link — it only takes a moment.");
 }
+
+// --- Signing setup: carry THIS page's token through to signatures.html -------------
+// The signing-admin page is authorised by the same settings token, so the link is only
+// meaningful while that token is live. Built here rather than hard-coded in the markup so
+// a dead link is never rendered as a live one (the display-card fabrication class).
+(function(){
+  var a = el("signaturesLink");
+  if (!a) return;
+  if (!token || tokenExpired(token)){
+    a.removeAttribute("href");
+    a.setAttribute("disabled", "disabled");
+    var m = el("signaturesMsg");
+    if (m) m.textContent = "Ask Benedict for a fresh settings link to open this.";
+    return;
+  }
+  a.href = "signatures.html?token=" + encodeURIComponent(token);
+})();
 
 // --- Load current values (best-effort; a 404 means the server predates the reader) ---
 var suppressToggleEvents = true;
