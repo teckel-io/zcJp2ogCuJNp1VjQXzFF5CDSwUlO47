@@ -326,23 +326,27 @@
             outline: 2px solid var(--gold);
             outline-offset: 2px;
         }
+        /* scroll-spy: the section you are reading. Both lists are marked together. */
+        main.guide-shell .guide-toc a.is-current {
+            border-left-color: var(--gold);
+            color: var(--white);
+            font-weight: 600;
+        }
+
         /* ⭐ WHERE YOU CAME FROM. Tapping "Back to contents" scrolls to the list — and
            without this the reader arrives at 24 near-identical lines with no idea which
-           one they just left. This marks it unmistakably until they scroll away.
-           Stronger than .is-current on purpose: it answers a question the reader has
-           just asked, where is-current is only ambient. */
+           one they just left. Marks it unmistakably until they scroll away.
+           ⚠⚠ THIS RULE MUST STAY AFTER .is-current. Both are (0,3,1) and the pinned item
+           is ALSO the current one, so source order is the only thing deciding it. When it
+           sat above, .is-current's white won and the pin rendered WHITE ON GOLD — 1.5:1,
+           unreadable. Caught by measuring the deployed page; it looked fine in the CSS.
+           Navy on gold is 10.4:1. */
         main.guide-shell .guide-toc a.is-pinned {
             border-left-color: var(--gold);
             color: var(--navy);
             background: var(--gold);
             font-weight: 600;
             border-radius: 0 3px 3px 0;
-        }
-        /* scroll-spy: the section you are reading. Both lists are marked together. */
-        main.guide-shell .guide-toc a.is-current {
-            border-left-color: var(--gold);
-            color: var(--white);
-            font-weight: 600;
         }
         main.guide-shell .guide-toc__title {
             font-weight: 600;
