@@ -137,6 +137,30 @@
         }
         #app-safety-banner.tc-banner strong { color: #eef1f6; }
         #app-safety-banner.tc-banner span   { display: block; margin-top: 4px; }
+        /* 21 Sep 2026 (Steven) — the CONSEQUENCE sentence, MARKED OUT rather than merely
+           bold. This banner already uses <strong> twice, so a third would not separate
+           this one from the sentences around it; it needs its own panel to land.
+           ⚠ IT STAYS INSIDE THE SLATE FAMILY ON PURPOSE. The colour language of this page
+           is set out in the comments above: amber = you cannot work; blue = something is
+           incomplete but you can; slate = a standing caution about an action that destroys
+           access. This sentence is that caution's consequence, so it is LIFTED within
+           slate rather than recoloured into another banner's meaning. A colour is believed
+           faster than a sentence, and the three banners must not come to look alike.
+           ⚠ The accent is #ef9a52, NOT the brand brown #a1520f — that is 2.79:1 on navy
+           and fails WCAG; this is 7.04:1. Panel text is ~13:1 on #1f2632.
+           ⚠ Specificity is deliberately HIGHER than the plain `strong` rule above, and it
+           is also placed after it. Equal specificity decided by source order is exactly
+           what put white text on a gold pin in the guide TOC on 20 Sep. */
+        #app-safety-banner.tc-banner strong.consequence {
+            display: block;
+            margin: 8px 0;
+            padding: 8px 10px;
+            border-left: 3px solid #ef9a52;
+            border-radius: 3px;
+            background: #1f2632;
+            color: #f3f6fa;
+            font-weight: 600;
+        }
         #app-safety-banner .tc-banner-actions { margin-top: 10px; }
         #app-safety-banner .tc-banner-actions a,
         #app-safety-banner .tc-banner-actions button {
@@ -586,9 +610,10 @@
         <span>Migrating saves your account to an email address and a passphrase you choose
         &mdash; write the passphrase down somewhere the practice controls. Once it is saved,
         a lost phone, a new phone or a reinstall is something you can recover from, and
-        <strong>you do not need the old phone to do it</strong>. Until then, a reinstall
-        creates a fresh, empty account and your practice&rsquo;s records are not reachable
-        from it. Open the App, go to <em>Accounts</em>, tap <em>Migrate account</em>, and
+        <strong>you do not need the old phone to do it</strong>.
+        <strong class="consequence">Until then, a reinstall creates a fresh, empty account
+        and your practice&rsquo;s records are not reachable from it.</strong>
+        Open the App, go to <em>Accounts</em>, tap <em>Migrate account</em>, and
         choose <em>Migrate FROM this device</em>.</span>
         <div class="tc-banner-actions">
             <a href="guide.html#app-safety">What this means</a>
