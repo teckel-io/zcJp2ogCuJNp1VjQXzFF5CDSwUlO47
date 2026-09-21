@@ -395,12 +395,16 @@
                  and a screen reader announces its state without any ARIA of ours.
                  ⚠ It is STICKY with its own max-height + overflow-y so a long guide
                  does not push it off screen — the list scrolls inside itself rather
-                 than scrolling the page. On a phone it starts CLOSED (the `open`
-                 attribute is applied by the media query below only on wide screens),
-                 because a 24-item list above the first paragraph is worse than no
-                 list at all on a small screen.
+                 than scrolling the page.
+                 ⚠ OPEN BY DEFAULT, CLOSED ON PHONES, and the closing is done by the
+                 script at the end of this file — NOT by CSS. An earlier version of this
+                 comment claimed a media query did it; CSS cannot set or clear the `open`
+                 attribute, so the list silently stayed shut on desktop. Caught by
+                 rendering the deployed page, not by reading the markup.
+                 Without JavaScript it stays open everywhere: verbose on a phone, which
+                 is the harmless direction.
                  ============================================================ -->
-            <details class="guide-toc" id="guide-toc">
+            <details class="guide-toc" id="guide-toc" open>
                 <summary>Contents</summary>
                 <ol>
                     <li><a href="#getting-started">Getting started</a></li>
@@ -1955,5 +1959,16 @@
         &copy; teckel.io
     </footer>
 
+    <script>
+    /* Contents: open on wide screens, closed on phones. Runs once on load only —
+       deliberately NOT on resize, so a reader who opens or closes it by hand keeps
+       their choice for the rest of the visit. */
+    (function () {
+      try {
+        var toc = document.getElementById('guide-toc');
+        if (toc && window.matchMedia('(max-width: 899px)').matches) { toc.open = false; }
+      } catch (e) { /* leave it open — the failure direction that still shows the list */ }
+    })();
+    </script>
 </body>
 </html>
