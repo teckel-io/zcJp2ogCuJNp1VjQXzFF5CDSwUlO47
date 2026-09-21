@@ -263,7 +263,17 @@
 
         /* ---- CONTENTS (21 Sep 2026) ------------------------------------- */
         main.guide-shell .guide-toc {
-            background: var(--card-bg);
+            /* ⚠ OPAQUE, AND IT MUST STAY OPAQUE. This was var(--card-bg) —
+               rgba(176,196,222,0.05) — and because the block is STICKY the page text
+               scrolled straight THROUGH it: two strings superimposed and both legible.
+               That is the identical defect Yusuf reported on the portal on 20 Sep,
+               shipped here by me the next day and caught only by scrolling the deployed
+               page. #092b50 is that same tint composited over the navy background, so it
+               looks unchanged and cannot be seen through.
+               ⚠ A STICKY OR OVERLAID ELEMENT NEEDS AN OPAQUE BACKGROUND. A translucent
+               one is invisible in a static screenshot and obvious the moment anyone
+               scrolls. */
+            background: #092b50;
             border: 1px solid var(--card-border);
             border-radius: 8px;
             padding: 14px 18px;
