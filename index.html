@@ -135,6 +135,32 @@
             font-size: 14px;
             line-height: 1.5;
         }
+        /* 21 Sep 2026 (Steven) — CLEAR THE BENEDICT WIDGET. MEASURED, NOT GUESSED.
+           The ElevenLabs widget renders position:fixed at the viewport's TOP-LEFT and
+           paints a box of x 32→432, y 32→662 at every width down to ~432px, narrowing
+           to the viewport below that. That is not our CSS — it follows from the agent's
+           own widget config (default_expanded: true, placement: top-left, variant: full),
+           so it is identical on all 9 portals and present on every page load with no
+           click. This banner sits at the top of the page and was therefore underneath it:
+           the left third covered on desktop, and on a phone the banner was invisible.
+           ⚠ THE NUMBERS BELOW ARE ELEVENLABS', NOT OURS. If the widget config or EL's
+           widget styling changes, re-measure — the fleet render check is the only thing
+           that can see this, because in the markup the banner looks perfectly fine.
+             WIDE (>900px) — sit BESIDE the widget: its 432px right edge + a 16px gutter.
+             ⚠ ≤900px IS DELIBERATELY NOT FIXED HERE, and the reason is measured too.
+               A margin-top of 571px does clear the expanded widget — but the widget has
+               a collapse control, and collapsed its footprint drops to y 32→136, leaving
+               a ~530px hole of empty navy above the banner. That is a VISIBLE defect
+               traded for an invisible one, so it was built, rendered, and taken back out.
+               The real problem at phone width is not this banner: an expanded widget is
+               400×630 on an 844px-tall screen, so it covers the header, the banner and
+               the hero, and only ~180px of the viewport is usable at all. Nothing
+               page-side fixes that — it is the agent's widget config (placement /
+               default_expanded / variant), and it is Steven's call. */
+        #app-safety-banner.tc-banner { margin-left: 448px; }
+        @media (max-width: 900px) {
+            #app-safety-banner.tc-banner { margin-left: 16px; }
+        }
         #app-safety-banner.tc-banner strong { color: #eef1f6; }
         #app-safety-banner.tc-banner span   { display: block; margin-top: 4px; }
         /* 21 Sep 2026 (Steven) — the CONSEQUENCE sentence, MARKED OUT rather than merely
