@@ -283,7 +283,14 @@
         /* ---- CONTENTS — the teckel.io/terms-and-conditions pattern -------
            Structure copied from the live page, colours translated to this page's dark
            palette. Their breakpoint is 981/980px and so is ours, so the two behave
-           identically at every width. */
+           identically at every width.
+           ⚠ GOLD, NOT BRAND BROWN, AND THIS IS A DELIBERATE DEPARTURE FROM teckel.io
+           (Steven, 21 Sep 2026). teckel.io uses the brand brown for the TOC rail, the
+           "+" marker and the current-section highlight. Here that left the page carrying
+           gold bars AND brown bars doing similar jobs, which reads as an accident. The
+           rule on this page is now: GOLD for structure and navigation, BROWN for links
+           you click in the prose, RED for the one warning callout.
+           ⚠ So .guide-body a stays BROWN — do not "tidy" the two into one. */
         main.guide-shell .guide-layout { display: block; }
         main.guide-shell .guide-toc ol {
             list-style: none;
@@ -293,7 +300,7 @@
         main.guide-shell .guide-toc li { margin: 0 0 0.35em; padding: 0; line-height: 1.35; }
         main.guide-shell .guide-toc a {
             display: block;
-            color: var(--brand-brown);
+            color: var(--gold);
             text-decoration: none;
             padding: 2px 0 2px 12px;
             /* the rail every item hangs off — muted until it is the current section */
@@ -302,12 +309,12 @@
         }
         main.guide-shell .guide-toc a:hover { color: var(--white); text-decoration: underline; }
         main.guide-shell .guide-toc a:focus-visible {
-            outline: 2px solid var(--brand-brown);
+            outline: 2px solid var(--gold);
             outline-offset: 2px;
         }
         /* scroll-spy: the section you are reading. Both lists are marked together. */
         main.guide-shell .guide-toc a.is-current {
-            border-left-color: var(--brand-brown);
+            border-left-color: var(--gold);
             color: var(--white);
             font-weight: 600;
         }
@@ -323,7 +330,7 @@
         main.guide-shell details.guide-toc {
             background: #092b50;              /* ⚠ OPAQUE — see the note below */
             border: 1px solid var(--card-border);
-            border-left: 4px solid var(--brand-brown);
+            border-left: 4px solid var(--gold);
             border-radius: 6px;
             padding: 4px 16px;
             margin: 0 0 1.5em;
@@ -344,7 +351,7 @@
             content: "+";
             display: inline-block;
             width: 1.2em;
-            color: var(--brand-brown);
+            color: var(--gold);
             font-weight: 700;
         }
         main.guide-shell details.guide-toc[open] > summary::before { content: "\2013"; }
@@ -358,7 +365,7 @@
             color: var(--steel);
             text-decoration: none;
         }
-        main.guide-shell .guide-backtotop a:hover { color: var(--brand-brown); }
+        main.guide-shell .guide-backtotop a:hover { color: var(--gold); }
 
         /* --- DESKTOP: the sidebar --- */
         @media (min-width: 981px) {
