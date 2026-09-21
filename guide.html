@@ -1779,21 +1779,28 @@
                  (Chrome's Auto Dark Mode, Dark Reader) INVERTS SVG because it is treated
                  as document content — so black became white and the white wordmark
                  vanished into it. A raster PNG is an image and is left alone.
-                 ⚠ HOTLINKED to teckel.io ON PURPOSE: assets/ is TENANT-OWNED and the page
-                 resync never touches it (teckel__tenant_page_resync_v1_0.py:22), so a
-                 local path would 404 on all eight tenants until each repo was updated by
-                 hand. The trade is a dependency on teckel.io being up. -->
+                 ⚠ SELF-HOSTED, NOT HOTLINKED (Steven, 21 Sep 2026). They were briefly
+                 hotlinked to teckel.io because assets/ is TENANT-OWNED and the page resync
+                 never touches it (teckel__tenant_page_resync_v1_0.py:22) — a local path
+                 404s until every repo is updated BY HAND. Steven chose self-hosting rather
+                 than a dependency on teckel.io being up, so both PNGs were PUT into the
+                 template and all 8 tenant repos, VERIFIED SERVING on all 8, and only then
+                 was this path changed. That order is the point: assets first, page second,
+                 so there is never a window where the page points at files that do not
+                 exist. ⚠ A NINTH TENANT NEEDS THE SAME TWO FILES — they come free from the
+                 template clone at provisioning, but a repo created before 21 Sep 2026 will
+                 not have them. -->
             <div class="store-badges">
                 <a href="https://apps.apple.com/app/teckel/id6746805799"
                    target="_blank" rel="noopener noreferrer"
                    aria-label="Download teckel on the App Store">
-                    <img src="https://teckel.io/wp-content/themes/divi-child/assets/badges/apple_app_store_badge.png"
+                    <img src="assets/apple_app_store_badge.png"
                          alt="Download on the App Store" loading="lazy">
                 </a>
                 <a href="https://play.google.com/store/apps/details?id=io.teckel.app"
                    target="_blank" rel="noopener noreferrer"
                    aria-label="Get teckel on Google Play">
-                    <img src="https://teckel.io/wp-content/themes/divi-child/assets/badges/google_play_badge.png"
+                    <img src="assets/google_play_badge.png"
                          alt="Get it on Google Play" loading="lazy">
                 </a>
             </div>
