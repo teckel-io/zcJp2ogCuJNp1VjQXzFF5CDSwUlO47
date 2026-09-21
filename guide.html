@@ -228,12 +228,16 @@
             main.guide-shell .store-badges img { height: 48px; }
         }
         main.guide-shell .back-link {
+            /* ⚠ MUST MATCH header.site-header nav.site-nav a — same control, same look,
+               top and bottom of the page (Steven, 21 Sep). letter-spacing was 2px against
+               the header's 2.5px, and the transition was missing. */
             display: inline-block;
             margin-top: 24px;
             color: var(--gold);
             font-size: 11px;
             font-weight: 600;
-            letter-spacing: 2px;
+            letter-spacing: 2.5px;
+            transition: border-color 0.15s, background-color 0.15s;
             text-transform: uppercase;
             text-decoration: none;
             border: 1px solid rgba(240, 208, 96, 0.4);
@@ -279,6 +283,16 @@
         main.guide-shell .guide-body .store-badges a { text-decoration: none; }
         /* the back-to-contents links are navigation, styled with the TOC */
         main.guide-shell .guide-body .guide-backtotop a { text-decoration: none; }
+        /* ⚠ AND THE BOTTOM "BACK TO PORTAL" BUTTON. It sits inside .guide-body, so the
+           rule above it (0,2,2) outranked `main.guide-shell .back-link` (0,2,1) and
+           repainted the button BROWN AND UNDERLINED — a regression I introduced with the
+           blue-link fix and Steven spotted on the live page. It is a BUTTON, not prose.
+           Re-asserted here rather than by raising specificity elsewhere, so the reason
+           stays next to the symptom. */
+        main.guide-shell .guide-body a.back-link {
+            color: var(--gold);
+            text-decoration: none;
+        }
 
         /* ---- CONTENTS — the teckel.io/terms-and-conditions pattern -------
            Structure copied from the live page, colours translated to this page's dark
@@ -311,6 +325,18 @@
         main.guide-shell .guide-toc a:focus-visible {
             outline: 2px solid var(--gold);
             outline-offset: 2px;
+        }
+        /* ⭐ WHERE YOU CAME FROM. Tapping "Back to contents" scrolls to the list — and
+           without this the reader arrives at 24 near-identical lines with no idea which
+           one they just left. This marks it unmistakably until they scroll away.
+           Stronger than .is-current on purpose: it answers a question the reader has
+           just asked, where is-current is only ambient. */
+        main.guide-shell .guide-toc a.is-pinned {
+            border-left-color: var(--gold);
+            color: var(--navy);
+            background: var(--gold);
+            font-weight: 600;
+            border-radius: 0 3px 3px 0;
         }
         /* scroll-spy: the section you are reading. Both lists are marked together. */
         main.guide-shell .guide-toc a.is-current {
@@ -358,7 +384,10 @@
         main.guide-shell details.guide-toc ol { padding: 0 0 10px; }
         /* --- back to contents (tablet / phone only) --- */
         main.guide-shell .guide-backtotop {
-            margin: 26px 0 0;
+            /* ⚠ The bottom margin is the point (Steven, 21 Sep): this link sits directly
+               above the next section heading, and with no gap the two read as one block.
+               Generous on purpose — it is the visual end of the section you just left. */
+            margin: 30px 0 34px;
             font-size: 12px;
         }
         main.guide-shell .guide-backtotop a {
@@ -598,7 +627,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="a-typical-session-end-to-end" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="a-typical-session-end-to-end">A typical session, end to end</h2>
             <ol>
                 <li><strong>Greet Benedict.</strong> <em>&ldquo;Hi Benedict&rdquo;</em> or <em>&ldquo;I want to work on a form.&rdquo;</em> He&rsquo;ll respond and ask what you&rsquo;d like to do.</li>
@@ -622,7 +651,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="speaking-to-benedict-what-works" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="speaking-to-benedict-what-works">Speaking to Benedict &mdash; what works</h2>
             <ul>
                 <li><strong>Be natural.</strong> Whole sentences, fragments, <em>&ldquo;yeah&rdquo;</em> / <em>&ldquo;yep&rdquo;</em> / <em>&ldquo;no thanks&rdquo;</em> &mdash; all fine. He&rsquo;s not a command line.</li>
@@ -636,7 +665,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="saving-finishing-and-submitting-three-different-" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="saving-finishing-and-submitting-three-different-">Saving, finishing and submitting &mdash; three different things</h2>
             <p>
                 This is the one distinction worth reading twice, because two of the three
@@ -748,7 +777,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="resuming-a-form-you-didnt-finish" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="resuming-a-form-you-didnt-finish">Resuming a form you didn&rsquo;t finish</h2>
             <p>
                 If you started a form earlier and didn&rsquo;t finish, say
@@ -781,7 +810,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="knowing-where-you-stand" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="knowing-where-you-stand">Knowing where you stand</h2>
             <p>Benedict can answer four different &ldquo;where am I?&rdquo; questions &mdash; use the one you mean:</p>
             <ul>
@@ -884,7 +913,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="dates-due-dates-and-review-schedules" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="dates-due-dates-and-review-schedules">Dates, due dates and review schedules</h2>
             <p>
                 Benedict keeps a full date history for every document, and you can ask
@@ -945,7 +974,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="surveys-let-patients-fill-them-in-themselves" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="surveys-let-patients-fill-them-in-themselves">Surveys &mdash; let patients fill them in themselves</h2>
             <p>
                 For the Patient Satisfaction Survey (and any survey-style form), the
@@ -977,7 +1006,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="daily-logs-autoclave-records-and-cleaning-schedu" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="daily-logs-autoclave-records-and-cleaning-schedu">Daily logs, autoclave records and cleaning schedules</h2>
             <p>
                 For a daily record like an autoclave log, Benedict walks the day&rsquo;s
@@ -1034,7 +1063,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="your-practice-documents-certificates-photos-and-" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="your-practice-documents-certificates-photos-and-">Your practice documents &mdash; certificates, photos and scans</h2>
             <p>
                 Alongside your forms, Benedict keeps a library of your practice&rsquo;s own
@@ -1151,7 +1180,7 @@
              wording. This records that a signature was given in a session on the practice's
              account; it does not prove who gave it. Never let this section imply otherwise. -->
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="signatures" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="signatures">Signatures &mdash; who signs your forms, and how they sign</h2>
             <p>
                 Some paperwork needs more than your answers: it needs signing, sometimes by
@@ -1213,7 +1242,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="reviewing-or-correcting-after-submission" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="reviewing-or-correcting-after-submission">Reviewing or correcting after submission</h2>
             <p>
                 Submitted a form and noticed a typo? Just tell Benedict:
@@ -1454,7 +1483,7 @@
                 charge for it &mdash; re-reading your own record is not something we bill for.
             </p>
 
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="your-archive-by-email-the-manifest-and-the-full-" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="your-archive-by-email-the-manifest-and-the-full-">Your archive by email &mdash; the manifest and the full export</h2>
             <p>
                 Two asks give you a complete, off-system copy of everything
@@ -1498,7 +1527,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="guidance-documents-official-reference-material-b" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="guidance-documents-official-reference-material-b">Guidance documents &mdash; official reference material by email</h2>
             <p>
                 Alongside your fillable forms, your catalogue holds <strong>guidance
@@ -1592,7 +1621,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="ending-the-session" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="ending-the-session">Ending the session</h2>
             <p>
                 When you&rsquo;re done, say <em>&ldquo;goodbye&rdquo;</em> or
@@ -1605,7 +1634,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="codes-timeouts-and-coming-back" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="codes-timeouts-and-coming-back">Codes, timeouts and coming back</h2>
             <p>
                 Everything here is designed so that stepping away never costs you work
@@ -1641,7 +1670,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="legal" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="legal">Legal</h2>
             <p>
                 Your use of Benedict and of the teckel App is governed by teckel&rsquo;s
@@ -1662,7 +1691,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="making-benedict-yours-practice-customisation" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="making-benedict-yours-practice-customisation">Making Benedict yours &mdash; practice customisation</h2>
             <p>
                 Every practice works a little differently, and the CQC expects your
@@ -1695,7 +1724,7 @@
              ============================================================ -->
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="how-benedict-charges-you" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="how-benedict-charges-you">How Benedict charges you</h2>
             <p>
                 Your bill runs on a single currency: <strong>teckel credits (tc)</strong>.
@@ -1879,7 +1908,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="six-habits-that-keep-costs-down" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="six-habits-that-keep-costs-down">Six habits that keep costs down</h2>
 
             <h3>1. Batch your answers when you can</h3>
@@ -1984,7 +2013,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="whats-already-optimised-for-you" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="whats-already-optimised-for-you">What&rsquo;s already optimised for you</h2>
             <p>A few things the system handles automatically &mdash; you don&rsquo;t need to do anything about them, but knowing they exist might save you a worried question:</p>
             <ul>
@@ -1999,7 +2028,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="what-costs-the-most-and-how-to-spend-it-wisely" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="what-costs-the-most-and-how-to-spend-it-wisely">What costs the most (and how to spend it wisely)</h2>
             <p>
                 The per-action fees are all small. What actually moves your total is
@@ -2063,7 +2092,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="when-to-ask-for-help" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="when-to-ask-for-help">When to ask for help</h2>
             <ul>
                 <li><strong>Benedict didn&rsquo;t hear you correctly:</strong> repeat once, more slowly. He&rsquo;ll auto-correct most homophones.</li>
@@ -2077,7 +2106,7 @@
         </section>
 
         <section>
-            <p class="guide-backtotop"><a href="#guide-contents">&uarr; Back to contents</a></p>
+            <p class="guide-backtotop"><a data-section="a-note-on-the-session-cost" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="a-note-on-the-session-cost">A note on the session cost</h2>
             <p>
                 The figure shown when a session ends is what <strong>that session</strong>
@@ -2128,7 +2157,7 @@
         });
         var heads = [].slice.call(document.querySelectorAll('.guide-body h2[id]'));
         if (!heads.length) { return; }
-        var cur = null;
+        var cur = null, pinned = null;
         function apply(id) {
           if (cur === id) { return; }
           cur = id;
@@ -2137,6 +2166,16 @@
           });
         }
         function mark() {
+          /* ⚠ THE PIN WINS while the contents are still on screen. Released once the
+             reader scrolls the list away, at which point ordinary scroll-spy resumes. */
+          if (pinned) {
+            var list = document.querySelector('details.guide-toc');
+            if (!list || getComputedStyle(list).display === 'none') {
+              list = document.querySelector('.guide-toc--desk');
+            }
+            if (list && list.getBoundingClientRect().bottom >= 70) { apply(pinned); return; }
+            clearPin();
+          }
           /* the last heading whose top has passed the reading line */
           var top = heads[0];
           for (var i = 0; i < heads.length; i++) {
@@ -2152,13 +2191,40 @@
         }, { passive: true });
         mark();
 
-        /* A reader who taps "Back to contents" on a phone wants the list, so open it
-           for them — otherwise they arrive at a collapsed bar and must tap again. */
+        /* ⭐ "BACK TO CONTENTS" — open the list AND show them where they were.
+           Without the PIN the reader lands on 24 near-identical lines having just asked
+           "where was I?". The pin marks the section they came from and HOLDS it while
+           the list is on screen, releasing once they scroll away — the same behaviour
+           teckel.io/terms-and-conditions implements, and the reason its own script
+           carries a `pin` variable.
+           ⚠ The pin must OUTRANK the scroll-spy while it is held: scrolling up to the
+           list moves the reading line to the top of the page, so the spy would otherwise
+           immediately re-mark section 1 and erase the answer. mark() checks pin first. */
+        function pinTo(id) {
+          pinned = id;
+          Object.keys(links).forEach(function (k) {
+            links[k].forEach(function (a) { a.classList.toggle('is-pinned', k === id); });
+          });
+          apply(id);
+        }
+        function clearPin() {
+          if (!pinned) { return; }
+          pinned = null;
+          Object.keys(links).forEach(function (k) {
+            links[k].forEach(function (a) { a.classList.remove('is-pinned'); });
+          });
+        }
         document.querySelectorAll('.guide-backtotop a').forEach(function (a) {
           a.addEventListener('click', function () {
             var d = document.querySelector('details.guide-toc');
-            if (d && !d.open) { d.open = true; }
+            if (d && !d.open) { d.open = true; }   /* never land on a collapsed bar */
+            var sec = a.getAttribute('data-section');
+            if (sec) { pinTo(sec); }
           });
+        });
+        /* Choosing something from the list is a new intent — drop the pin. */
+        document.querySelectorAll('.guide-toc a').forEach(function (a) {
+          a.addEventListener('click', clearPin);
         });
       } catch (e) { /* the page works without any of this */ }
     })();
