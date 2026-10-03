@@ -2155,7 +2155,7 @@
     </main>
 
     <footer class="site-footer">
-        &copy; teckel.io
+        &copy; <a href="https://teckel.io" target="_blank" rel="noopener" style="color:inherit; text-decoration:underline;">teckel.io</a>
     </footer>
 
     <script>
@@ -2184,12 +2184,29 @@
         var heads = [].slice.call(document.querySelectorAll('.guide-body h2[id]'));
         if (!heads.length) { return; }
         var cur = null, pinned = null;
+        /* DESKTOP: the sidebar scrolls inside itself (max-height + overflow-y). When the marked
+           section moves out of the sidebar's view, scroll THE SIDEBAR (never the page) just enough
+           to bring it back, with a little room above and below. Steven, 3 Oct 2026. */
+        var desk = document.querySelector('.guide-toc--desk');
+        function follow(id) {
+          if (!desk || getComputedStyle(desk).display === 'none') { return; }
+          if (desk.scrollHeight <= desk.clientHeight) { return; }
+          var a = desk.querySelector('a[href="#' + id + '"]');
+          if (!a) { return; }
+          var box = desk.getBoundingClientRect(), r = a.getBoundingClientRect(), room = 32;
+          if (r.top < box.top + room) {
+            desk.scrollTop -= (box.top + room - r.top);
+          } else if (r.bottom > box.bottom - room) {
+            desk.scrollTop += (r.bottom - (box.bottom - room));
+          }
+        }
         function apply(id) {
           if (cur === id) { return; }
           cur = id;
           Object.keys(links).forEach(function (k) {
             links[k].forEach(function (a) { a.classList.toggle('is-current', k === id); });
           });
+          follow(id);
         }
         function mark() {
           /* ⚠ THE PIN WINS while the contents are still on screen. Released once the
