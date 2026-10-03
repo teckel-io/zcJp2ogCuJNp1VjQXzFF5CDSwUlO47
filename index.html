@@ -670,6 +670,19 @@
                      BRENDA_WIDGET_END -->
 
                 <elevenlabs-convai agent-id="agent_0501kvv0504efvtvmb85kjqm9w2j"></elevenlabs-convai>
+                <script>
+                /* 3 Oct 2026 (Steven) — CLICK A FORM AND BENEDICT OPENS IT. The ElevenLabs widget
+                   accepts a user message from the page (event "elevenlabs-agent:user-message")
+                   only when the tag carries allow-events. Set here, not in the tag itself, so the
+                   tag's text — which the tenant resync reads the agent id from — is unchanged. */
+                (function () {
+                    try {
+                        document.querySelectorAll('elevenlabs-convai').forEach(function (t) {
+                            t.setAttribute('allow-events', 'true');
+                        });
+                    } catch (e) { /* without it a click copies the name, as before */ }
+                })();
+                </script>
 
                 <div class="agent-prompt">
                     Tap the button to open a voice conversation with the practice's
@@ -1567,13 +1580,20 @@
             // A dead affordance is a defect even when the underlying behaviour is correct.
             // So the list now says what to do, and a click does the one useful thing the
             // page actually can: copy the exact name to paste or read back.
-            var html = '<div class="fs-hint">Say a name to Benedict to open it'
-                     + ' &mdash; or click to copy it.</div>'
+            // 3 Oct 2026 (Steven) — with a conversation live, a click hands Benedict the exact
+            // name ("Let's fill in …") — one click instead of a spoken turn, and no mishearing.
+            // Without one, the click copies the name, as before.
+            var html = '<div class="fs-hint">' + (benedictLive
+                         ? 'Click a form and Benedict will open it for you.'
+                         : 'Start a conversation with Benedict, then click a form to open it'
+                           + ' &mdash; or click to copy its name.') + '</div>'
                      + hits.map(function (f) {
                 var st = (f.status || '').replace(/_/g, ' ');
                 var when = f.updated ? ' · ' + f.updated : '';
                 return '<div class="fs-hit" role="button" tabindex="0"'
-                     + ' title="Click to copy this name"><span class="fs-name"></span>'
+                     + ' title="' + (benedictLive ? 'Click and Benedict opens this form'
+                                                  : 'Click to copy this name') + '">'
+                     + '<span class="fs-name"></span>'
                      + '<span class="fs-meta">' + esc(st + when) + '</span></div>';
             }).join('');
             out.innerHTML = html;
@@ -1600,6 +1620,12 @@
                         meta.textContent = msg;
                         setTimeout(function () { meta.textContent = restore; }, 1600);
                     }
+                    if (askBenedictToFill(name)) {
+                        flash('sent to Benedict');
+                        var outBox = document.getElementById('form-search-results');
+                        setTimeout(function () { if (outBox) outBox.style.display = 'none'; }, 900);
+                        return;
+                    }
                     if (!navigator.clipboard || !navigator.clipboard.writeText) {
                         flash('select the name to copy');
                         return;
@@ -1615,6 +1641,56 @@
             });
             out.style.display = 'block';
         }
+
+        // -----------------------------------------------------------------
+        // 3 Oct 2026 (Steven) — CLICK A FORM AND BENEDICT OPENS IT.
+        // The widget takes a user message from the page through its "elevenlabs-agent:
+        // user-message" event (allow-events is set on the tag above). The message is a
+        // plain sentence the user could have said — it shows in the conversation as theirs,
+        // and Benedict handles it exactly as if spoken: find the form, open it, ask first.
+        // ⚠ Only while a conversation is LIVE (onConnect / onDisconnect below): sent with
+        //   none, the widget drops it, and "sent" would be a claim the page cannot back.
+        // ⚠ One send per name per 4 s: a double click must not open the form twice.
+        // -----------------------------------------------------------------
+        var benedictLive = false;
+        var lastAskedFill = { name: '', ts: 0 };
+        function setBenedictLive(on) {
+            benedictLive = !!on;
+            var box = document.getElementById('form-search');
+            if (box) renderSearchResults(box.value);   // the hint follows the state
+        }
+        function askBenedictToFill(name) {
+            name = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+            if (!name || !benedictLive) return false;
+            var now = Date.now();
+            if (lastAskedFill.name === name && (now - lastAskedFill.ts) < 4000) return true;
+            var tag = document.querySelector('elevenlabs-convai');
+            if (!tag) return false;
+            try {
+                tag.dispatchEvent(new CustomEvent('elevenlabs-agent:user-message', {
+                    detail: { message: 'Let\'s fill in "' + name + '".' } }));
+            } catch (e) {
+                return false;
+            }
+            lastAskedFill = { name: name, ts: now };
+            markActivity();
+            return true;
+        }
+        // The traffic-light directory runs in the form frame and relays a click here. Only
+        // from that frame, and only from the teckel pages origin; the reply tells it what
+        // happened so it never claims a send that did not take place.
+        window.addEventListener('message', function (e) {
+            try {
+                var frame = document.getElementById('form-viewer');
+                if (!frame || e.source !== frame.contentWindow) return;
+                if (!/^https:\/\/teckel-io\.github\.io$/.test(e.origin)) return;
+                var d = e.data || {};
+                if (d.type !== 'teckel-fill-form') return;
+                var ok = askBenedictToFill(d.name);
+                e.source.postMessage({ type: 'teckel-fill-form-result', ok: ok,
+                                       name: String(d.name || '').slice(0, 200) }, e.origin);
+            } catch (err) { /* a click that cannot be relayed simply does nothing */ }
+        });
 
         function esc(s) {
             return String(s == null ? '' : s).replace(/[<>"&]/g, function (c) {
@@ -2490,6 +2566,7 @@
                 // deployed, network, ad-blocker) must cost nothing but the skip.
                 var _prevOnConnect = event.detail.config.onConnect;
                 event.detail.config.onConnect = function (info) {
+                    try { setBenedictLive(true); } catch (e) { /* the click falls back to copy */ }
                     try {
                         if (info && info.conversationId) {
                             var aid = discoverAgentId();
@@ -2503,6 +2580,13 @@
                     } catch (e) { /* silent — registration must never break a call */ }
                     if (typeof _prevOnConnect === 'function') {
                         try { _prevOnConnect(info); } catch (e) { /* not ours */ }
+                    }
+                };
+                var _prevOnDisconnect = event.detail.config.onDisconnect;
+                event.detail.config.onDisconnect = function (info) {
+                    try { setBenedictLive(false); } catch (e) { /* nothing to undo */ }
+                    if (typeof _prevOnDisconnect === 'function') {
+                        try { _prevOnDisconnect(info); } catch (e) { /* not ours */ }
                     }
                 };
                 event.detail.config.clientTools = event.detail.config.clientTools || {};
