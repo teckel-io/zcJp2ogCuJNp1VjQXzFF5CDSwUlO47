@@ -74,6 +74,10 @@
   }
   .tally { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 14px; }
   .started { color:var(--muted); font-size:11px; margin-left:6px; }
+  /* 3 Oct 2026 — a row is clickable inside the portal (Benedict opens the form) */
+  li.pick { cursor:pointer; border-radius:4px; }
+  li.pick:hover, li.pick:focus-visible { background:var(--chip); outline:none; }
+  .sent { color:var(--accent); font-size:11px; margin-left:8px; font-weight:600; }
   .msg { padding:14px; border:1px solid var(--line); border-radius:10px; color:var(--muted); }
   .err { border-color:#d9534f; color:#d9534f; }
 </style>
@@ -148,6 +152,31 @@
       });
     }
 
+    // 3 Oct 2026 (Steven) — inside the portal a row is a button: the title goes to the portal,
+    // which hands it to Benedict ("Let's fill in …") if a conversation is live. Opened on its
+    // own (no portal around it) the rows stay plain text.
+    var inPortal = false;
+    try { inPortal = window.parent && window.parent !== window; } catch (e) { inPortal = false; }
+    var pending = null;
+    function note(li, text) {
+      var old = li.querySelector(".sent");
+      if (old) { li.removeChild(old); }
+      var n = el("span", "sent", text);
+      li.appendChild(n);
+      setTimeout(function () { if (n.parentNode) { n.parentNode.removeChild(n); } }, 2600);
+    }
+    if (inPortal) {
+      window.addEventListener("message", function (e) {
+        if (e.source !== window.parent) { return; }
+        var d = e.data || {};
+        if (d.type !== "teckel-fill-form-result" || !pending) { return; }
+        note(pending, d.ok ? "sent to Benedict" : "start a conversation with Benedict first");
+        pending = null;
+      });
+      var hint = el("div", "msg", "Click a form and Benedict will open it for you.");
+      document.getElementById("tree").appendChild(hint);
+    }
+
     var frag = document.createDocumentFragment();
     cats.forEach(function (c, i) {
       var d = el("details", "cat");
@@ -167,6 +196,20 @@
         }
         if (f.started) { li.appendChild(el("span", "started", "started")); }
         if (f.cadence) { li.appendChild(el("span", "cad", "  ·  " + f.cadence)); }
+        if (inPortal) {
+          li.className = "pick";
+          li.setAttribute("role", "button");
+          li.setAttribute("tabindex", "0");
+          li.title = "Click and Benedict opens this form";
+          var send = function () {
+            pending = li;
+            window.parent.postMessage({ type: "teckel-fill-form", name: f.title || f.form_id || "" }, "*");
+          };
+          li.addEventListener("click", send);
+          li.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); send(); }
+          });
+        }
         ul.appendChild(li);
       });
       d.appendChild(ul);
