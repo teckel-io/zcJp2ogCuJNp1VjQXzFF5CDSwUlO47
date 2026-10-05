@@ -79,13 +79,34 @@
   li.pick:hover, li.pick:focus-visible { background:var(--chip); outline:none; }
   .sent { color:var(--accent); font-size:11px; margin-left:8px; font-weight:600; }
   .msg { padding:14px; border:1px solid var(--line); border-radius:10px; color:var(--muted); }
+  /* 5 Oct 2026 (Steven: "we need to allow the user to be able to filter and search the forms directory") —
+     a search box and clickable status chips. Client side only: the page still shows exactly what the server
+     sent, it only hides rows; it writes nothing. */
+  .find { display:flex; gap:8px; margin:0 0 12px; }
+  .find input { flex:1; min-width:0; padding:9px 12px; border:1px solid var(--line); border-radius:8px;
+                background:var(--bg); color:var(--fg); font:inherit; }
+  .find input:focus { outline:2px solid var(--accent); outline-offset:1px; }
+  .find button { padding:8px 14px; border:1px solid var(--line); border-radius:8px; background:var(--chip);
+                 color:var(--fg); font:inherit; cursor:pointer; }
+  .tally .chip.filter { cursor:pointer; }
+  .tally .chip.filter:hover, .tally .chip.filter:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  .tally .chip.on { outline:2px solid var(--fg); outline-offset:1px; }
+  .shown { color:var(--muted); font-size:13px; margin:0 0 12px; }
+  .gone { display:none; }
   .err { border-color:#d9534f; color:#d9534f; }
 </style>
 </head>
 <body>
 <h1>Your document directory</h1>
 <div class="sub" id="sub">Loading…</div>
+<div class="find gone" id="find">
+  <input id="q" type="search" autocomplete="off" spellcheck="false"
+         placeholder="Search your forms — type part of a name, e.g. fire"
+         aria-label="Search your forms by name">
+  <button id="clear" type="button" class="gone">Show all</button>
+</div>
 <div class="tally" id="tally"></div>
+<div class="shown gone" id="shown" aria-live="polite"></div>
 <div id="tree"></div>
 
 <script>
@@ -148,7 +169,14 @@
       order.forEach(function (pair) {
         var n = data.bands[pair[0]] || 0;
         if (!n) { return; }                       // an empty band is noise, not information
-        tally.appendChild(el("span", "chip " + pair[0], n + " " + pair[1]));
+        var chip = el("span", "chip filter " + pair[0], n + " " + pair[1]);
+        // 5 Oct 2026 — a status chip is a filter: click it to see only those forms, again to see all
+        chip.setAttribute("role", "button");
+        chip.setAttribute("tabindex", "0");
+        chip.setAttribute("aria-pressed", "false");
+        chip.setAttribute("data-band", pair[0]);
+        chip.title = "Show only the forms that are " + pair[1] + " (click again to show all)";
+        tally.appendChild(chip);
       });
     }
 
@@ -178,16 +206,25 @@
     }
 
     var frag = document.createDocumentFragment();
+    var rows = [];                              // 5 Oct 2026 — one entry per form row, for the search and filters
+    var groups = [];                            // one entry per category
     cats.forEach(function (c, i) {
       var d = el("details", "cat");
       if (i === 0) { d.open = true; }           // open the largest so the page is never blank
       var s = el("summary");
       s.appendChild(el("span", null, c.label || c.category));
-      s.appendChild(el("span", "count", c.count));
+      var countEl = el("span", "count", c.count);
+      s.appendChild(countEl);
       d.appendChild(s);
       var ul = el("ul");
+      var group = { box: d, count: countEl, total: (c.forms || []).length, shownAtStart: c.count,
+                    label: String(c.label || c.category || "").toLowerCase(), openAtStart: i === 0, rows: [] };
+      groups.push(group);
       (c.forms || []).forEach(function (f) {
         var li = el("li");
+        var row = { li: li, text: String(f.title || f.form_id || "").toLowerCase(), band: f.band || "", group: group };
+        rows.push(row);
+        group.rows.push(row);
         li.appendChild(el("span", null, f.title || f.form_id));
         // The SERVER decides the band and the words; this page paints them and computes
         // nothing about compliance. Same rule as the rest of the directory.
@@ -216,6 +253,60 @@
       frag.appendChild(d);
     });
     document.getElementById("tree").appendChild(frag);
+
+    // ── 5 Oct 2026 — SEARCH AND FILTER. Hides rows only; shows exactly what the server sent. ──
+    var find = document.getElementById("find"), q = document.getElementById("q");
+    var clear = document.getElementById("clear"), shown = document.getElementById("shown");
+    var chips = Array.prototype.slice.call(document.querySelectorAll("#tally .chip.filter"));
+    var band = "";
+    find.classList.remove("gone");
+    function apply() {
+      var terms = q.value.toLowerCase().split(/\s+/).filter(function (t) { return t; });
+      var active = terms.length > 0 || band !== "";
+      var seen = 0;
+      groups.forEach(function (g) {
+        var n = 0;
+        g.rows.forEach(function (r) {
+          // every word typed must be in the form's name or in its category's name
+          var ok = terms.every(function (t) { return r.text.indexOf(t) !== -1 || g.label.indexOf(t) !== -1; })
+                   && (band === "" || r.band === band);
+          r.li.classList.toggle("gone", !ok);
+          if (ok) { n += 1; }
+        });
+        seen += n;
+        g.box.classList.toggle("gone", active && n === 0);
+        g.count.textContent = active ? (n + " of " + g.total) : String(g.shownAtStart);
+        if (active) { g.box.open = n > 0; } else { g.box.open = g.openAtStart; }
+      });
+      clear.classList.toggle("gone", !active);
+      shown.classList.toggle("gone", !active);
+      if (active) {
+        shown.textContent = seen === 0
+          ? "No form matches. Try fewer letters, or press Show all."
+          : (seen + " of " + rows.length + " forms shown" + (inPortal ? " — click one and Benedict opens it." : "."));
+      }
+      chips.forEach(function (c) {
+        var on = c.getAttribute("data-band") === band;
+        c.classList.toggle("on", on);
+        c.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    }
+    q.addEventListener("input", apply);
+    q.addEventListener("keydown", function (e) { if (e.key === "Escape") { q.value = ""; apply(); } });
+    clear.addEventListener("click", function () { q.value = ""; band = ""; apply(); q.focus(); });
+    chips.forEach(function (c) {
+      var pick = function () { band = (band === c.getAttribute("data-band")) ? "" : c.getAttribute("data-band"); apply(); };
+      c.addEventListener("click", pick);
+      c.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); }
+      });
+    });
+    // the link may carry a starting filter (?q=fire, ?band=red) — used when Benedict is asked for "the fire forms"
+    var params = new URLSearchParams(window.location.search);
+    var q0 = (params.get("q") || "").slice(0, 80), b0 = params.get("band") || "";
+    if (q0) { q.value = q0; }
+    if (chips.some(function (c) { return c.getAttribute("data-band") === b0; })) { band = b0; }
+    if (q0 || band) { apply(); }
   }).catch(function (e) {
     if (String(e && e.message) === "expired") {
       fail("This directory link has expired. Ask Benedict to show the directory again "
