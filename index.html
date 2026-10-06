@@ -2444,6 +2444,24 @@
                 + 'A button labelled "Open the ' + kind + '" is now on screen at the bottom right — tell '
                 + 'the user to click that. Do NOT say the page is already open, and do NOT read the link aloud.';
         }
+        function openGuideTab() {
+            var url = new URL('guide.html', window.location.href).href;
+            var win = null;
+            try { win = window.open(url, '_blank'); } catch (e) { win = null; }   // no 'noopener' — see ⚠ above
+            if (win) {
+                try { win.opener = null; } catch (e) {}
+                try { win.focus(); } catch (e) {}
+                removeSelfFillCard();
+                console.log('[teckel] display_survey_link opened the User Guide in a new tab');
+                return 'display_survey_link completed: the User Guide is OPEN IN A NEW TAB. Tell the user it is '
+                    + 'open in a new tab and that the page on screen is untouched.';
+            }
+            showSelfFillCard('blocked', 'User Guide', url, null);
+            console.warn('[teckel] display_survey_link — User Guide tab blocked; showed the click-through card');
+            return 'display_survey_link: the browser BLOCKED the new tab. The User Guide is NOT open. A button '
+                + 'labelled "Open the User Guide" is now on screen at the bottom right — tell the user to click '
+                + 'it, or to use the User Guide link at the top of the page.';
+        }
         function displaySurveyLinkImpl(args) {
             markActivity();   // a tool fired: the conversation is live
             console.log('[teckel] display_survey_link called with args:', args);
@@ -2455,6 +2473,14 @@
             // directly. Aliases are accepted so a differently-worded next_step still lands.
             var raw = (args.survey_link || args.survey_session_id || args.fill_session_id
                        || args.survey_url || args.fill_url || args.log_url || '').toString().trim();
+            // 2.2.336 / I-68 (Steven, 6 Oct 2026: "Benedict should be able to open the USER GUIDE if asked … in a
+            // new tab"). The word "guide" opens THIS practice's own guide.html in a new tab — the same tab
+            // mechanics and blocked-tab card as a survey. The URL is built here from the page's own address,
+            // never taken from the agent, so nothing it passes can point anywhere else. A shortcut through an
+            // existing tool so no agent on the fleet changes before the show; a dedicated tool can replace it.
+            if (/^(the\s+)?(user[\s_-]*)?guide$/i.test(raw)) {
+                return Promise.resolve(openGuideTab());
+            }
             if (!raw) {
                 return Promise.resolve(
                     'display_survey_link failed: nothing was passed. Call get_survey_fill_link (or '
