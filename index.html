@@ -2002,13 +2002,53 @@
             if (!url || typeof url !== 'string') return false;
             return /^https:\/\/teckel-io\.github\.io\/[^?#]*upload\.html\?token=[^\s]+$/.test(url);
         }
+        // 2.2.335 (I-31, 5 Oct 2026): the agent dropped four characters of a 295-char signed
+        // upload URL on its way here, twice, and this page said the link was no longer
+        // available. The server (UPLOAD_LINK_SESSION_ID) now stashes the URL and the agent
+        // passes an 11-char session id IN THE SAME upload_url parameter (no ElevenLabs tool
+        // change). A value that is not a URL is resolved via resolve_view_session, exactly as
+        // display_settings_link resolves its code; a URL is handled exactly as before, so an
+        // older server build keeps working with this page.
         function displayUploadLinkImpl(args) {
             markActivity();   // a tool fired: the conversation is live
             console.log('[teckel] display_upload_link called with args:', args);
             args = args || {};
+            var raw = (args.upload_url || '').toString().trim();
+            if (raw && !/^https?:\/\//i.test(raw)) {
+                if (!/^[A-Za-z0-9_-]{6,24}$/.test(raw)) {
+                    return Promise.resolve(
+                        'display_upload_link failed: upload_url was neither a teckel upload page nor the '
+                        + 'short code from get_upload_link. Pass that code EXACTLY as returned, nothing else.');
+                }
+                var resolveUrl = MCP_BASE.replace(/\/$/, '')
+                    + '/document_analyser/resolve_view_session?id=' + encodeURIComponent(raw);
+                console.log('[teckel] resolving upload_session_id at:', resolveUrl);
+                return fetch(resolveUrl, { method: 'GET', credentials: 'omit' })
+                    .then(function (resp) {
+                        if (resp.status === 404) throw new Error('unknown or mistyped upload code');
+                        if (resp.status === 410) throw new Error('this upload link has expired');
+                        if (!resp.ok) throw new Error('resolve failed: status=' + resp.status);
+                        return resp.json();
+                    })
+                    .then(function (data) {
+                        if (!data || !data.success || data.view_mode !== 'upload' || !data.pdf_url) {
+                            throw new Error('the code did not resolve to an upload page');
+                        }
+                        return showUploadInIframe(data.pdf_url);
+                    })
+                    .catch(function (err) {
+                        console.warn('[teckel] display_upload_link resolve failed:', err);
+                        return 'display_upload_link failed: '
+                            + (err && err.message ? err.message : 'could not resolve the upload link')
+                            + '. Do NOT say the upload page is on screen — it is not. Point the user to the '
+                            + 'emailed link if one was sent, or call get_upload_link again for a fresh code.';
+                    });
+            }
+            return Promise.resolve(showUploadInIframe(raw));
+        }
+        function showUploadInIframe(url) {
             var iframe      = document.getElementById('form-viewer');
             var placeholder = document.getElementById('form-viewer-placeholder');
-            var url = (args.upload_url || '').toString().trim();
             if (!isValidUploadUrl(url)) {
                 showFabricationCard(
                     'display_upload_link was called with a URL that is not a teckel upload page.',
