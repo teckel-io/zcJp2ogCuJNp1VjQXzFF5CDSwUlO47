@@ -2085,7 +2085,10 @@
         var SETTINGS_LINK_DEBOUNCE_MS = 30 * 1000;
         function isValidSettingsUrl(url) {
             if (!url || typeof url !== 'string') return false;
-            return /^https:\/\/teckel-io\.github\.io\/[^?#]*settings\.html\?token=[^\s]+$/.test(url);
+            // 7 Oct 2026 (I-109) — signatures.html is accepted too. Since server 2.2.337 the link
+            // for "who signs THIS form" points at signatures.html (same token, same origin, opened
+            // with &storage_key=). It was refused here, so that page could only ever be e-mailed.
+            return /^https:\/\/teckel-io\.github\.io\/[^?#]*(?:settings|signatures)\.html\?token=[^\s]+$/.test(url);
         }
         function showSettingsInIframe(url, sourceNote) {
             var iframe      = document.getElementById('form-viewer');
@@ -2107,6 +2110,12 @@
             iframe.src = url;
             if (placeholder) placeholder.classList.add('hidden');
             console.log('[teckel] display_settings_link loaded the settings page in the iframe');
+            if (/\/signatures\.html\?token=/.test(url)) {
+                // 7 Oct 2026 (I-109) — say which page it is: this one has no admin email or logo on it.
+                return 'display_settings_link completed: the "Who signs your forms" page is on screen now, '
+                    + 'open on that form. Tell the user they can choose who signs it there. NEVER claim a '
+                    + 'signature box was added or changed until the user confirms the page said it saved.';
+            }
             return 'display_settings_link completed: the Account Settings page is on screen now. Tell the user '
                 + 'they can update their admin email or logo there. NEVER claim a setting changed until the '
                 + 'user confirms the page said it saved.';
