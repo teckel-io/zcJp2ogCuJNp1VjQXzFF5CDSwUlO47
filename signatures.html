@@ -219,7 +219,8 @@
         b.onclick = function () {
           var picked = Array.prototype.slice.call(
             document.querySelectorAll('#b_people input:checked')).map(function (c) { return c.value; });
-          if (!picked.length) { say('Tick who signs this one, above, then try again.', 'err'); return; }
+          // 7 Oct 2026 (I-110) — this said "above"; the tick boxes are BELOW, in the block section.
+          if (!picked.length) { say('Tick who signs this one — in the list under "Add a signature block", below — then press Make digital again.', 'err'); return; }
           save({ action: 'promote_field', base_key: fld.question_text,
                  signatory_staff_ids: picked }, 'That signature is now digital.');
         };
