@@ -47,8 +47,10 @@
   ENDPOINT: wss://flow.tkllabs-ai.work, live 14 Oct 2026 through Cloudflare (~40 ms over the
   direct LAN socket, which is noise against the 0.600 s VAD stop_secs). It is PUBLIC, with no
   Cloudflare Access in front of it -- deliberately, because a browser WebSocket carries no
-  Access session -- and it serves ONE browser at a time. Treat it as a test endpoint with a
-  known expiry, not an architecture.
+  Access session. Since kev-flow 1.13.0 it is MULTI-SESSION (FastAPIWebsocketTransport, a
+  fresh pipeline per connection), so several browsers can be on it at once; the honest ceiling
+  is ~4 concurrent conversations and that is set by voice/LLM/CPU, not by the transport.
+  Treat it as a test endpoint with a known expiry, not an architecture.
 -->
 <style>
   :root {
@@ -119,9 +121,18 @@
       <span class="meta" id="stCount">0 frames sent</span>
     </div>
     <div class="meta" style="margin-top:9px">
-      Override the endpoint with <code>?ws=wss://host</code>. One browser at a time — the transport is
-      single-client and refuses a second connection with code 1013.
+      Override the endpoint with <code>?ws=wss://host</code>. Multi-session since kev-flow 1.13.0 —
+      several browsers may connect at once, though the chain holds about four conversations before
+      latency climbs.
     </div>
+  </div>
+
+  <div class="panel">
+    <div class="row" style="justify-content:space-between">
+      <strong style="font-size:13px">Chain health</strong>
+      <button id="refreshHealth" style="padding:4px 10px;font-size:12px">Refresh</button>
+    </div>
+    <div id="health" class="meta" style="margin-top:9px">not checked yet</div>
   </div>
 
   <div class="panel">
@@ -474,6 +485,7 @@ async function connect() {
 
   sock.onopen = async () => {
     everOpened = true;
+    checkHealth();
     setDot("Sock", "on", "connected");
     $("disconnect").disabled = false;
     log("socket open to " + url);
@@ -518,8 +530,12 @@ async function connect() {
     $("connect").disabled = false; $("disconnect").disabled = true;
     stopMic(); flushPlayback();
     if (ev.code === 1013) {
-      banner("warn", "The chain already has a browser connected (code 1013). The transport serves " +
-                     "exactly one client at a time — close the other tab or session and try again.");
+      /* Pre-1.13.0 behaviour. On a multi-session build this should not happen, so it means
+         the server has been rolled back to a single-client image rather than that you did
+         anything wrong. */
+      banner("warn", "Refused with code 1013, which is the OLD single-client transport. The running " +
+                     "build should be multi-session (kev-flow 1.13.0+), so this suggests the server " +
+                     "has been rolled back to an earlier image. Check /health for multi_session.");
     } else if (ev.code === 1006 && !everOpened) {
       /* OBSERVED 14 Oct 2026: the first connect returned 502 during the handshake and an
          identical retry 85 s later opened fine. The tunnel was NOT misconfigured - curl over
@@ -543,7 +559,48 @@ function disconnect() {
   $("connect").disabled = false; $("disconnect").disabled = true;
 }
 
+/* ---------------------------------------------------------------------------
+   Chain health. kev-flow exposes GET /health with status, sessions_live,
+   session_ids, voice, llm_model and multi_session.
+
+   ⚠ As of 14 Oct 2026 that endpoint sends NO Access-Control-Allow-Origin, so a
+   browser on this origin cannot READ the response even though the server answers
+   200. One FastAPI CORS line for the portal origin fixes it. Until then this
+   must say so plainly: a blank readout would read as "the chain is down" when
+   the chain is fine, which is the worst failure a diagnostic panel can have.
+   --------------------------------------------------------------------------- */
+function healthUrl() {
+  const u = wsTarget();
+  try {
+    const p = new URL(u.replace(/^ws/, "http"));
+    return p.origin + "/health";
+  } catch { return null; }
+}
+
+async function checkHealth() {
+  const el = $("health");
+  const url = healthUrl();
+  if (!url) { el.textContent = "no valid endpoint to check"; return; }
+  el.textContent = "checking " + url + " …";
+  try {
+    const r = await fetch(url, { cache: "no-store" });
+    const h = await r.json();
+    const live = (h.sessions_live === 0 || h.sessions_live) ? h.sessions_live : "?";
+    el.textContent =
+      `status ${h.status ?? "?"} · ${live} session(s) live · model ${h.llm_model ?? "?"}` +
+      ` · voice ${h.voice ?? "?"} · multi-session ${h.multi_session === true ? "yes" : "no"}`;
+  } catch (e) {
+    /* A CORS block and a dead server both land here, and they mean opposite
+       things, so do not guess between them. */
+    el.textContent =
+      "could not READ /health from this page. The server may well be fine — it answers 200 to " +
+      "curl — but it sends no Access-Control-Allow-Origin, so the browser blocks this page from " +
+      "reading it. Check it directly: " + url;
+  }
+}
+
 /* --------------------------------------------------------------------------- */
+$("refreshHealth").onclick = checkHealth;
 $("wsurl").value = qs.get("ws") || DEFAULT_WS;
 $("connect").onclick = connect;
 $("disconnect").onclick = disconnect;
@@ -555,13 +612,11 @@ if (location.protocol === "https:" && $("wsurl").value.startsWith("ws://")) {
   banner("warn", "This page is on HTTPS and the endpoint is plain ws://, which the browser will " +
                  "block. Use a wss:// hostname, or open this page from localhost.");
 } else if (!qs.get("ws")) {
-  /* The endpoint is live, so the standing warning is now about SHARING it, not
-     about its absence. The transport takes exactly one browser: if a second
-     person is connected, this page cannot be, and a 1013 is the tell. */
-  banner("warn", "This endpoint serves ONE browser at a time, and it is public with no " +
-                 "authentication in front of it. If the connection closes with code 1013, " +
-                 "someone else is already attached — that is not a fault in this page. " +
-                 "Override the endpoint with ?ws=<url> if you need a different one.");
+  /* Multi-session since 1.13.0, so the standing warning is no longer about contention.
+     What remains true, and matters more, is that the endpoint is unauthenticated. */
+  banner("warn", "This endpoint is public with no authentication in front of it — anyone who " +
+                 "knows the hostname can talk to the model. It is a test endpoint with an expiry, " +
+                 "not an architecture. Override it with ?ws=<url> if you need a different one.");
 }
 log("ready. No ElevenLabs on this page. No tools, no PIN, no records.");
 </script>
