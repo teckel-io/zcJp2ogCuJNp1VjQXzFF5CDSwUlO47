@@ -1,34 +1,31 @@
 <!DOCTYPE html>
 <!--
-  teckel__localportal_test_page_v1_0.html
-  DEPLOYED AS localportal.html TO ONE TEST TENANT'S OWN REPO ONLY, UNREFERENCED.
-  (The tenant is not named here: this file is publicly served and
-  teckel__test_page_privacy_v1_0.py treats a tenant name as an identifier.)
+  localportal.html — THE PORTAL PAGE ON THE LOCAL VOICE CHAIN.
+  Deployed to ONE TEST TENANT'S own repo, UNREFERENCED. Built by
+  teckel__build_localportal_v1_0.py from that tenant's LIVE index.html on 14 Oct 2026.
 
-  ⚠⚠ THIS IS A DATED SNAPSHOT OF THE PORTAL PAGE — 14 Oct 2026, taken from
-  dentist_template_v1_0/index.html. It is NOT in the template repo and NOT in
-  teckel__tenant_page_resync_v1_0.py's PAGES list, so no practice can receive it and
-  a resync will neither overwrite nor flag it. ⇒ IT WILL DRIFT from the template
-  master. Do not treat it as a second portal; re-snapshot it, or delete it, when the
-  local chain graduates.
+  ⚠⚠ A DATED SNAPSHOT. Not in the template repo, not in teckel__tenant_page_resync_v1_0.py's
+  PAGES list — so no practice can receive it and a resync will neither overwrite nor flag it.
+  ⇒ IT WILL DRIFT from the portal. Re-run the builder to re-snapshot; do not hand-edit.
 
-  WHAT CHANGED from the portal page, and nothing else did:
+  WHAT DIFFERS from the portal, and nothing else does:
    1. the ElevenLabs runtime script is NOT loaded;
-   2. the <elevenlabs-convai> tags REMAIN in the DOM, inert and hidden, because
-      discoverAgentId() reads the agent id off them — leaving them means editing no
-      working code;
-   3. a local voice panel takes the widget's place (mic -> wss -> VAD -> whisper ->
-      Qwen3-30B -> Kokoro), using the codec proven under node against independently
-      built frames;
-   4. client_tool messages are dispatched to the portal's OWN display_* handlers,
-      which are untouched;
-   5. display_category_directory and display_guidance are added to window.* — they
-      were registered only via the EL event listener, which cannot fire here.
+   2. the <elevenlabs-convai> tags REMAIN, inert and hidden — discoverAgentId() reads the
+      agent id off them, so leaving them means editing no working code;
+   3. a local voice panel takes the widget's slot (mic -> wss -> VAD -> faster-whisper ->
+      Qwen3-30B -> Kokoro), using a codec proven under node against independently built frames;
+   4. client_tool messages dispatch to the portal's OWN display_* handlers, untouched, and the
+      handler's own return string goes back as client_tool_result;
+   5. display_category_directory and display_guidance are added to window.* — upstream they are
+      registered only through the EL event listener, which cannot fire here.
 
-  The six display_* handlers, the form viewer, the directory, the search, the cost
-  meter and every other portal behaviour are the ORIGINALS. That is the point of
-  snapshotting rather than rebuilding: they carry fixes earned the hard way,
-  including I-120's.
+  ⭐ WHY THAT FIFTH POINT MATTERS, AND WHY THE RETURN VALUE DOES. On ElevenLabs the six
+  display_* tools carry expects_response:false, so the page's honest "failed: it is NOT on
+  screen" never reaches the model — the documented cause of I-120, Benedict saying "it is on
+  screen" five times at the show with nothing on screen. Here the chain waits for the page.
+
+  The form viewer, directory, search, handlers and cost meter are the ORIGINALS. That is the
+  point of snapshotting rather than rebuilding: they carry fixes earned the hard way.
 -->
 <html lang="en">
 <head>
@@ -36,7 +33,7 @@
     <!-- teckel default favicon -->
     <link rel="icon" href="favicon.png" sizes="any">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{PRACTICE_NAME}} — Management Portal</title>
+    <title>Dental Dynamo — Management Portal</title>
 
     <!--
     =====================================================================
@@ -328,6 +325,7 @@
         #lv-log { max-height:130px; overflow-y:auto; color:#8b98a5; white-space:pre-wrap;
                   font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; margin-top:8px; }
         .el-convai-hidden-note { display:none; }
+
 
         .right-pane {
             flex: 1;
@@ -633,7 +631,7 @@
             <a href="guide.html">User Guide</a>
         </nav>
         <div class="practice-info">
-            <div class="practice-name">{{PRACTICE_NAME}}</div>
+            <div class="practice-name">Dental Dynamo</div>
         </div>
     </header>
 
@@ -721,8 +719,7 @@
                 <elevenlabs-convai agent-id="agent_BRENDA_PLACEHOLDER"></elevenlabs-convai>
                      BRENDA_WIDGET_END -->
 
-                <elevenlabs-convai agent-id="agent_PLACEHOLDER"></elevenlabs-convai>
-
+                <elevenlabs-convai agent-id="agent_0501kvv0504efvtvmb85kjqm9w2j"></elevenlabs-convai>
                 <!-- ===================================================================
                      LOCAL VOICE CHAIN — replaces the ElevenLabs widget on this build.
                      mic -> wss -> Silero VAD -> faster-whisper -> Qwen3-30B -> Kokoro.
@@ -777,7 +774,7 @@
         <div class="right-pane">
             <div class="title-bar">
                 <div class="title-block">
-                    <div class="h1">{{PRACTICE_NAME}} — Management Portal</div>
+                    <div class="h1">Dental Dynamo — Management Portal</div>
                     <div class="h2">Compliance documents &middot; voice-driven workflow</div>
                 </div>
                 <div class="cost-meter">
@@ -2625,11 +2622,9 @@
         window.display_upload_link = displayUploadLinkImpl;
         window.display_settings_link = displaySettingsLinkImpl;
         window.display_survey_link = displaySurveyLinkImpl;
-        /* LOCAL BUILD: these two were registered ONLY through the
-           'elevenlabs-convai:call' listener, which never fires here because the EL
-           runtime is not loaded. Without this the dispatch would find no handler for
-           exactly the two tools named in I-120 — and, worse, would have reported a
-           clean "no handler" failure that looks like a server problem. */
+        /* LOCAL BUILD: registered ONLY via the 'elevenlabs-convai:call' listener upstream,
+           which never fires here. Without this the dispatch finds no handler for exactly
+           the two tools named in I-120. */
         window.display_category_directory = displayCategoryDirectoryImpl;
         window.display_guidance = displayGuidanceImpl;
 
