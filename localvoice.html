@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="favicon.svg">
 <title>Local voice chain — transport test</title>
 <!--
   teckel__localvoice_test_page_v1_0.html
@@ -158,6 +159,7 @@ const $ = (id) => document.getElementById(id);
 const qs = new URLSearchParams(location.search);
 
 let sock = null, micCtx = null, micNode = null, micStream = null;
+let everOpened = false;   /* distinguishes a failed handshake from a dropped session */
 let outCtx = null, playHead = 0, framesSent = 0;
 let botPartial = "";          /* bot partials ACCUMULATE; final replaces the whole line */
 
@@ -459,6 +461,7 @@ async function connect() {
   banner(null);
 
   setDot("Sock", "busy", "connecting");
+  everOpened = false;
   $("connect").disabled = true;
   try {
     sock = new WebSocket(url);
@@ -470,6 +473,7 @@ async function connect() {
   sock.binaryType = "arraybuffer";
 
   sock.onopen = async () => {
+    everOpened = true;
     setDot("Sock", "on", "connected");
     $("disconnect").disabled = false;
     log("socket open to " + url);
@@ -516,6 +520,15 @@ async function connect() {
     if (ev.code === 1013) {
       banner("warn", "The chain already has a browser connected (code 1013). The transport serves " +
                      "exactly one client at a time — close the other tab or session and try again.");
+    } else if (ev.code === 1006 && !everOpened) {
+      /* OBSERVED 14 Oct 2026: the first connect returned 502 during the handshake and an
+         identical retry 85 s later opened fine. The tunnel was NOT misconfigured - curl over
+         HTTP/1.1 got 101 throughout, with and without an Origin header. So a 1006 here is
+         worth ONE retry before anyone goes looking for a fault. */
+      banner("warn", "The handshake failed before the socket opened (code 1006; the console will " +
+                     "usually show a 502). This has been seen as a transient — try Connect again " +
+                     "before assuming anything is misconfigured. If it persists, check that a " +
+                     "plain GET to the endpoint returns 426 and not 404.");
     }
     log("socket closed, code " + ev.code + (ev.reason ? " — " + ev.reason : ""));
   };
