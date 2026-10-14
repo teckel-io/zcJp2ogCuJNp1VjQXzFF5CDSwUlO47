@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Local voice chain — transport test</title>
+<!--
+  teckel__localvoice_test_page_v1_0.html
+  Deployed to ONE test tenant's own repo only, as localvoice.html, UNREFERENCED.
+  (The tenant is deliberately not named here: this file is publicly served, and
+  teckel__test_page_privacy_v1_0.py treats a tenant name as an identifier.)
+  Yusuf's instruction, 14 Oct 2026: tenant repo only, unreferenced. It is deliberately NOT in
+  dentist_template_v1_0/ and NOT in teckel__tenant_page_resync_v1_0.py's PAGES list, so no other
+  practice can ever receive it and a resync will neither overwrite nor flag it.
+
+  WHAT THIS PAGE PROVES, AND WHAT IT DOES NOT.
+  Proves the one thing kev's headless client cannot: a REAL BROWSER and a REAL MIC on the REAL
+  origin, end to end through the local chain --
+      mic -> ws -> Silero VAD -> faster-whisper -> Qwen3-30B (LiteLLM) -> Kokoro -> audio back
+  It is NOT Benedict. There is no tool calling, no MCP surface, no PIN, no session identity and no
+  billing meter. A client_tool message is LOGGED, never executed. Nothing here writes to the
+  database or to any live record.
+
+  Wire format per Yusuf CC, 14 Oct 2026
+  (yusuf__the_voice_chain_is_live_on_kev_how_to_wire_it_into_the_portal_2026-10-14.md).
+  Field numbers are HIS, read from frames_pb2, not guessed:
+      Frame { text=1  audio=2  transcription=3  message=4  interruption=5 }
+      AudioRawFrame { id=1  name=2  bytes audio=3  sample_rate=4  num_channels=5 }
+      MessageFrame  { string data=1 }   // data is a JSON string
+  16 kHz s16le mono IN, 20 ms frames (320 samples / 640 bytes); 24 kHz OUT (Kokoro's rate --
+  it does NOT match the input rate).
+
+  !! The codec below is written from that documented schema. The reference client on kev
+  (/opt/llm/voice/widget/index.html) has a decoder already tested against genuine serialised
+  bytes; this Mac has no route to kev (192.168.1.x vs 192.168.2.x, no route, ssh included), so
+  it could not be copied. DIFF THIS AGAINST THE REFERENCE before trusting it.
+
+  Deliberately NOT done, per that note:
+   - no RTVI layer of any kind (two pipecat ends ping-pong: 45,661 messages in 34 s);
+   - nothing is sent as a text frame -- the output transport only ever puts audio and
+     OutputTransportMessage frames on the wire, and the serializer matches on EXACT type;
+   - transcript is rendered with textContent, NEVER innerHTML: it is ASR output plus model
+     output and neither is ours to trust as markup.
+-->
+<style>
+  :root {
+    --bg: #0f1419; --panel: #171e26; --line: #2a3542; --text: #e6edf3;
+    --dim: #8b98a5; --ok: #3fb950; --warn: #d29922; --bad: #f85149; --accent: #58a6ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 16px; background: var(--bg); color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 840px; margin: 0 auto; }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .sub { color: var(--dim); font-size: 13px; margin-bottom: 16px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 14px; margin-bottom: 14px;
+  }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  button {
+    font: inherit; padding: 9px 16px; border-radius: 6px; border: 1px solid var(--line);
+    background: #21262d; color: var(--text); cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #04121f; font-weight: 600; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--dim); display: inline-block; }
+  .dot.on { background: var(--ok); } .dot.busy { background: var(--warn); } .dot.off { background: var(--bad); }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  input[type=text] {
+    font: inherit; flex: 1 1 320px; min-width: 0; padding: 8px 10px; border-radius: 6px;
+    border: 1px solid var(--line); background: #0d1117; color: var(--text);
+  }
+  #transcript { min-height: 150px; max-height: 320px; overflow-y: auto; }
+  .line { margin: 0 0 8px; padding-left: 58px; text-indent: -58px; }
+  .who { display: inline-block; width: 50px; color: var(--dim); font-size: 12px; text-transform: uppercase; }
+  .line.bot .who { color: var(--accent); }
+  .line.partial { opacity: .55; font-style: italic; }
+  #log { max-height: 180px; overflow-y: auto; color: var(--dim); white-space: pre-wrap; }
+  .banner { border-radius: 6px; padding: 11px 13px; margin-bottom: 14px; font-size: 13.5px; }
+  .banner.bad { background: #3d1418; border: 1px solid var(--bad); color: #ffc9c4; }
+  .banner.warn { background: #3a2d10; border: 1px solid var(--warn); color: #f0d9a8; }
+  .meta { color: var(--dim); font-size: 12.5px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Local voice chain — transport test</h1>
+  <div class="sub">
+    Browser and microphone against the self-hosted chain on kev. No ElevenLabs anywhere on this page.
+    <strong>Not Benedict:</strong> no tools, no PIN, no records, nothing written.
+  </div>
+
+  <div id="banner" class="banner hidden"></div>
+
+  <div class="panel">
+    <div class="row">
+      <input type="text" id="wsurl" spellcheck="false" autocomplete="off">
+      <button id="connect" class="primary">Connect</button>
+      <button id="disconnect" disabled>Disconnect</button>
+    </div>
+    <div class="row" style="margin-top:11px">
+      <span><span class="dot" id="dotSock"></span> <span id="stSock" class="meta">socket idle</span></span>
+      <span><span class="dot" id="dotMic"></span> <span id="stMic" class="meta">mic off</span></span>
+      <span class="meta" id="stRates">in 16 kHz · out 24 kHz</span>
+      <span class="meta" id="stCount">0 frames sent</span>
+    </div>
+    <div class="meta" style="margin-top:9px">
+      Override the endpoint with <code>?ws=wss://host</code>. One browser at a time — the transport is
+      single-client and refuses a second connection with code 1013.
+    </div>
+  </div>
+
+  <div class="panel">
+    <strong style="font-size:13px">Transcript</strong>
+    <div id="transcript" style="margin-top:9px"><div class="meta">Nothing yet.</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="row" style="justify-content:space-between">
+      <strong style="font-size:13px">Log</strong>
+      <button id="clearlog" style="padding:4px 10px;font-size:12px">Clear</button>
+    </div>
+    <div id="log" class="mono" style="margin-top:9px"></div>
+  </div>
+
+</div>
+<script>
+"use strict";
+
+/* ---------------------------------------------------------------------------
+   Configuration. The endpoint is a query parameter so this file never needs
+   editing or redeploying when the Cloudflare tunnel hostname appears.
+   --------------------------------------------------------------------------- */
+const DEFAULT_WS   = "wss://flow.tkllabs-ai.work";   /* provisional - tunnel hostname pending */
+const MIC_RATE     = 16000;    /* what the chain expects IN  */
+const BOT_RATE     = 24000;    /* Kokoro's rate OUT - do not assume it equals MIC_RATE */
+const FRAME_MS     = 20;
+const SAMPLES_PER_FRAME = MIC_RATE * FRAME_MS / 1000;   /* 320 samples = 640 bytes */
+
+const $ = (id) => document.getElementById(id);
+const qs = new URLSearchParams(location.search);
+
+let sock = null, micCtx = null, micNode = null, micStream = null;
+let outCtx = null, playHead = 0, framesSent = 0;
+let botPartial = "";          /* bot partials ACCUMULATE; final replaces the whole line */
+
+/* ---------------------------------------------------------------------------
+   Protobuf, hand-rolled. Only three message shapes are needed and all are
+   varint / length-delimited, so no library and no build step.
+   WRITTEN FROM THE DOCUMENTED SCHEMA - diff against kev's reference client.
+   --------------------------------------------------------------------------- */
+function varint(n) {
+  const out = [];
+  while (n > 127) { out.push((n & 0x7f) | 0x80); n >>>= 7; }
+  out.push(n);
+  return out;
+}
+function tag(field, wire) { return varint((field << 3) | wire); }
+
+/* Frame{ audio=2 } -> AudioRawFrame{ audio=3, sample_rate=4, num_channels=5 }.
+   id and name are omitted: both are optional and the server does not read them. */
+function encodeAudio(int16, rate) {
+  const pcm  = new Uint8Array(int16.buffer, int16.byteOffset, int16.byteLength);
+  const body = [];
+  body.push(...tag(3, 2), ...varint(pcm.length));          /* bytes audio = 3 */
+  const head = body.length;
+  const rest = [...tag(4, 0), ...varint(rate),             /* sample_rate = 4 */
+                ...tag(5, 0), ...varint(1)];               /* num_channels = 5 */
+  const inner = new Uint8Array(head + pcm.length + rest.length);
+  inner.set(body, 0);
+  inner.set(pcm, head);
+  inner.set(rest, head + pcm.length);
+
+  const outer = [...tag(2, 2), ...varint(inner.length)];   /* Frame.audio = 2 */
+  const frame = new Uint8Array(outer.length + inner.length);
+  frame.set(outer, 0);
+  frame.set(inner, outer.length);
+  return frame;
+}
+
+/* Minimal reader. Returns {audio, rate} and/or {msg} and/or {interruption}. */
+function decodeFrame(buf) {
+  const u8 = new Uint8Array(buf);
+  let i = 0;
+  const readVarint = () => {
+    let r = 0, s = 0;
+    while (i < u8.length) {
+      const b = u8[i++];
+      r |= (b & 0x7f) << s;
+      if (!(b & 0x80)) break;
+      s += 7;
+    }
+    return r >>> 0;
+  };
+  const out = {};
+  while (i < u8.length) {
+    const t = readVarint(), field = t >> 3, wire = t & 7;
+    if (wire === 2) {
+      const len = readVarint();
+      const sub = u8.subarray(i, i + len);
+      i += len;
+      if (field === 2) Object.assign(out, decodeAudioRaw(sub));   /* Frame.audio */
+      else if (field === 4) {
+        const m = decodeMessage(sub);                             /* Frame.message */
+        if (m !== null) out.msg = m;
+      }
+      else if (field === 5) out.interruption = true;              /* Frame.interruption */
+      /* field 1 text / field 3 transcription: not sent on this wire (the output
+         transport only emits audio and transport messages, and the serializer
+         matches on exact type), so they are ignored rather than half-handled. */
+    } else if (wire === 0) {
+      /* Frame.interruption is a submessage in pipecat's schema, so it arrives on
+         the wire-2 branch above. A bare varint on field 5 is handled too, because
+         a schema change in that direction would otherwise fail SILENTLY - and a
+         missed interruption means the bot talks over the user. */
+      const v = readVarint();
+      if (field === 5) out.interruption = true;
+      void v;
+    } else if (wire === 5) { i += 4; }
+      else if (wire === 1) { i += 8; }
+      else break;                                                 /* unknown wire type */
+  }
+  return out;
+}
+
+function decodeAudioRaw(u8) {
+  let i = 0;
+  const readVarint = () => {
+    let r = 0, s = 0;
+    while (i < u8.length) { const b = u8[i++]; r |= (b & 0x7f) << s; if (!(b & 0x80)) break; s += 7; }
+    return r >>> 0;
+  };
+  let audio = null, rate = BOT_RATE;
+  while (i < u8.length) {
+    const t = readVarint(), field = t >> 3, wire = t & 7;
+    if (wire === 2) {
+      const len = readVarint();
+      if (field === 3) audio = u8.slice(i, i + len);   /* bytes audio = 3 */
+      i += len;
+    } else if (wire === 0) {
+      const v = readVarint();
+      if (field === 4) rate = v;                        /* sample_rate = 4 */
+    } else if (wire === 5) { i += 4; }
+      else if (wire === 1) { i += 8; }
+      else break;
+  }
+  return audio ? { audio, rate } : {};
+}
+
+function decodeMessage(u8) {
+  let i = 0;
+  const readVarint = () => {
+    let r = 0, s = 0;
+    while (i < u8.length) { const b = u8[i++]; r |= (b & 0x7f) << s; if (!(b & 0x80)) break; s += 7; }
+    return r >>> 0;
+  };
+  while (i < u8.length) {
+    const t = readVarint(), field = t >> 3, wire = t & 7;
+    if (wire === 2) {
+      const len = readVarint();
+      const raw = u8.subarray(i, i + len);
+      i += len;
+      if (field === 1) return new TextDecoder().decode(raw);   /* string data = 1 */
+    } else if (wire === 0) { readVarint(); }
+      else break;
+  }
+  return null;
+}
+
+/* ---------------------------------------------------------------------------
+   UI helpers
+   --------------------------------------------------------------------------- */
+function log(s) {
+  const t = new Date().toISOString().substr(11, 12);
+  $("log").textContent += `${t}  ${s}\n`;
+  $("log").scrollTop = $("log").scrollHeight;
+}
+function setDot(which, cls, text) {
+  $("dot" + which).className = "dot" + (cls ? " " + cls : "");
+  $("st" + which).textContent = text;
+}
+function banner(kind, text) {
+  const b = $("banner");
+  if (!kind) { b.className = "banner hidden"; b.textContent = ""; return; }
+  b.className = "banner " + kind;
+  b.textContent = text;            /* textContent: never innerHTML */
+}
+
+/* Transcript. Bot partials are separate chunks and ACCUMULATE; the final line
+   replaces what they built up. Replacing on each partial shows only the last
+   chunk of a multi-sentence reply - Yusuf CC hit exactly that. */
+function addTranscript(m) {
+  const box = $("transcript");
+  if (box.firstElementChild && box.firstElementChild.className === "meta") box.textContent = "";
+
+  if (m.role === "bot" && !m.final) {
+    botPartial += m.text || "";
+    let el = box.querySelector(".line.bot.partial");
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "line bot partial";
+      const w = document.createElement("span");
+      w.className = "who"; w.textContent = "Bot";
+      el.appendChild(w);
+      el.appendChild(document.createTextNode(""));
+      box.appendChild(el);
+    }
+    el.lastChild.textContent = botPartial;
+  } else {
+    const partial = box.querySelector(".line.bot.partial");
+    if (m.role === "bot" && partial) partial.remove();
+    botPartial = "";
+    const el = document.createElement("div");
+    el.className = "line " + (m.role === "bot" ? "bot" : "user");
+    const w = document.createElement("span");
+    w.className = "who"; w.textContent = m.role === "bot" ? "Bot" : "You";
+    el.appendChild(w);
+    el.appendChild(document.createTextNode(m.text || ""));   /* text node, not markup */
+    box.appendChild(el);
+  }
+  box.scrollTop = box.scrollHeight;
+}
+
+/* ---------------------------------------------------------------------------
+   Playback. Buffers are scheduled back to back against a running playhead so
+   consecutive chunks do not overlap or gap. An interruption flushes it.
+   --------------------------------------------------------------------------- */
+function playPCM(bytes, rate) {
+  if (!outCtx) outCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const n = bytes.length >> 1;
+  if (!n) return;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const buf = outCtx.createBuffer(1, n, rate);
+  const ch = buf.getChannelData(0);
+  for (let k = 0; k < n; k++) ch[k] = view.getInt16(k * 2, true) / 32768;
+  const src = outCtx.createBufferSource();
+  src.buffer = buf;
+  src.connect(outCtx.destination);
+  const now = outCtx.currentTime;
+  if (playHead < now) playHead = now + 0.02;
+  src.start(playHead);
+  playHead += buf.duration;
+}
+function flushPlayback() {
+  if (!outCtx) return;
+  outCtx.close().catch(() => {});
+  outCtx = null; playHead = 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Microphone. An AudioWorklet from a Blob URL keeps this a single file.
+   The browser will not always give an AudioContext at 16 kHz, so the worklet
+   resamples whatever rate it gets and emits exact 320-sample frames.
+   --------------------------------------------------------------------------- */
+const WORKLET = `
+class Cap extends AudioWorkletProcessor {
+  constructor(o) {
+    super();
+    this.target = o.processorOptions.target;
+    this.frame  = o.processorOptions.frame;
+    this.ratio  = sampleRate / this.target;   // sampleRate is the context's real rate
+    this.acc = []; this.pos = 0;
+  }
+  process(inputs) {
+    const ch = inputs[0] && inputs[0][0];
+    if (!ch) return true;
+    // Linear resample to the target rate, then emit fixed-size frames.
+    for (let i = 0; i < ch.length; i++) this.acc.push(ch[i]);
+    const need = Math.ceil(this.frame * this.ratio) + 2;
+    while (this.acc.length >= need) {
+      const out = new Int16Array(this.frame);
+      for (let k = 0; k < this.frame; k++) {
+        const x = k * this.ratio, i0 = Math.floor(x), f = x - i0;
+        const a = this.acc[i0] || 0, b = this.acc[i0 + 1] || 0;
+        let s = a + (b - a) * f;
+        s = Math.max(-1, Math.min(1, s));
+        out[k] = s < 0 ? s * 0x8000 : s * 0x7fff;
+      }
+      this.port.postMessage(out, [out.buffer]);
+      this.acc = this.acc.slice(Math.floor(this.frame * this.ratio));
+    }
+    return true;
+  }
+}
+registerProcessor('cap', Cap);
+`;
+
+async function startMic() {
+  micStream = await navigator.mediaDevices.getUserMedia({
+    audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+  });
+  micCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: MIC_RATE });
+  const url = URL.createObjectURL(new Blob([WORKLET], { type: "application/javascript" }));
+  await micCtx.audioWorklet.addModule(url);
+  URL.revokeObjectURL(url);
+
+  const src = micCtx.createMediaStreamSource(micStream);
+  micNode = new AudioWorkletNode(micCtx, "cap", {
+    processorOptions: { target: MIC_RATE, frame: SAMPLES_PER_FRAME }
+  });
+  micNode.port.onmessage = (e) => {
+    if (!sock || sock.readyState !== WebSocket.OPEN) return;
+    sock.send(encodeAudio(e.data, MIC_RATE));
+    framesSent++;
+    if (framesSent % 25 === 0) $("stCount").textContent = framesSent + " frames sent";
+  };
+  src.connect(micNode);
+  /* Not connected to destination: that would feed the speaker back into the mic. */
+  setDot("Mic", "on", "mic live");
+  $("stRates").textContent = `in ${micCtx.sampleRate} Hz -> ${MIC_RATE} Hz · out ${BOT_RATE} Hz`;
+  log(`mic open, context at ${micCtx.sampleRate} Hz, sending ${SAMPLES_PER_FRAME}-sample frames`);
+}
+
+function stopMic() {
+  if (micNode) { micNode.port.onmessage = null; micNode.disconnect(); micNode = null; }
+  if (micCtx) { micCtx.close().catch(() => {}); micCtx = null; }
+  if (micStream) { micStream.getTracks().forEach((t) => t.stop()); micStream = null; }
+  setDot("Mic", "", "mic off");
+}
+
+/* ---------------------------------------------------------------------------
+   Connect / disconnect
+   --------------------------------------------------------------------------- */
+function wsTarget() { return ($("wsurl").value || "").trim(); }
+
+function preflight(url) {
+  if (!url) return "Give a websocket URL.";
+  if (!/^wss?:\/\//.test(url)) return "The URL must start with ws:// or wss://.";
+  /* Mixed content fails quietly in some browsers; say it plainly instead. */
+  if (location.protocol === "https:" && url.startsWith("ws://")) {
+    return "This page is served over HTTPS, so the browser will block a plain ws:// connection " +
+           "(mixed content) and no page-side code can change that. Either use a wss:// hostname, " +
+           "or run this page from localhost, which is a secure context and permits ws://.";
+  }
+  return null;
+}
+
+async function connect() {
+  const url = wsTarget();
+  const problem = preflight(url);
+  if (problem) { banner("bad", problem); log("refused: " + problem); return; }
+  banner(null);
+
+  setDot("Sock", "busy", "connecting");
+  $("connect").disabled = true;
+  try {
+    sock = new WebSocket(url);
+  } catch (e) {
+    setDot("Sock", "off", "failed"); $("connect").disabled = false;
+    banner("bad", "Could not open the socket: " + e.message);
+    return;
+  }
+  sock.binaryType = "arraybuffer";
+
+  sock.onopen = async () => {
+    setDot("Sock", "on", "connected");
+    $("disconnect").disabled = false;
+    log("socket open to " + url);
+    try {
+      await startMic();
+    } catch (e) {
+      banner("bad", "Microphone refused: " + e.message +
+             "  The mic needs a secure context (https, or localhost) and your permission.");
+      log("mic failed: " + e.message);
+    }
+  };
+
+  sock.onmessage = (ev) => {
+    if (typeof ev.data === "string") { log("unexpected text frame, ignored"); return; }
+    let f;
+    try { f = decodeFrame(ev.data); }
+    catch (e) { log("decode failed: " + e.message); return; }
+
+    if (f.interruption) { flushPlayback(); log("interruption - playback flushed"); }
+    if (f.audio) playPCM(f.audio, f.rate || BOT_RATE);
+    if (f.msg) {
+      let m;
+      try { m = JSON.parse(f.msg); }
+      catch { log("message was not JSON: " + f.msg.slice(0, 120)); return; }
+
+      if (m.kind === "transcript") {
+        addTranscript(m);
+      } else if (m.kind === "client_tool") {
+        /* STUB, DELIBERATELY. The four display_* handlers are NOT wired on this
+           page: it is a transport test and must not touch a live record or
+           claim anything is on screen (I-120). Logged so the channel is
+           visibly working. */
+        log("client_tool (not executed): " + (m.name || "?") + " " + JSON.stringify(m.args || {}));
+      } else {
+        log("message: " + f.msg.slice(0, 200));
+      }
+    }
+  };
+
+  sock.onclose = (ev) => {
+    setDot("Sock", "off", "closed (" + ev.code + ")");
+    $("connect").disabled = false; $("disconnect").disabled = true;
+    stopMic(); flushPlayback();
+    if (ev.code === 1013) {
+      banner("warn", "The chain already has a browser connected (code 1013). The transport serves " +
+                     "exactly one client at a time — close the other tab or session and try again.");
+    }
+    log("socket closed, code " + ev.code + (ev.reason ? " — " + ev.reason : ""));
+  };
+
+  sock.onerror = () => { log("socket error (the browser does not say more than this)"); };
+}
+
+function disconnect() {
+  if (sock) { try { sock.close(1000, "user"); } catch {} sock = null; }
+  stopMic(); flushPlayback();
+  setDot("Sock", "", "socket idle");
+  $("connect").disabled = false; $("disconnect").disabled = true;
+}
+
+/* --------------------------------------------------------------------------- */
+$("wsurl").value = qs.get("ws") || DEFAULT_WS;
+$("connect").onclick = connect;
+$("disconnect").onclick = disconnect;
+$("clearlog").onclick = () => { $("log").textContent = ""; };
+setDot("Sock", "", "socket idle");
+setDot("Mic", "", "mic off");
+
+if (location.protocol === "https:" && $("wsurl").value.startsWith("ws://")) {
+  banner("warn", "This page is on HTTPS and the endpoint is plain ws://, which the browser will " +
+                 "block. Use a wss:// hostname, or open this page from localhost.");
+} else if (!qs.get("ws")) {
+  banner("warn", "Using the provisional endpoint " + DEFAULT_WS + ", which does not exist until the " +
+                 "Cloudflare tunnel hostname is added. Override it with ?ws=<url> — no redeploy needed.");
+}
+log("ready. No ElevenLabs on this page. No tools, no PIN, no records.");
+</script>
+</body>
+</html>
