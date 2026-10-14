@@ -42,6 +42,12 @@
      OutputTransportMessage frames on the wire, and the serializer matches on EXACT type;
    - transcript is rendered with textContent, NEVER innerHTML: it is ASR output plus model
      output and neither is ours to trust as markup.
+
+  ENDPOINT: wss://flow.tkllabs-ai.work, live 14 Oct 2026 through Cloudflare (~40 ms over the
+  direct LAN socket, which is noise against the 0.600 s VAD stop_secs). It is PUBLIC, with no
+  Cloudflare Access in front of it -- deliberately, because a browser WebSocket carries no
+  Access session -- and it serves ONE browser at a time. Treat it as a test endpoint with a
+  known expiry, not an architecture.
 -->
 <style>
   :root {
@@ -138,7 +144,11 @@
    Configuration. The endpoint is a query parameter so this file never needs
    editing or redeploying when the Cloudflare tunnel hostname appears.
    --------------------------------------------------------------------------- */
-const DEFAULT_WS   = "wss://flow.tkllabs-ai.work";   /* provisional - tunnel hostname pending */
+const DEFAULT_WS   = "wss://flow.tkllabs-ai.work";   /* live 14 Oct 2026 via the Cloudflare
+                                                        tunnel; a plain GET returns 426,
+                                                        which is the websockets server
+                                                        answering. A 404 would mean the
+                                                        tunnel catch-all took it. */
 const MIC_RATE     = 16000;    /* what the chain expects IN  */
 const BOT_RATE     = 24000;    /* Kokoro's rate OUT - do not assume it equals MIC_RATE */
 const FRAME_MS     = 20;
@@ -532,8 +542,13 @@ if (location.protocol === "https:" && $("wsurl").value.startsWith("ws://")) {
   banner("warn", "This page is on HTTPS and the endpoint is plain ws://, which the browser will " +
                  "block. Use a wss:// hostname, or open this page from localhost.");
 } else if (!qs.get("ws")) {
-  banner("warn", "Using the provisional endpoint " + DEFAULT_WS + ", which does not exist until the " +
-                 "Cloudflare tunnel hostname is added. Override it with ?ws=<url> — no redeploy needed.");
+  /* The endpoint is live, so the standing warning is now about SHARING it, not
+     about its absence. The transport takes exactly one browser: if a second
+     person is connected, this page cannot be, and a 1013 is the tell. */
+  banner("warn", "This endpoint serves ONE browser at a time, and it is public with no " +
+                 "authentication in front of it. If the connection closes with code 1013, " +
+                 "someone else is already attached — that is not a fault in this page. " +
+                 "Override the endpoint with ?ws=<url> if you need a different one.");
 }
 log("ready. No ElevenLabs on this page. No tools, no PIN, no records.");
 </script>
