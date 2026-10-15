@@ -3045,14 +3045,36 @@
   // ⚠⚠ THE TOKEN IS SINGLE USE AND ~90s. It is minted immediately before each connect and
   //    AFRESH on every reconnect. A retry loop that reuses one fails the second attempt and
   //    looks exactly like a server fault.
+  // ⚠ MCP_BASE is NOT a global on the live page either (measured 15 Oct: typeof
+  //   window.MCP_BASE is "undefined") — the portal defines it inside its own closure. So the
+  //   literal below is what ACTUALLY gets used, not a fallback that never fires. Stated plainly
+  //   so nobody later "simplifies" the reference away believing the page supplies it.
   const MCP = ((typeof MCP_BASE === "string" && MCP_BASE) ||
                "https://mcp2.bh.tkllabs.io:9779").replace(/\/$/, "") + "/document_analyser/";
 
   function lvAgentId(){
-    // discoverAgentId() is the PORTAL'S OWN helper and it deliberately rejects any id
-    // containing "PLACEHOLDER", so a template build yields null rather than a dead agent.
-    try { return (typeof discoverAgentId === "function") ? discoverAgentId() : null; }
-    catch(e){ return null; }
+    // 🔴 FIXED 15 Oct 2026 AFTER DRIVING IT IN A REAL BROWSER. The first version did
+    //    `typeof discoverAgentId === "function" ? discoverAgentId() : null` — and on the live
+    //    page that returns NULL, because the portal's helpers are inside ITS OWN CLOSURE and
+    //    are NOT globals. Measured: `'discoverAgentId' in window` is false, and so is
+    //    `typeof window.MCP_BASE`. The page then logged "no agent id on this page" and fell
+    //    through to the tokenless branch — i.e. the auth flow could never run.
+    // ⚠ A 30-check suite passed this, because it asserted the SOURCE MENTIONS discoverAgentId,
+    //    not that the call RESOLVES. A suite pins intent; the live page shows reality.
+    // ⇒ READ THE DOM DIRECTLY. The <elevenlabs-convai> tag is left in the page by the builder
+    //   precisely so the id is discoverable, and this cannot fail on scope.
+    try {
+      const tags = document.querySelectorAll("elevenlabs-convai");
+      for (let i = 0; i < tags.length; i++) {
+        const aid = tags[i].getAttribute("agent-id");
+        // ⚠ Keep the PLACEHOLDER rejection — the portal's own helper has it, and without it a
+        //   template build looks fine and silently has no agent.
+        if (aid && aid.indexOf("PLACEHOLDER") === -1) return aid;
+      }
+    } catch(e) { /* fall through */ }
+    // Only as a courtesy, in case a future portal DOES export it globally.
+    try { if (typeof discoverAgentId === "function") return discoverAgentId(); } catch(e) {}
+    return null;
   }
 
   function lvBsid(){
