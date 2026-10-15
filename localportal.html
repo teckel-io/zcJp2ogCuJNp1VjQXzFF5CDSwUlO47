@@ -3173,16 +3173,22 @@
     if(token){
       url = base + (base.indexOf("?")===-1 ? "?" : "&") + "t=" + encodeURIComponent(token);
     } else {
-      // ⚠⚠ TEMPORARY FALLBACK — DELETE THIS BRANCH WHEN FLOW_REQUIRE_VOICE_TOKEN=1.
-      // Enforcement is currently OFF, so the flow layer still accepts a tokenless socket. If
-      // this page demanded a token today it would simply break the working local portal. The
-      // branch is explicit and LOUD precisely so nobody mistakes it for a feature: once
-      // enforcement is on the server refuses anyway and this path stops existing in practice.
-      log("⚠ connecting WITHOUT a voice token — temporary, only possible while "
-          +"FLOW_REQUIRE_VOICE_TOKEN is off. This branch is scheduled for deletion.");
+      // ⭐ ENFORCEMENT IS ON (FLOW_REQUIRE_VOICE_TOKEN=1, flipped 15 Oct 2026). The temporary
+      //   tokenless branch that used to live here IS DELETED, as its own comment promised.
+      // ⚠ PROVEN BEFORE DELETING, three handshakes in one minute with the same key:
+      //     WITH a valid token     -> HTTP/1.1 101 Switching Protocols
+      //     WITHOUT a token        -> HTTP/1.1 403 Forbidden
+      //     WITH a garbage token   -> HTTP/1.1 403 Forbidden
+      //   ⚠ The browser only ever sees close code 1006 for a refusal, which is ALSO what a
+      //   transient 502 looks like — this project has been fooled by that before. The 403 and
+      //   the 101 control are what make it a verdict rather than a guess.
+      // ⇒ So there is no point attempting the socket: the server would refuse it and the user
+      //   would see a bare "closed (1006)" with no idea why. Stop here and ask for the code.
+      log("access: no voice token, so the server will refuse the socket. "
+          + "Enter your access code and try again.");
+      dot("sock","off","not verified");
       $("lv-connect").disabled=false;
-      if($("lv-auth-row") && $("lv-auth-row").style.display!==""){ /* no code box needed yet */ }
-      $("lv-connect").disabled=true;
+      return;
     }
     try{ sock=new WebSocket(url); }catch(e){ log("socket failed: "+e.message);
       $("lv-connect").disabled=false; dot("sock","off","failed"); return; }
