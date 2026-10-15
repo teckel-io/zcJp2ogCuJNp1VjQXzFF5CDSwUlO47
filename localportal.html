@@ -1,32 +1,4 @@
 <!DOCTYPE html>
-<!--
-  localportal.html — THE PORTAL PAGE ON THE LOCAL VOICE CHAIN.
-  Deployed to ONE TEST TENANT'S own repo, UNREFERENCED. Built by
-  teckel__build_localportal_v1_0.py from that tenant's LIVE index.html on 14 Oct 2026.
-
-  ⚠⚠ A DATED SNAPSHOT. Not in the template repo, not in teckel__tenant_page_resync_v1_0.py's
-  PAGES list — so no practice can receive it and a resync will neither overwrite nor flag it.
-  ⇒ IT WILL DRIFT from the portal. Re-run the builder to re-snapshot; do not hand-edit.
-
-  WHAT DIFFERS from the portal, and nothing else does:
-   1. the ElevenLabs runtime script is NOT loaded;
-   2. the <elevenlabs-convai> tags REMAIN, inert and hidden — discoverAgentId() reads the
-      agent id off them, so leaving them means editing no working code;
-   3. a local voice panel takes the widget's slot (mic -> wss -> VAD -> faster-whisper ->
-      Qwen3-30B -> Kokoro), using a codec proven under node against independently built frames;
-   4. client_tool messages dispatch to the portal's OWN display_* handlers, untouched, and the
-      handler's own return string goes back as client_tool_result;
-   5. display_category_directory and display_guidance are added to window.* — upstream they are
-      registered only through the EL event listener, which cannot fire here.
-
-  ⭐ WHY THAT FIFTH POINT MATTERS, AND WHY THE RETURN VALUE DOES. On ElevenLabs the six
-  display_* tools carry expects_response:false, so the page's honest "failed: it is NOT on
-  screen" never reaches the model — the documented cause of I-120, Benedict saying "it is on
-  screen" five times at the show with nothing on screen. Here the chain waits for the page.
-
-  The form viewer, directory, search, handlers and cost meter are the ORIGINALS. That is the
-  point of snapshotting rather than rebuilding: they carry fixes earned the hard way.
--->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -727,6 +699,35 @@
                      only the dispatch changes.
                      =================================================================== -->
                 <div class="lv-panel">
+                  <!-- ── PAGE-LEVEL ACCESS CHECK (15 Oct 2026) ─────────────────────────
+                       WHY IT IS HERE AND NOT IN THE CONVERSATION. On ElevenLabs the PIN is
+                       asked INSIDE a conversation and keyed on conversation_id. Locally that
+                       is circular: the socket needs a signed voice token, the token needs a
+                       verified browser, and there IS no conversation_id until the socket is
+                       accepted. So the check moves to page level, BEFORE the socket.
+                       ⭐ Two things fall out: there is never an unauthenticated socket once
+                       enforcement is on, and the returning visitor is skipped for free —
+                       get_voice_token's own refusal IS the "do I need a code?" question.
+                       ⚠ Hidden by default. It appears only when a token is refused, so a
+                       verified browser never sees it. ──────────────────────────────────── -->
+                  <div class="lv-row" id="lv-auth-row" style="display:none;margin-bottom:9px">
+                    <input type="text" id="lv-code" inputmode="numeric" maxlength="6"
+                           placeholder="6-digit code" spellcheck="false" autocomplete="off"
+                           style="flex:0 0 130px;padding:7px 9px;border-radius:6px;
+                                  border:1px solid #2a3542;background:#0d1117;color:#e6edf3;
+                                  font:inherit;letter-spacing:2px;text-align:center">
+                    <button id="lv-verify" class="primary">Verify</button>
+                    <span class="lv-meta" id="lv-auth-msg"></span>
+                  </div>
+                  <!-- ⚠ THE CODE ROTATES EVERY 15 MINUTES (Yusuf, 15 Oct 2026 — our own note
+                       had it as "roughly hourly", inferred from two readings an hour apart,
+                       which cannot tell 15 from 60). ⇒ A dentist has at most 15 minutes between
+                       generating a code and entering it, so "that code wasn't recognised" is the
+                       COMMON path and usually means EXPIRY, not a typo. Say so BEFORE the first
+                       failure rather than only after it. -->
+                  <div class="lv-meta" id="lv-auth-hint" style="display:none;margin-bottom:9px">
+                    Codes expire quickly — generate one in the app and enter it straight away.
+                  </div>
                   <div class="lv-row">
                     <input type="text" id="lv-url" spellcheck="false" autocomplete="off"
                            style="flex:1 1 220px;min-width:0;padding:7px 9px;border-radius:6px;
@@ -3031,11 +3032,136 @@
     }catch(e){ el.textContent="could not read /health from this page (the server may be fine — check "+u+")"; }
   }
 
-  function connect(){
-    const url=($("lv-url").value||"").trim();
-    if(location.protocol==="https:" && url.indexOf("ws://")===0){
+  // ══ PAGE-LEVEL ACCESS: bsid -> voice token -> socket (15 Oct 2026, DA CC) ═════════
+  // Contract from Yusuf CC. Four steps, and the ORDER is the design:
+  //   1 mint/persist a browser_session_id (bsid) in localStorage, per practice portal
+  //   2 POST get_voice_token  -> success means this browser is already verified (D47 cache)
+  //   3 refused -> six-digit code -> POST verify_access_code_for_browser -> back to 2
+  //   4 open wss://…/?t=<token>
+  //
+  // ⚠⚠ THE BSID NEVER GOES IN THE SOCKET URL. It rides inside the SIGNED token as the `bs`
+  //    claim, so the flow layer reads it from a verified source and not from a query param
+  //    an attacker controls.
+  // ⚠⚠ THE TOKEN IS SINGLE USE AND ~90s. It is minted immediately before each connect and
+  //    AFRESH on every reconnect. A retry loop that reuses one fails the second attempt and
+  //    looks exactly like a server fault.
+  const MCP = ((typeof MCP_BASE === "string" && MCP_BASE) ||
+               "https://mcp2.bh.tkllabs.io:9779").replace(/\/$/, "") + "/document_analyser/";
+
+  function lvAgentId(){
+    // discoverAgentId() is the PORTAL'S OWN helper and it deliberately rejects any id
+    // containing "PLACEHOLDER", so a template build yields null rather than a dead agent.
+    try { return (typeof discoverAgentId === "function") ? discoverAgentId() : null; }
+    catch(e){ return null; }
+  }
+
+  function lvBsid(){
+    // Per practice portal, so two tenants on one browser do not share a verification.
+    const key = "lv_bsid_" + (lvAgentId() || "unknown");
+    try {
+      let v = localStorage.getItem(key);
+      if (!v) { v = crypto.randomUUID(); localStorage.setItem(key, v); }
+      return v;
+    } catch(e) {
+      // ⚠ Private mode / blocked storage: a FRESH id every load, so the user is asked for a
+      // code each time. Degraded but correct — never reuse a guessable constant here.
+      return crypto.randomUUID();
+    }
+  }
+
+  function authUI(show, msg){
+    const r=$("lv-auth-row"); if(r) r.style.display = show ? "" : "none";
+    // ⚠ The hint rides WITH the row, so the 15-minute expiry is stated before the first failure
+    // and not as an excuse afterwards.
+    const h=$("lv-auth-hint"); if(h) h.style.display = show ? "" : "none";
+    const m=$("lv-auth-msg"); if(m) m.textContent = msg || "";
+  }
+
+  async function post(path, params){
+    const u = MCP + path + "?" + new URLSearchParams(params).toString();
+    const r = await fetch(u, {method:"POST", cache:"no-store"});
+    let body = null;
+    try { body = await r.json(); } catch(e) { /* a 422 carries detail, not our shape */ }
+    return {http:r.status, body:body};
+  }
+
+  // Returns a token string, or null. Never throws — every failure is logged and surfaced.
+  async function mintVoiceToken(){
+    const aid = lvAgentId();
+    if(!aid){ log("access: no agent id on this page, so no token can be minted."); return null; }
+    let res;
+    try { res = await post("get_voice_token", {agent_id:aid, browser_session_id:lvBsid()}); }
+    catch(e){ log("access: get_voice_token unreachable — "+e.message); return null; }
+
+    if(res.http === 422){
+      // ⭐ HISTORY, KEPT BECAUSE THE 422 BRANCH STILL EARNS ITS PLACE: get_voice_token REQUIRED
+      // `wallet_address` up to 2.2.348. This page never sent one — a wallet in page source is a
+      // client identifier, and teckel__test_page_privacy_v1_0.py matches 0x[0-9a-fA-F]{40} for
+      // exactly that reason. Yusuf CC dropped the parameter in 2.2.350 (agent_id +
+      // browser_session_id only, wallet resolved server-side), which is also STRICTLY SAFER:
+      // a caller-supplied wallet meant the signed token could carry a wallet the CALLER chose.
+      // ⇒ The page works unchanged because it refused to work around the gap. The branch stays
+      // so that a future required-parameter regression is legible instead of silent.
+      const miss = (((res.body||{}).detail)||[]).map(d=>(d.loc||[]).slice(-1)[0]).join(", ");
+      log("access: get_voice_token rejected the call (422 missing: "+miss+"). This is the known "
+          +"server-side gap, not a page fault — the page cannot supply a wallet address.");
+      return null;
+    }
+    const b = res.body || {};
+    if(b.success && b.token){ log("access: token minted (single use)."); authUI(false); return b.token; }
+    log("access: no token — "+(b.message || b.reason || ("HTTP "+res.http)));
+    authUI(true, b.message || "Enter the six-digit access code for this practice.");
+    return null;
+  }
+
+  async function verifyCode(){
+    const code=($("lv-code").value||"").trim(), aid=lvAgentId();
+    if(!aid){ authUI(true,"No agent id on this page."); return; }
+    $("lv-verify").disabled=true;
+    try{
+      const res=await post("verify_access_code_for_browser",
+                           {agent_id:aid, browser_session_id:lvBsid(), pin_code:code});
+      const b=res.body||{};
+      if(b.success){ authUI(false); log("access: code accepted."); $("lv-code").value="";
+                     await connect(); return; }
+      // ⚠ Show the server's `message` VERBATIM. It is written for the user and the page must not
+      //   paraphrase a refusal. ⭐ This matters MORE than it looks now that the code rotates every
+      //   15 minutes: `not_recognised` usually means EXPIRED, and the server's own wording says
+      //   "Codes expire, so please make a fresh one". Substituting "incorrect code" would be a
+      //   FALSE ACCUSATION most of the time — and `too_many_attempts` is more likely three expired
+      //   codes than three wrong ones.
+      authUI(true, b.message || ("Not accepted ("+(b.reason||("HTTP "+res.http))+")."));
+      // ⚠ CLEAR A REFUSED CODE. It is very likely dead within one coffee, so leaving it in the box
+      //   invites the user to press Verify again on a code that can never work.
+      $("lv-code").value="";
+      log("access: refused — "+(b.reason||("HTTP "+res.http)));
+    }catch(e){ authUI(true,"Could not reach the access check."); log("access: "+e.message); }
+    finally{ $("lv-verify").disabled=false; }
+  }
+
+  async function connect(){
+    const base=($("lv-url").value||"").trim();
+    if(location.protocol==="https:" && base.indexOf("ws://")===0){
       log("refused: this page is HTTPS, so a ws:// endpoint is blocked as mixed content."); return; }
     dot("sock","busy","connecting"); everOpened=false; $("lv-connect").disabled=true;
+
+    // TOKEN FIRST. ⚠ Minted here and nowhere else, so a reconnect always gets a fresh one.
+    const token = await mintVoiceToken();
+    let url = base;
+    if(token){
+      url = base + (base.indexOf("?")===-1 ? "?" : "&") + "t=" + encodeURIComponent(token);
+    } else {
+      // ⚠⚠ TEMPORARY FALLBACK — DELETE THIS BRANCH WHEN FLOW_REQUIRE_VOICE_TOKEN=1.
+      // Enforcement is currently OFF, so the flow layer still accepts a tokenless socket. If
+      // this page demanded a token today it would simply break the working local portal. The
+      // branch is explicit and LOUD precisely so nobody mistakes it for a feature: once
+      // enforcement is on the server refuses anyway and this path stops existing in practice.
+      log("⚠ connecting WITHOUT a voice token — temporary, only possible while "
+          +"FLOW_REQUIRE_VOICE_TOKEN is off. This branch is scheduled for deletion.");
+      $("lv-connect").disabled=false;
+      if($("lv-auth-row") && $("lv-auth-row").style.display!==""){ /* no code box needed yet */ }
+      $("lv-connect").disabled=true;
+    }
     try{ sock=new WebSocket(url); }catch(e){ log("socket failed: "+e.message);
       $("lv-connect").disabled=false; dot("sock","off","failed"); return; }
     sock.binaryType="arraybuffer";
@@ -3062,7 +3188,9 @@
     $("lv-connect").disabled=false; $("lv-disconnect").disabled=true; }
 
   $("lv-url").value=qs.get("ws")||DEFAULT_WS;
-  $("lv-connect").onclick=connect;
+  $("lv-connect").onclick=()=>{ connect(); };
+  if($("lv-verify")) $("lv-verify").onclick=verifyCode;
+  if($("lv-code")) $("lv-code").addEventListener("keydown",e=>{ if(e.key==="Enter") verifyCode(); });
   $("lv-disconnect").onclick=disconnect;
   dot("sock","","socket idle"); dot("mic","","mic off");
   log("local chain ready. No ElevenLabs on this page.");
