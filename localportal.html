@@ -402,6 +402,24 @@
             border: 0;
             background: #ffffff;
         }
+        /* 19 Oct 2026 — PHONES: a PDF inside an iframe is not displayed by mobile browsers (Android shows an "Open"
+           button that downloads it; iOS at best a static first page), so on a phone the form is DRAWN with PDF.js into
+           this panel over the frame. Desktop keeps the frame untouched. */
+        .pdf-mobile-host {
+            display: none;
+            position: absolute;
+            top: 0; right: 0; bottom: 0; left: 0;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+            background: #ffffff;
+            z-index: 2;
+        }
+        .pdf-mobile-host.shown { display: block; }
+        .pdf-mobile-host canvas {
+            display: block;
+            margin: 0 auto 8px auto;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+        }
         /* v2.2.235 — the form search box. Sits ABOVE the viewer so it reads as a way in
            to the list, not a control on the document currently shown. */
         .form-search-bar { position: relative; margin: 0 0 10px 0; }
@@ -1336,7 +1354,7 @@
                                 console.log('[teckel] iframe token expired; rolling to fresh tokens silently');
                                 var iframe = document.getElementById('form-viewer');
                                 if (iframe && rollingPdfUrl) {
-                                    iframe.src = rollingPdfUrl;
+                                    showPdfUrl(iframe, rollingPdfUrl);
                                 }
                                 // keep the live-refresh loop on the fresh token (2b)
                                 setFormView({ url: rollingPdfUrl,
@@ -1432,6 +1450,101 @@
         var lastActivityAt = Date.now();
         function markActivity() { lastActivityAt = Date.now(); }
         function isIdle() { return (Date.now() - lastActivityAt) > IDLE_STOP_MS; }
+
+        // ── 19 Oct 2026 — PHONES: draw the PDF with PDF.js (see .pdf-mobile-host). Desktop: the frame, exactly as before.
+        //    ?pdfjs=1 forces the phone path on a desktop for testing; ?pdfjs=0 forces the frame.
+        var MOBILE_PDF = (function () {
+            try {
+                var q = (location.search.match(/[?&]pdfjs=([01])/) || [])[1];
+                if (q) return q === '1';
+                return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+                    || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))
+                    || navigator.pdfViewerEnabled === false;
+            } catch (e) { return false; }
+        })();
+        var PDFJS_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+        var pdfjsReady = null, pdfHost = null, pdfRenderSeq = 0;
+        function ensurePdfjs() {
+            if (pdfjsReady) return pdfjsReady;
+            pdfjsReady = new Promise(function (res, rej) {
+                var s = document.createElement('script');
+                s.src = PDFJS_BASE + 'pdf.min.js';
+                s.onload = function () {
+                    try {
+                        window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_BASE + 'pdf.worker.min.js';
+                        res(window.pdfjsLib);
+                    } catch (e) { pdfjsReady = null; rej(e); }
+                };
+                s.onerror = function () { pdfjsReady = null; rej(new Error('pdf.js did not load')); };
+                document.head.appendChild(s);
+            });
+            return pdfjsReady;
+        }
+        function getPdfHost() {
+            if (pdfHost) return pdfHost;
+            var shell = document.querySelector('.form-viewer-shell');
+            if (!shell) return null;
+            pdfHost = document.createElement('div');
+            pdfHost.id = 'pdf-mobile-host';
+            pdfHost.className = 'pdf-mobile-host';
+            shell.appendChild(pdfHost);
+            return pdfHost;
+        }
+        // Resolves with the page count once EVERY page is drawn; rejects if it could not be drawn. A newer call
+        // supersedes an older one, and a redraw keeps the reader's scroll position.
+        function renderPdfMobile(url) {
+            var seq = ++pdfRenderSeq;
+            var host = getPdfHost();
+            if (!host) return Promise.reject(new Error('no form-viewer shell on page'));
+            var keepScroll = host.classList.contains('shown') ? host.scrollTop : 0;
+            return ensurePdfjs().then(function (lib) {
+                return lib.getDocument({ url: url }).promise;
+            }).then(function (doc) {
+                var width = Math.max(200, (host.parentNode.clientWidth || 320) - 8);
+                var dpr = Math.min(window.devicePixelRatio || 1, 2);
+                var canvases = [];
+                var chain = Promise.resolve();
+                for (var i = 1; i <= doc.numPages; i++) {
+                    chain = chain.then((function (n) {
+                        return function () {
+                            return doc.getPage(n).then(function (page) {
+                                var base = page.getViewport({ scale: 1 });
+                                var vp = page.getViewport({ scale: (width / base.width) * dpr });
+                                var c = document.createElement('canvas');
+                                c.width = Math.floor(vp.width);
+                                c.height = Math.floor(vp.height);
+                                c.style.width = Math.floor(vp.width / dpr) + 'px';
+                                c.style.height = Math.floor(vp.height / dpr) + 'px';
+                                canvases.push(c);
+                                return page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+                            });
+                        };
+                    })(i));
+                }
+                return chain.then(function () {
+                    if (seq !== pdfRenderSeq) return doc.numPages;      // superseded by a newer view
+                    host.innerHTML = '';
+                    canvases.forEach(function (c) { host.appendChild(c); });
+                    host.classList.add('shown');
+                    host.scrollTop = keepScroll;
+                    return doc.numPages;
+                });
+            });
+        }
+        function hidePdfHost() {
+            pdfRenderSeq++;
+            if (pdfHost) { pdfHost.classList.remove('shown'); pdfHost.innerHTML = ''; }
+        }
+        // A FORM (a PDF): drawn on a phone, the frame on a desktop.
+        function showPdfUrl(iframe, url) {
+            if (!MOBILE_PDF) { iframe.src = url; return; }
+            renderPdfMobile(url).catch(function (e) { console.error('[teckel] form could not be drawn:', e); });
+        }
+        // A PAGE (upload, settings, directory, guidance): always the frame, so hide any drawn form first.
+        function showHtmlUrl(iframe, url) {
+            hidePdfHost();
+            iframe.src = url;
+        }
 
         function bustCache(url) {
             return url + (url.indexOf('?') >= 0 ? '&' : '?') + '_r=' + Date.now();
@@ -1530,7 +1643,7 @@
             var url    = rollingPdfUrl || lastFormUrl;
             if (!iframe || !url) return false;
             var placeholder = document.getElementById('form-viewer-placeholder');
-            iframe.src = bustCache(url);
+            showPdfUrl(iframe, bustCache(url));
             if (placeholder) placeholder.classList.add('hidden');
             // Back on a form again: restore the auto-refresh contract this view had before
             // it was swapped away, so the form resumes redrawing itself when it changes.
@@ -1544,7 +1657,7 @@
             if (!iframe || !currentFormView.url) return false;
             // Prefer the freshest token the self-heal poll has cached.
             var url = rollingPdfUrl || currentFormView.url;
-            iframe.src = bustCache(url);
+            showPdfUrl(iframe, bustCache(url));
             lastFormStamp = latestFormStamp;   // may be null — see above
             console.log('[teckel] form redrawn (' + reason + ')');
             return true;
@@ -2003,7 +2116,22 @@
                             console.log('[teckel] setting iframe.src to:', pdfUrl);
                             if (iframe) {
                                 iframe.removeAttribute('srcdoc');   // clear any prior fabrication card
-                                iframe.src = pdfUrl;
+                                if (MOBILE_PDF) {
+                                    // 19 Oct 2026: a phone cannot show a PDF in the frame, and the frame's 'load'
+                                    // fired anyway ("iframe loaded" while the user saw an Open button). Report what
+                                    // was DRAWN, or that it could not be.
+                                    renderPdfMobile(pdfUrl).then(function (n) {
+                                        finishOnce('display_form completed: view_session_id=' + viewSessionId
+                                            + ', the form is drawn on the screen (' + n + ' page' + (n === 1 ? '' : 's')
+                                            + '), cost-poll started. Do NOT call display_form again with this same id.');
+                                    }).catch(function (e) {
+                                        console.error('[teckel] form could not be drawn:', e);
+                                        finishOnce('display_form failed: the form could not be shown on this screen. '
+                                            + 'Tell the user, and read the questions aloud instead.');
+                                    });
+                                } else {
+                                    iframe.src = pdfUrl;
+                                }
                                 // arm the live-refresh loop (2b) for THIS form view.
                                 //
                                 // NOT for an uploaded DOCUMENT (view_mode 'evidence',
@@ -2020,7 +2148,7 @@
                                 } else {
                                     setFormView({ url: pdfUrl, shownAt: Date.now() });
                                 }
-                                iframe.addEventListener('load', function () {
+                                if (!MOBILE_PDF) iframe.addEventListener('load', function () {
                                     console.log('[teckel] iframe loaded successfully');
                                     finishOnce(
                                         'display_form completed: view_session_id=' + viewSessionId
@@ -2056,10 +2184,14 @@
                         // (some networks / iframe quirks), resolve at
                         // 5s so the LLM doesn't hit its 10s timeout.
                         setTimeout(function () {
-                            finishOnce(
-                                'display_form completed: view_session_id=' + viewSessionId
-                                + ', iframe load event timed out at 5s but src is set; cost-poll started. '
-                                + 'Do NOT call display_form again with this same id.'
+                            // 19 Oct 2026: on a phone, never claim the form is shown before it is DRAWN.
+                            finishOnce(MOBILE_PDF
+                                ? ('display_form: view_session_id=' + viewSessionId + ' is still being drawn on the '
+                                   + 'screen; cost-poll started. Do NOT call display_form again with this same id, and do '
+                                   + 'not tell the user it is on screen until they say they can see it.')
+                                : ('display_form completed: view_session_id=' + viewSessionId
+                                   + ', iframe load event timed out at 5s but src is set; cost-poll started. '
+                                   + 'Do NOT call display_form again with this same id.')
                             );
                         }, 5000);
                     });
@@ -2149,7 +2281,7 @@
             if (!iframe) return Promise.resolve('display_upload_link failed: no form-viewer element on page.');
             lastUploadShown = { url: url, ts: nowMs };
             setFormView({ url: null, shownAt: 0 });   // never auto-reload an upload page (2b)
-            iframe.src = url;
+            showHtmlUrl(iframe, url);
             if (placeholder) placeholder.classList.add('hidden');
             console.log('[teckel] display_upload_link loaded the upload page in the iframe');
             return Promise.resolve(
@@ -2191,7 +2323,7 @@
             if (!iframe) return 'display_settings_link failed: no form-viewer element on page.';
             lastSettingsShown = { url: url, ts: nowMs };
             setFormView({ url: null, shownAt: 0 });   // never auto-reload the settings page (2b)
-            iframe.src = url;
+            showHtmlUrl(iframe, url);
             if (placeholder) placeholder.classList.add('hidden');
             console.log('[teckel] display_settings_link loaded the settings page in the iframe');
             if (/\/signatures\.html\?token=/.test(url)) {
@@ -2278,7 +2410,7 @@
             if (!iframe) return 'display_category_directory failed: no form-viewer element on page.';
             lastDirectoryShown = { url: url, ts: nowMs };
             setFormView({ url: null, shownAt: 0 });   // read-only view: never auto-reload it
-            iframe.src = url;
+            showHtmlUrl(iframe, url);
             if (placeholder) placeholder.classList.add('hidden');
             console.log('[teckel] display_category_directory loaded the directory in the iframe');
             return 'display_category_directory completed: the document directory is on screen now. '
@@ -2359,7 +2491,7 @@
             // Read-only view: never auto-reload it. This also hides the refresh button and
             // — because lastFormUrl survives it — reveals "Back to my form" if a form was up.
             setFormView({ url: null, shownAt: 0 });
-            iframe.src = url;
+            showHtmlUrl(iframe, url);
             if (placeholder) placeholder.classList.add('hidden');
             console.log('[teckel] display_guidance loaded the document in the iframe');
             return 'display_guidance completed: the document is on screen now. Do NOT read it '
@@ -2685,6 +2817,7 @@
                 var _placeholder = document.getElementById('form-viewer-placeholder');
                 if (_iframe) {
                     _iframe.removeAttribute('srcdoc');
+                    hidePdfHost();
                     _iframe.src = 'about:blank';
                 }
                 if (_placeholder) _placeholder.classList.remove('hidden');
