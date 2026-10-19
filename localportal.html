@@ -289,6 +289,9 @@
         .lv-dot.on{background:#3fb950;} .lv-dot.busy{background:#d29922;} .lv-dot.off{background:#f85149;}
         .lv-meta { color:#8b98a5; font-size:12px; }
         #lv-transcript { max-height:200px; overflow-y:auto; margin-top:8px; }
+        .lv-status { margin-top:8px; padding:6px 10px; border-radius:8px; background:rgba(88,166,255,.12);
+                     color:#c9d1d9; font-style:italic; font-size:.95em; }
+        .lv-status::before { content:"⋯ "; color:#58a6ff; font-style:normal; }
         #lv-transcript .l { margin:0 0 6px; padding-left:50px; text-indent:-50px; }
         #lv-transcript .l .w { display:inline-block; width:44px; color:#8b98a5;
                                font-size:11px; text-transform:uppercase; }
@@ -743,6 +746,9 @@
                     <span class="lv-meta" id="lv-st-frames">0 frames</span>
                   </div>
                   <div class="lv-meta" id="lv-health" style="margin-top:8px">health not checked</div>
+                  <!-- 19 Oct 2026: a status line while Benedict works (kev-flow 1.61.0 {"kind":"status"}). Shown, never
+                       spoken. The host's text verbatim, present tense only: the page adds no "Done" of its own. -->
+                  <div id="lv-status" class="lv-status" aria-live="polite" hidden></div>
                   <div id="lv-transcript"><div class="lv-meta">No transcript yet.</div></div>
                   <div id="lv-log"></div>
                 </div>
@@ -2924,7 +2930,17 @@
     $("lv-log").textContent += t+"  "+m+"\n"; $("lv-log").scrollTop=1e9; }
   function dot(w,c,t){ $("lv-dot-"+w).className="lv-dot"+(c?" "+c:""); $("lv-st-"+w).textContent=t; }
 
+  // 19 Oct 2026 — the host's status line (kev-flow 1.61.0): one-way, nothing awaited. An empty text, or phase "clear",
+  // hides it. ⛔ Shown verbatim and never extended: the line goes out BEFORE any result is known, so the page must not
+  // turn a clear into "Done" or "Saved" (a claim about the record the user cannot check).
+  function showStatus(m){
+    const el=$("lv-status"); if(!el) return;
+    const t=(m && m.phase!=="clear" && typeof m.text==="string") ? m.text.trim().slice(0,120) : "";
+    if(!t){ el.hidden=true; el.textContent=""; return; }
+    el.textContent=t; el.hidden=false;
+  }
   function addTranscript(m){
+    if(m && m.role==="bot") showStatus({text:""});      // Benedict is speaking: the wait is over
     const box=$("lv-transcript");
     if(box.firstElementChild && box.firstElementChild.className==="lv-meta") box.textContent="";
     if(m.role==="bot" && !m.final){
@@ -3203,6 +3219,7 @@
       if(f.audio) playPCM(f.audio,f.rate||BOT_RATE);
       if(f.msg){ let m; try{ m=JSON.parse(f.msg); }catch(e){ log("non-JSON message"); return; }
         if(m.kind==="transcript") addTranscript(m);
+        else if(m.kind==="status") showStatus(m);
         else if(m.kind==="client_tool") runClientTool(m);
         else log("message: "+f.msg.slice(0,160)); } };
     sock.onclose=(e)=>{ dot("sock","off","closed ("+e.code+")");
