@@ -1451,6 +1451,7 @@
         function markActivity() { lastActivityAt = Date.now(); }
         function isIdle() { return (Date.now() - lastActivityAt) > IDLE_STOP_MS; }
 
+        // (republished 19 Oct 16:1xZ to trigger a Pages build; the first build stalled)
         // ── 19 Oct 2026 — PHONES: draw the PDF with PDF.js (see .pdf-mobile-host). Desktop: the frame, exactly as before.
         //    ?pdfjs=1 forces the phone path on a desktop for testing; ?pdfjs=0 forces the frame.
         var MOBILE_PDF = (function () {
