@@ -1868,7 +1868,11 @@
             // which the server opens directly (match "title"). Only when the local socket is open (teckelLocalSay
             // returns false otherwise), so the page never claims a send that did not happen.
             var said = 'Let\'s fill in "' + name + '".';
-            if (typeof window.teckelLocalSay === 'function') {
+            // 20 Oct, later: kev-flow 1.66.0 takes a STRUCTURED pick ({kind:"pick_form", title}); it re-runs the server's
+            // search on the title and opens only what the search offers, and the pick drives its own turn.
+            if (typeof window.teckelLocalPick === 'function') {
+                if (!window.teckelLocalPick(name)) return false;
+            } else if (typeof window.teckelLocalSay === 'function') {
                 if (!window.teckelLocalSay(said)) return false;
             } else {
                 var tag = document.querySelector('elevenlabs-convai');
@@ -3077,6 +3081,15 @@
     try { sock.send(encodeMessage(JSON.stringify({ kind: "user_text", text: String(text || "").slice(0, 400) })));
           log("tap -> " + String(text).slice(0, 80)); return true; }
     catch (e) { log("could not send the tap: " + e.message); return false; }
+  };
+  // 20 Oct 2026 (kev-flow 1.66.0) — a tap is a PICK, not speech: {kind:"pick_form", title[, list_token]}. kev re-runs the
+  // server's search on the title (it never trusts a storage key from the page). list_token only for kev's numbered lists.
+  window.teckelLocalPick = function (title, listToken) {
+    if (!sock || sock.readyState !== WebSocket.OPEN) return false;
+    const m = { kind: "pick_form", title: String(title || "").slice(0, 300) };
+    if (listToken) m.list_token = String(listToken).slice(0, 80);
+    try { sock.send(encodeMessage(JSON.stringify(m))); log("pick -> " + m.title.slice(0, 80)); return true; }
+    catch (e) { log("could not send the pick: " + e.message); return false; }
   };
   function log(m){ const t=new Date().toISOString().substr(11,12);
     $("lv-log").textContent += t+"  "+m+"\n"; $("lv-log").scrollTop=1e9; }
