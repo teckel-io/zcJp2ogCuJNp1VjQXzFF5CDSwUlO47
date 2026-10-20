@@ -1857,18 +1857,28 @@
             var box = document.getElementById('form-search');
             if (box) renderSearchResults(box.value);   // the hint follows the state
         }
+        window.setBenedictLive = setBenedictLive;   // 20 Oct: the local chain's socket script (another scope) sets it
         function askBenedictToFill(name) {
             name = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 200);
             if (!name || !benedictLive) return false;
             var now = Date.now();
             if (lastAskedFill.name === name && (now - lastAskedFill.ts) < 4000) return true;
-            var tag = document.querySelector('elevenlabs-convai');
-            if (!tag) return false;
-            try {
-                tag.dispatchEvent(new CustomEvent('elevenlabs-agent:user-message', {
-                    detail: { message: 'Let\'s fill in "' + name + '".' } }));
-            } catch (e) {
-                return false;
+            // 20 Oct 2026 (Yusuf: "Open forms by tapping on screen for the pilot") — the LOCAL chain (kev) has no
+            // ElevenLabs widget: the tap goes to kev over the live socket as the user's own words, the exact title,
+            // which the server opens directly (match "title"). Only when the local socket is open (teckelLocalSay
+            // returns false otherwise), so the page never claims a send that did not happen.
+            var said = 'Let\'s fill in "' + name + '".';
+            if (typeof window.teckelLocalSay === 'function') {
+                if (!window.teckelLocalSay(said)) return false;
+            } else {
+                var tag = document.querySelector('elevenlabs-convai');
+                if (!tag) return false;
+                try {
+                    tag.dispatchEvent(new CustomEvent('elevenlabs-agent:user-message', {
+                        detail: { message: said } }));
+                } catch (e) {
+                    return false;
+                }
             }
             lastAskedFill = { name: name, ts: now };
             markActivity();
@@ -3060,6 +3070,14 @@
     frame.set(outer, 0); frame.set(mf, outer.length);
     return frame;
   }
+  // 20 Oct 2026 — a tap on a form (the search box or the traffic-light directory) reaches kev as the user's words: one
+  // user_text message over the open socket, exactly as a typed or spoken turn. false when no socket is open.
+  window.teckelLocalSay = function (text) {
+    if (!sock || sock.readyState !== WebSocket.OPEN) return false;
+    try { sock.send(encodeMessage(JSON.stringify({ kind: "user_text", text: String(text || "").slice(0, 400) })));
+          log("tap -> " + String(text).slice(0, 80)); return true; }
+    catch (e) { log("could not send the tap: " + e.message); return false; }
+  };
   function log(m){ const t=new Date().toISOString().substr(11,12);
     $("lv-log").textContent += t+"  "+m+"\n"; $("lv-log").scrollTop=1e9; }
   function dot(w,c,t){ $("lv-dot-"+w).className="lv-dot"+(c?" "+c:""); $("lv-st-"+w).textContent=t; }
@@ -3344,6 +3362,7 @@
       $("lv-connect").disabled=false; dot("sock","off","failed"); return; }
     sock.binaryType="arraybuffer";
     sock.onopen=async()=>{ everOpened=true; dot("sock","on","connected");
+      if (typeof window.setBenedictLive === "function") window.setBenedictLive(true);   // taps now reach kev
       $("lv-disconnect").disabled=false; log("connected to "+url); health();
       try{ await startMic(); }catch(e){ log("mic refused: "+e.message); } };
     sock.onmessage=(ev)=>{
@@ -3357,6 +3376,7 @@
         else if(m.kind==="client_tool") runClientTool(m);
         else log("message: "+f.msg.slice(0,160)); } };
     sock.onclose=(e)=>{ dot("sock","off","closed ("+e.code+")");
+      if (typeof window.setBenedictLive === "function") window.setBenedictLive(false);
       $("lv-connect").disabled=false; $("lv-disconnect").disabled=true; stopMic(); flushPlayback();
       if(e.code===1006 && !everOpened) log("handshake failed (often a transient 502) — try Connect again.");
       log("closed, code "+e.code); };
