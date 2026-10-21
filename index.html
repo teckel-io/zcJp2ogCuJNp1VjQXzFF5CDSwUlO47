@@ -4303,8 +4303,14 @@
   function isGuideLink(el){
     return el.tagName === "A" && /^guide\.html(?:[#?]|$)/.test(el.getAttribute("href") || "");
   }
+  /* 21 Oct 2026 (Steven, via Yusuf: "teckel.io never be greyed out"): a link to teckel.io itself (the footer, support) is
+     ALWAYS active too, like the User Guide. It opens teckel's public site and carries nothing of the practice's. */
+  function isTeckelLink(el){
+    return el.tagName === "A" && /^https:\/\/(?:www\.)?teckel\.io(?:[\/?#]|$)/i.test(el.getAttribute("href") || "");
+  }
   function lockExempt(el){
     if (isGuideLink(el)) return true;                       /* the User Guide: ALWAYS active */
+    if (isTeckelLink(el)) return true;                      /* teckel.io: ALWAYS active (Steven, 21 Oct) */
     if (el.closest && el.closest(LOCK_EXEMPT_ZONES)) return true;
     // A control that stops the microphone is never greyed while a conversation is open.
     if ((el.id === "lv-mute" || el.id === "lv-disconnect") && isOpen()) return true;
