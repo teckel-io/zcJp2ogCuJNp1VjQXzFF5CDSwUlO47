@@ -1,4 +1,15 @@
 <!DOCTYPE html>
+<!--
+  guide.html — THE USER GUIDE FOR THE PORTAL ON TECKEL'S OWN VOICE CHAIN (V2). A GENERATED FILE:
+  teckel__build_localportal_v2_0.py rewords localportal_blocks/el_source/guide.html (the
+  ElevenLabs guide, sha256 4c0d520e002e) where it describes the ElevenLabs widget (starting, the
+  code, typing, ending, the timeouts, coming back). Everything else is that guide, unchanged, so a
+  guide update goes in the SOURCE and reaches both guides on a rebuild (--write); never hand-edit.
+  DO NOT DEPLOY — HELD (20 Oct 2026): built in a worktree, not reviewed for deploy. Rebuild with
+  --release to drop this line; teckel__template_page_put_v1_0.py refuses any file carrying it.
+  ⬜ NOT YET REWORDED, BECAUSE THE FACTS ARE NOT SETTLED: the cost sections still describe
+  ElevenLabs call-time billing ("while a voice call is open you are paying for the time").
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -595,38 +606,43 @@
                 &ldquo;no_reply@teckel.io&rdquo;.) You&rsquo;ll see two things side by side:
             </p>
             <ul>
-                <li><strong>On the left:</strong> the Benedict voice widget &mdash; your way to talk to him.</li>
+                <li><strong>On the left:</strong> the Benedict panel &mdash; a <strong>Start conversation</strong> button, a box to type in, and the conversation as it happens.</li>
                 <li><strong>On the right:</strong> the form viewer (currently empty). Your session cost appears at the top once the session ends.</li>
             </ul>
             <p>
-                To start, click the Benedict widget once and allow microphone access if
-                your browser asks. Then just speak &mdash; there&rsquo;s no special wake
-                word. Try <em>&ldquo;hi Benedict&rdquo;</em>, <em>&ldquo;I want to fill in a form&rdquo;</em>,
+                To start, press <strong>Start conversation</strong> and allow microphone
+                access if your browser asks. Then just speak &mdash; there&rsquo;s no
+                special wake word. Try <em>&ldquo;hi Benedict&rdquo;</em>, <em>&ldquo;I want to fill in a form&rdquo;</em>,
                 or <em>&ldquo;open the Crown consent.&rdquo;</em>
             </p>
             <h3>Your access code</h3>
             <p>
-                Benedict will first ask for your <strong>six-digit access code</strong>.
-                Open the teckel App on your phone, navigate to your Account with your
-                teckel credit (tc) balance, tap &ldquo;Generate Access Code&rdquo;
-                (a box opens in the middle of the screen headed <em>Access Code</em>,
-                showing your temporary six-digit code in large figures), and read it
-                out loud to Benedict (or type it). Take your time &mdash; the box stays
+                The first time you start on a browser, the page asks for your
+                <strong>six-digit access code</strong> before Benedict joins. Open the
+                teckel App on your phone, navigate to your Account with your teckel
+                credit (tc) balance, tap &ldquo;Generate Access Code&rdquo; (a box opens
+                in the middle of the screen headed <em>Access Code</em>, showing your
+                temporary six-digit code in large figures), type it into the
+                <em>access code</em> box on the page and press <strong>Verify</strong>. Take your time &mdash; the box stays
                 open until you tap <em>Close</em>, so you can read the code across to
                 another device without it disappearing part-way through. A code stays valid for about <strong>15 minutes</strong> from the
                 moment you generate it &mdash; and within that window the <em>same</em>
-                code simply works again, so if a call drops you can reconnect and say
-                the code you already have. After the window closes, generate a fresh
+                code simply works again, so if a conversation drops you can reconnect
+                and enter the code you already have. After the window closes, generate a fresh
                 one. That short lifetime is what keeps your practice&rsquo;s records
-                locked to your team. Better still, if you come back <em>in the same
-                browser tab</em> you usually won&rsquo;t be asked for a code at all
+                locked to your team. Better still, if you come back <em>on the same
+                browser</em> you usually won&rsquo;t be asked for a code at all
                 &mdash; see <em>Codes, timeouts and coming back</em> below.
             </p>
             <h3>Prefer to type?</h3>
             <p>
-                The widget accepts <strong>typed messages during a voice call</strong> as
-                well as speech. Everything in this guide works either way &mdash; typing
-                is especially handy for email addresses, serial numbers and access codes.
+                Once a conversation is running, the <strong>box under the buttons takes
+                typed messages</strong> as well as speech &mdash; type, press Enter or
+                <em>Send</em>, and Benedict answers as if you had said it. Everything in this
+                guide works either way; typing is especially handy for email addresses and
+                serial numbers. <strong>Mute</strong> stops the microphone without ending the
+                conversation (handy while you type or talk to a patient); press
+                <em>Unmute</em> to carry on.
             </p>
         </section>
 
@@ -637,14 +653,15 @@
                 <li><strong>Greet Benedict.</strong> <em>&ldquo;Hi Benedict&rdquo;</em> or <em>&ldquo;I want to work on a form.&rdquo;</em> He&rsquo;ll respond and ask what you&rsquo;d like to do.</li>
                 <li><strong>Find your form.</strong> Either say a phrase from the form&rsquo;s title (<em>&ldquo;Crown consent&rdquo;</em>, <em>&ldquo;cleaning specification&rdquo;</em>, <em>&ldquo;patient survey&rdquo;</em>) and Benedict will search the catalogue, OR ask <em>&ldquo;what am I working on?&rdquo;</em> / <em>&ldquo;what forms are available?&rdquo;</em> to hear the lists.</li>
                 <li><strong>Or find it on screen, without saying a word.</strong> Once a form
-                    is open, the <strong>search box</strong> just above the viewer switches on. Type a
+                    is open (or as soon as a conversation is running), the <strong>search box</strong> just above the viewer switches on. Type a
                     few letters of the name of a form you have already started or submitted &mdash; the words can be in any order, so
                     <em>&ldquo;recep check&rdquo;</em> finds <em>&ldquo;Reception Security
                     Checklist&rdquo;</em> &mdash; and matching forms are listed with their status
                     and the date they were last touched. <strong>Click one and Benedict opens
-                    it</strong> &mdash; the click hands him the form&rsquo;s exact name (it appears
-                    in the conversation as <em>&ldquo;Let&rsquo;s fill in &hellip;&rdquo;</em>), so
-                    there is nothing to spell out and nothing to mishear. Browsing out loud is the
+                    it</strong> &mdash; the click hands him the form&rsquo;s exact name, so
+                    there is nothing to spell out and nothing to mishear. Before your list of forms
+                    has arrived, type a name and press <strong>Enter</strong>, and Benedict looks
+                    for it. Browsing out loud is the
                     slowest way to find a form; one click is the fastest.
                     <em>(The box lists the forms you already have a copy of; for one you have never
                     opened, ask Benedict for it by name, or open your directory. It works while a conversation with Benedict is running. With no
@@ -1681,12 +1698,11 @@
             <p class="guide-backtotop"><a data-section="ending-the-session" href="#guide-contents">&uarr; Back to contents</a></p>
             <h2 id="ending-the-session">Ending the session</h2>
             <p>
-                When you&rsquo;re done, say <em>&ldquo;goodbye&rdquo;</em> or
-                <em>&ldquo;that&rsquo;s everything, thanks.&rdquo;</em> Benedict says one
-                goodbye and <strong>ends the call himself</strong> &mdash; there&rsquo;s
-                no hang-up button to hunt for. Your progress is already saved as you go,
-                so simply closing the page is fine too. Your total for the session is
-                shown once the call ends.
+                When you&rsquo;re done, press <strong>End conversation</strong>. You can
+                say goodbye first, but on this page the conversation ends when you press
+                End or close the page. Closing the page is fine too: anything Benedict
+                confirmed as recorded is saved. When the session&rsquo;s total is ready, it
+                appears at the top of the page.
             </p>
         </section>
 
@@ -1702,23 +1718,21 @@
                 <li><strong>Your access code &mdash; about 15 minutes.</strong> A code
                     is valid for roughly 15 minutes from the moment the teckel App
                     generates it, and within that window the <em>same</em> code works
-                    again &mdash; if a call drops and you reconnect two minutes later,
-                    just say the code you already have. After the window, generate a
+                    again &mdash; if a conversation drops and you reconnect two minutes
+                    later, just enter the code you already have. After the window, generate a
                     fresh one.</li>
-                <li><strong>&ldquo;Welcome back&rdquo; &mdash; up to about an
-                    hour.</strong> If you reconnect <em>in the same browser tab</em>
-                    after verifying, Benedict recognises the tab and skips the code
-                    entirely &mdash; you&rsquo;ll hear <em>&ldquo;Welcome back &mdash;
-                    you&rsquo;re already verified&rdquo;</em>, and if you have a form in
-                    progress, an offer to carry on where you left off. A new tab,
-                    browser or device always starts with a code &mdash; that&rsquo;s
-                    deliberate, for your records&rsquo; privacy.</li>
-                <li><strong>Silent calls end after about 5 minutes.</strong> A voice
-                    call left open in silence is still billable time, so Benedict ends
-                    the call after roughly five silent minutes to protect your balance.
-                    Nothing is lost: reconnect in the same tab and carry on. (Thinking
-                    pauses are fine &mdash; five minutes is a long time. By text there
-                    is no clock at all.)</li>
+                <li><strong>Coming back &mdash; up to about an
+                    hour.</strong> If you start again <em>on the same browser</em>
+                    after verifying, the page recognises it and skips the code box
+                    entirely. A different browser or device always starts with a code
+                    &mdash; that&rsquo;s deliberate, for your records&rsquo; privacy.</li>
+                <li><strong>A muted conversation closes after about 30 minutes.</strong>
+                    With the microphone muted the page sends no sound, and a conversation
+                    with no sound for 30 minutes is closed. The page warns you at 25
+                    minutes (press <em>Unmute to stay connected</em>), and if it does
+                    close, the panel says <em>Disconnected</em> plainly. Anything Benedict
+                    confirmed as recorded is kept: press <strong>Start conversation</strong>
+                    and carry on.</li>
                 <li><strong>The on-screen form after a call &mdash; a few
                     minutes.</strong> When a call ends, the viewer keeps showing your
                     form for a few minutes; after that it needs a fresh session to
