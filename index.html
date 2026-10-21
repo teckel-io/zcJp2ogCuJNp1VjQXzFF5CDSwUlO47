@@ -3954,11 +3954,11 @@
   function screenFormMsg(sf){
     return { kind: "screen_form", instance_id: sf.instance_id, form_name: sf.form_name, action: sf.action, at: sf.at };
   }
-  // ⚠ SENDING IS OFF (Yusuf, 21 Oct ~21:3x BST: "Yes, switch it off now") until kev's "this form" matcher stops taking
-  //   survey answers ("that one's complete") as a reference to the screen (Yusuf CC's real-sentence fixture). The page
-  //   still REMEMBERS the form (Start keeps it on screen); only the message to kev is held. The suite turns it on with
-  //   window.__lvScreenFormSend = true; a hint is never an authority (contract §6), so the override is harmless.
-  const SCREEN_FORM_SEND = window.__lvScreenFormSend === true;
+  // SENDING: switched OFF 21 Oct ~21:3x BST (Yusuf: "Yes, switch it off now") while kev's "this form" matcher took survey
+  //   answers ("that one's complete") as a reference to the screen; back ON ~22:0x BST (Yusuf: "Yes, turn it back on") once
+  //   kev 1.74.0 passed Yusuf CC's real-sentence fixture with 0 disagreements. One gate for all four sends; a test (or a
+  //   future kill switch) sets window.__lvScreenFormSend = false. A hint is never an authority (contract §6).
+  const SCREEN_FORM_SEND = window.__lvScreenFormSend !== false;
   function sendScreen(m){
     if (!SCREEN_FORM_SEND) { log("screen_form held (sending is off)"); return false; }
     return sendJSON(m);
