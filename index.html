@@ -29,6 +29,10 @@
      sent with every portal_action; at sign-in the back-office review panel opens first when there
      is anything to check; My forms offers View, Sign, Upload and Submit (preview, the address shown
      as text, then confirm). With the server's portal switch off, the page is the page before it.
+   · (21 Oct 2026, Yusuf's V2 decision 7) SIGN-OUT: sign-in is remembered per browser; a "Sign out"
+     button in the header, and an automatic sign-out after 8 hours without use and at local
+     midnight (two constants at the top of the voice transport). Signing out replaces the
+     browser's id, so the next visit asks for the code.
 
   ELEVENLABS RESIDUE, KEPT AND INERT (on purpose): the <elevenlabs-convai> tag (hidden; the
   agent id is read off it), the allow-events script, the elevenlabs-convai:call listener (it
@@ -437,6 +441,16 @@
             padding: 8px 12px; border-radius: 4px; cursor: pointer;
         }
         .pp-badge:focus-visible, .pp-dialog .lv-btn:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+        /* (21 Oct 2026, Yusuf's V2 decision 7) Sign out, in the header while the page is signed in: the guide link's
+           shape, in white, so it reads as a different kind of thing from the gold User Guide. */
+        .pp-signout {
+            font: inherit; font-size: 11px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase;
+            color: var(--white); background: transparent; border: 1px solid rgba(176, 196, 222, 0.5);
+            padding: 8px 14px; border-radius: 4px; cursor: pointer;
+        }
+        .pp-signout:hover { border-color: var(--white); background-color: rgba(176, 196, 222, 0.08); }
+        .pp-signout:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+        .pp-signout[hidden] { display: none !important; }
         .pp-card {
             background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px;
             padding: 16px 20px; min-width: 0;
@@ -915,6 +929,7 @@
             <a href="guide.html">User Guide</a>
             <button type="button" id="pp-review-badge" class="pp-badge" hidden
                     aria-haspopup="dialog" aria-controls="pp-review">Review &middot; <span id="pp-review-n">0</span> open<span class="sr-only"> &mdash; answers to check</span></button>
+            <button type="button" id="pp-signout" class="pp-signout" hidden>Sign out</button>
         </nav>
         <div class="practice-info">
             <div class="practice-name">general practice, mixed NHS and private</div>
@@ -3517,10 +3532,17 @@
          code row appears at load when the browser is not verified, the pass is held in memory
          and renewed, and every portal request carries it (window.teckelPortal.action). With
          the server's portal switch off the page works exactly as before (voice only).
+       · (21 Oct 2026, Yusuf's V2 decision 7) SIGN-OUT: sign-in stays remembered per browser; a
+         "Sign out" button in the header, and an automatic sign-out after a period without use
+         and at local midnight. See « SIGN-OUT » below.
      ===================================================================== -->
 <script>
 "use strict";
 (function () {
+  // ⭐ SIGN-OUT (Yusuf, 21 Oct 2026, V2 decision 7). These two lines are the whole policy: change them here and
+  //   rebuild. "Use" = a click, key press or touch on the page, or a live conversation (« SIGN-OUT » below).
+  const SIGN_OUT_IDLE_MS = 8 * 60 * 60 * 1000;   /* signed out after 8 hours without use */
+  const SIGN_OUT_AT_MIDNIGHT = true;             /* ... and at local midnight: a sign-in lasts one calendar day */
   const DEFAULT_WS = "wss://flow.tkllabs-ai.work";
   const MIC_RATE = 16000, BOT_RATE = 24000, FRAME = 320;   /* 20 ms at 16 kHz */
   // kev reaps an idle socket after 30 minutes (FLOW_IDLE_SECS default 1800). A muted page
@@ -3536,6 +3558,7 @@
   let sock=null, micCtx=null, micNode=null, micSrc=null, micStream=null, outCtx=null, playHead=0;
   let sources=[], frames=0, botPartial="", everOpened=false, connecting=false, endingByUser=false;
   let muted=false, muteTimer=null, lastRecorded=null, pendingTyped=[];
+  let droppingFrames=false;              /* signed out mid-conversation: nothing more from kev reaches the screen */
   const callIdByKey = {};                /* "display_form:<view_session_id>" -> kev's call id */
   const dbg = {};                        /* the ?debug=1 drawer's nodes; empty in production */
 
@@ -3692,7 +3715,10 @@
     try { console.info("[teckel-local] " + m); } catch(e) {}
     if (dbg.log) { dbg.log.textContent += line + "\n"; dbg.log.scrollTop = 1e9; }
   }
-  function activity(){ try { if (typeof window.teckelMarkActivity === "function") window.teckelMarkActivity(); } catch(e) {} }
+  function activity(){
+    try { if (typeof window.teckelMarkActivity === "function") window.teckelMarkActivity(); } catch(e) {}
+    markUse();                             /* the conversation's own life is use too (« SIGN-OUT ») */
+  }
   function live(on){ try { if (typeof window.setBenedictLive === "function") window.setBenedictLive(on); } catch(e) {} }
   function setConn(cls, text){
     const d = $("lv-dot-sock"); if (d) d.className = "lv-dot" + (cls ? " " + cls : "");
@@ -4030,6 +4056,46 @@
     }
   }
 
+  /* ── THE SIGN-IN RECORD (21 Oct 2026, Yusuf's V2 decision 7), kept BESIDE the browser session id:
+        localStorage["lv_signin_" + agentId] = {"day": "YYYY-MM-DD" (the local date of the sign-in),
+                                                "last": <ms of the last use>}
+        — a date and a time, nothing else: never the pass, the code or a voice token. It is written when the
+        code is accepted (and when a pass opens a browser that has none yet), refreshed by use, and removed
+        with the id at sign-out. It is what lets the idle and midnight rules apply to a page REOPENED later
+        (tomorrow, after a relaunch, after sleep): the page reads it before it sends the id anywhere.
+        ⚠ No record = this id was never signed in on this page (a fresh id), so there is nothing to end.
+        ⚠ A record that cannot be read as a date and a time counts as EXPIRED: unsure means signed out. ── */
+  function signInKey(){ return "lv_signin_" + (lvAgentId() || "unknown"); }
+  function localDay(){
+    const d = new Date(), p = function (n) { return (n < 10 ? "0" : "") + n; };
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+  }
+  function readSignIn(){
+    let raw = null;
+    try { raw = localStorage.getItem(signInKey()); } catch(e) { return null; }   /* no storage: a fresh id each load anyway */
+    if (raw === null) return null;
+    try { const r = JSON.parse(raw); return (r && typeof r === "object" && !Array.isArray(r)) ? r : {}; }
+    catch(e) { return {}; }
+  }
+  function writeSignIn(rec){
+    try { localStorage.setItem(signInKey(), JSON.stringify({ day: String(rec.day), last: Number(rec.last) })); return true; }
+    catch(e) { return false; }
+  }
+  // THE ONE PLACE THIS BROWSER STOPS BEING VERIFIED: the id in localStorage is REPLACED with a fresh random one
+  // and the record goes with it, so every later call carries an id the server has never verified and the next
+  // visit asks for the code. Nothing is asked of the server: there is no revoke route (Yusuf CC, read from the
+  // live apiGateway, 21 Oct 2026), so the old id is simply ABANDONED. The server keeps a browser verified for
+  // 60 minutes after its LAST successful check, sliding, with no absolute cap: an abandoned id — like a tab
+  // that was closed — is forgotten 60 minutes after the last check made with it, and this page makes none
+  // after this line runs (a renewal, a reconnect and a reply still on its way are all stopped; see signOut).
+  function bsidStorageKey(){ return "lv_bsid_" + (lvAgentId() || "unknown"); }
+  function replaceBsid(){
+    const key = bsidStorageKey();
+    try { localStorage.removeItem(signInKey()); } catch(e) {}
+    try { localStorage.setItem(key, crypto.randomUUID()); }
+    catch(e) { try { localStorage.removeItem(key); } catch(e2) {} }   /* then lvBsid() makes a fresh one */
+  }
+
   function authUI(show, msg){
     const r = $("lv-auth-row"); if (r) r.style.display = show ? "" : "none";
     // The 15-minute hint rides WITH the row, so expiry is stated before the first failure.
@@ -4082,14 +4148,23 @@
       showMsg("This page is not set up for voice yet. Please contact teckel.io/support.");
       return null;
     }
+    // ⭐ THE SIGN-OUT RULES RIDE ON THE CALL ITSELF (« SIGN-OUT »): checked before this browser's id is sent, so
+    //   a stopped timer cannot keep an expired sign-in alive through Start or a reconnect. With the server's
+    //   portal switch off the code is asked at Start, so the page goes on with the NEW id (and is refused).
+    if (signOutCheck(true) === "out" && doorMode !== "legacy") return null;
+    const epoch = signOutEpoch;
     let res;
     try { res = await post("get_voice_token", { agent_id: aid, browser_session_id: lvBsid() }); }
     catch(e){
+      if (epoch !== signOutEpoch) return null;              /* signed out meanwhile: nothing more to say */
       log("access: get_voice_token unreachable — " + e.message);
       setConn("off", "Could not reach teckel");
       showMsg("Benedict could not be reached just now. Please try again in a moment.");
       return null;
     }
+    // ⚠ An answer to a request sent BEFORE a sign-out is dropped: a token minted for the old id must not open
+    //   a conversation on a page that has just been signed out.
+    if (epoch !== signOutEpoch) { log("access: an answer from before the sign-out was dropped."); return null; }
     const b = res.body || {};
     if (res.http === 422) {
       // A required-parameter regression would land here; legible instead of silent.
@@ -4136,11 +4211,15 @@
     const code = ($("lv-code").value || "").trim(), aid = lvAgentId();
     if (!aid) { authUI(true, "This page is not set up for voice yet."); return; }
     $("lv-verify").disabled = true;
+    const epoch = signOutEpoch;
     try {
       const res = await post("verify_access_code_for_browser",
                              { agent_id: aid, browser_session_id: lvBsid(), pin_code: code });
       const b = res.body || {};
+      // Signed out while the code was being checked: that answer was for the id just abandoned.
+      if (epoch !== signOutEpoch) { authUI(true, signedOutNote); $("lv-code").value = ""; return; }
       if (b.success) { authUI(false); log("access: code accepted."); $("lv-code").value = "";
+                       startSignIn(); signedOutNote = "";   /* « SIGN-OUT »: the day and the first use, beside the id */
                        await afterCodeAccepted(); return; }
       // ⚠ Show the server's `message` VERBATIM. The code rotates every 15 minutes, so
       //   `not_recognised` usually means EXPIRED; substituting "incorrect code" would be a FALSE
@@ -4314,6 +4393,7 @@
   function dropPass(){
     pass = null; passMs = 0; passDeadline = 0; renewAt = 0;
     clearTimeout(renewTimer); clearTimeout(expireTimer); renewTimer = expireTimer = null;
+    showSignOut(false);                                     /* no pass, no Sign out button (« SIGN-OUT ») */
   }
   function holdPass(p, ttlSeconds){
     clearTimeout(renewTimer); clearTimeout(expireTimer);
@@ -4347,7 +4427,8 @@
     setDoorMode("door");
     if (had) emit("lapse", { code: code });                 /* the panels close first, so the code row can take focus */
     lockAll(); doorLine("");
-    authUI(true, how === "first" ? DOOR_FIRST : DOOR_AGAIN);
+    // After a sign-out the code row keeps saying WHY, until the next sign-in (« SIGN-OUT »).
+    authUI(true, signedOutNote || (how === "first" ? DOOR_FIRST : DOOR_AGAIN));
     log("portal: closed (" + code + ")");
   }
   function doorUnreachable(say){
@@ -4378,13 +4459,25 @@
   async function obtainPass(reason){
     const aid = lvAgentId();
     if (!aid) { doorBlocked(DOOR_NOT_SET_UP); return false; }
+    // ⭐ THE SIGN-OUT RULES RIDE ON THE CALL ITSELF (« SIGN-OUT »). Before this browser's id is sent — at load, on
+    //   Try again, on every renewal — the stored last use and sign-in date are read: expired means SIGN OUT, never
+    //   renew. While the page is open its renewals are what keep the server's 60-minute window alive, so a timer
+    //   that died, a tab the browser restored after a relaunch and a laptop back from sleep all end here. At load
+    //   (and on Try again) the page then asks with the NEW id, which tells it the server's mode and asks for the
+    //   code; a renewal stops.
+    if (signOutCheck(false) === "out" && reason !== "load" && reason !== "retry") return false;
+    const epoch = signOutEpoch;
     let res;
     try { res = await post("get_portal_pass", { agent_id: aid, browser_session_id: lvBsid() }); }
     catch(e) {
+      if (epoch !== signOutEpoch) return false;             /* signed out meanwhile: the page already says so */
       log("portal: get_portal_pass unreachable — " + e.message);
       if (reason === "renew") return null;
       doorUnreachable(""); return false;
     }
+    // ⚠ A REPLY TO A REQUEST SENT BEFORE A SIGN-OUT IS DROPPED. The old id is still verified on the server (no
+    //   revoke), so a renewal already on its way when Sign out is pressed would otherwise open the page again.
+    if (epoch !== signOutEpoch) { log("portal: an answer from before the sign-out was dropped"); return false; }
     const b = res.body || {};
     const code = String(b.error_code || "").trim().toUpperCase();
     if (res.http === 200 && b.success === true && typeof b.pass === "string" && b.pass) {
@@ -4392,7 +4485,12 @@
       holdPass(b.pass, ttlOf(b));
       setDoorMode("door");
       log("portal: " + (wasHeld ? "renewed" : "open") + " for " + Math.round(passMs / 1000) + " s");
-      if (!wasHeld) { authUI(false); doorLine(""); unlockAll(); emit("signin", { reason: reason }); }
+      if (!wasHeld) {
+        signedOutNote = "";
+        if (!readSignIn()) startSignIn();                   /* a browser verified before this build has none */
+        authUI(false); doorLine(""); unlockAll(); emit("signin", { reason: reason });
+      }
+      showSignOut(true);
       return true;
     }
     if (res.http === 404 || res.http === 405 || (res.http === 200 && code === "PORTAL_OFF")) {
@@ -4438,7 +4536,11 @@
       return { success: false, action: a, error_code: "NO_PASS",
                message: "Please enter your access code first." };
     }
-    const sent = pass;
+    const sent = pass, epoch = signOutEpoch;
+    // Signed out while this was on its way: its answer must not reach a signed-out page (« SIGN-OUT »).
+    const signedOut = function () {
+      return { success: false, action: a, error_code: "NO_PASS", message: "Please enter your access code first." };
+    };
     let r, b = null;
     try {
       r = await fetch(MCP + "portal_action", {
@@ -4448,11 +4550,13 @@
                                args: (args && typeof args === "object" && !Array.isArray(args)) ? args : {} })
       });
     } catch(e) {
+      if (epoch !== signOutEpoch) return signedOut();
       log("portal: " + a + " unreachable — " + e.message);
       return { success: false, action: a, error_code: "UNREACHABLE",
                message: "teckel could not be reached just now. Please try again." };
     }
     try { b = await r.json(); } catch(e) { b = null; }
+    if (epoch !== signOutEpoch) { log("portal: " + a + " answered after the sign-out; dropped"); return signedOut(); }
     if (!b || typeof b !== "object" || Array.isArray(b)) {
       log("portal: " + a + " no verdict (HTTP " + r.status + ")");
       return { success: false, action: a, error_code: "NO_VERDICT",
@@ -4482,6 +4586,141 @@
       lapseCodes: Object.freeze(DOOR_LAPSE.slice())
     }) });
 
+  /* ══ SIGN-OUT (Yusuf, 21 Oct 2026, V2 decision 7) ══════════════════════════════════════════════════════
+     Sign-in stays REMEMBERED PER BROWSER (the id in localStorage), and ends three ways:
+       · the "Sign out" button in the header, shown while the page is signed in;
+       · SIGN_OUT_IDLE_MS without use (8 hours), and SIGN_OUT_AT_MIDNIGHT (local midnight) — the two constants
+         at the top of this script. "Use" = a click, key press or touch on the page, or a live conversation.
+       · another tab or window of this browser signing out (the id they share was replaced).
+     Signing out ends any live conversation cleanly (as End does), drops the pass from memory with its renewal
+     and expiry timers, clears what is on screen (My forms, the viewer, the review panel, the Practice tools, the
+     conversation), REPLACES the id (replaceBsid: the old one is abandoned, the server is asked nothing), and
+     shows the code row with everything greyed except the User Guide, and a line saying why.
+     ⚠⚠ FOR A PAGE LEFT OPEN THERE IS NO SERVER-SIDE BACKSTOP. The server keeps a browser verified for 60 minutes
+        after its LAST check, sliding, with no absolute cap and no revoke (Yusuf CC, from the live apiGateway,
+        21 Oct 2026), and this page's own renewals are such checks: an open tab stays verified for as long as it
+        stays open. A CLOSED tab is forgotten 60 minutes after its last check, and so is an abandoned id. ⇒ These
+        rules are the only thing that ends an open, unattended tab, so they do NOT live only in a timer that can
+        stop on its own: signOutCheck() runs BEFORE every get_portal_pass and get_voice_token (load, Try again,
+        renewal, Start), on every use, and when a conversation ends; the minute timer and visibilitychange are a
+        second trigger only.
+     ⚠ NEVER MID-CONVERSATION: a rule that falls due while a conversation is live (or starting) waits for it to
+       end; a live conversation is use, so it is the midnight rule that can wait, never the idle one.
+     ⚠ A USE NEVER REVIVES AN EXPIRED SIGN-IN: the first click after nine hours away signs out; it is not counted.
+     ⚠ After a sign-out NOTHING is sent with the old id: the renewal and expiry timers go with the pass; Start and
+       a reconnect read the new id; and a reply to anything sent before (a renewal, a voice token, a code check,
+       a portal request) is dropped by its epoch — the old id is still verified on the server for up to an hour. */
+  const SIGN_OUT_TICK_MS = 60 * 1000;          /* the second trigger: once a minute while the page is open */
+  const USE_WRITE_MS = 15 * 1000;              /* a use is written to the record at most this often */
+  const SIGNED_OUT_SAY = {
+    user: "You are signed out. Enter the access code to sign in again.",
+    idle: "You were signed out after a period without use. Enter the access code to sign in again.",
+    midnight: "You were signed out at midnight. Enter the access code to sign in again.",
+    elsewhere: "You are signed out, because this browser was signed out in another tab or window. "
+             + "Enter the access code to sign in again."
+  };
+  let signOutEpoch = 0;                        /* +1 at every sign-out: a reply to an older request is dropped */
+  let signedOutNote = "";                      /* why the code row is up, until the next sign-in */
+  let signOutAfterCall = "";                   /* a sign-out that waits for the conversation to end */
+  let useWrittenAt = 0;
+
+  function showSignOut(on){ const b = $("pp-signout"); if (b) b.hidden = !on; }
+  function conversationBusy(){ return isOpen() || connecting; }
+  function startSignIn(){
+    const now = Date.now();
+    writeSignIn({ day: localDay(), last: now }); useWrittenAt = now;
+  }
+  // "" = nothing due; "idle" or "midnight" = due. Only the stored record decides, so every tab of this browser
+  // agrees (they share the id, and the record is the last use in ANY of them).
+  function signOutDue(r){
+    const last = Number(r.last);
+    if (!isFinite(last) || last <= 0) return "idle";                      /* unreadable: unsure means signed out */
+    if (Date.now() - last >= SIGN_OUT_IDLE_MS) return "idle";
+    // "Not today" — before today, or a clock moved back past midnight: a sign-in lasts one calendar day.
+    if (SIGN_OUT_AT_MIDNIGHT && String(r.day || "") !== localDay()) return "midnight";
+    return "";
+  }
+  // THE CHECK. "out" = signed out just now; "wait" = due, but a conversation is live or starting; "" = nothing due.
+  // atStart: called from Start, where `connecting` is this page's own doing and must not defer the check.
+  function signOutCheck(atStart){
+    const r = readSignIn();
+    if (!r) return "";                                                    /* not signed in on this id */
+    if (!atStart && conversationBusy()) {
+      if (isOpen()) { r.last = Date.now(); writeSignIn(r); useWrittenAt = r.last; }   /* a live conversation IS use */
+      return signOutDue(r) ? "wait" : "";
+    }
+    const why = signOutDue(r);
+    if (!why) return "";
+    signOut(why);
+    return "out";
+  }
+  function markUse(){
+    const now = Date.now();
+    if (now - useWrittenAt < USE_WRITE_MS) return;
+    if (signOutCheck(false) || isOpen()) return;   /* signed out, or waiting, or already written for the conversation */
+    const r = readSignIn();
+    if (!r) return;
+    r.last = now; writeSignIn(r); useWrittenAt = now;
+  }
+  function clearScreen(){
+    try { if (typeof window.teckelNewConversation === "function") window.teckelNewConversation(); }   /* the viewer */
+    catch(e) { log("panel reset failed: " + e.message); }
+    clearTranscript(); showStatus({ text: "" }); hideNotice(); showMsg("");
+    lastRecorded = null;
+    const box = $("form-search"), out = $("form-search-results");
+    if (box) box.value = "";
+    if (out) { out.textContent = ""; out.style.display = "none"; }
+  }
+  // why: user | idle | midnight | elsewhere. alreadyReplaced: another tab has replaced the shared id already.
+  function signOut(why, alreadyReplaced){
+    signOutEpoch++;                            /* ⚠ FIRST: every reply to a request sent before this is dropped */
+    signedOutNote = SIGNED_OUT_SAY[why] || SIGNED_OUT_SAY.user;
+    signOutAfterCall = ""; startAfterSignIn = false;
+    if (sock) { droppingFrames = true; endConversation(); }               /* a clean close, as End does */
+    dropPass();                                /* the pass leaves memory, with its renewal and expiry timers */
+    if (!alreadyReplaced) replaceBsid();       /* this browser is no longer verified; the old id is abandoned */
+    useWrittenAt = 0;
+    clearScreen();
+    if (doorMode === "legacy") {               /* the server's portal switch is off: nothing to grey, and the code
+                                                  is asked at Start, with the new id */
+      showMsg(signedOutNote); log("portal: signed out (" + why + ")"); return;
+    }
+    setDoorMode("door");
+    emit("lapse", { code: "SIGNED_OUT" });     /* the panels close and clear: My forms, the review panel, the tools */
+    lockAll(); doorLine("");
+    authUI(true, signedOutNote);
+    log("portal: signed out (" + why + ")");
+  }
+  function signOutTick(){
+    try { signOutCheck(false); } catch(e) { log("sign-out check failed: " + e.message); }
+  }
+  // A sign-out that waited for the conversation, or the check, now that it has ended (called from onclose).
+  function afterConversationEnded(){
+    // On a greyed page Mute and End were exempt only while the conversation was open: grey them now. (End was
+    // already disabled by the close, so the observer saw no change to act on.)
+    if (locked) { lockEl($("lv-mute")); lockEl($("lv-disconnect")); }
+    if (droppingFrames) { droppingFrames = false; clearScreen(); return; }   /* signed out during it: clear again */
+    if (signOutAfterCall) { const w = signOutAfterCall; signOutAfterCall = ""; signOut(w, true); return; }
+    signOutTick();
+  }
+  const signOutBtn = $("pp-signout");
+  if (signOutBtn) signOutBtn.addEventListener("click", function () { signOut("user"); });
+  ["pointerdown", "keydown", "touchstart"].forEach(function (t) {
+    document.addEventListener(t, function () { try { markUse(); } catch(e) {} }, { capture: true, passive: true });
+  });
+  setInterval(signOutTick, SIGN_OUT_TICK_MS);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") signOutTick();
+  });
+  // Another tab or window of this browser signed out: the id they share was replaced (or storage was cleared).
+  window.addEventListener("storage", function (e) {
+    if (!e || (e.key !== null && e.key !== bsidStorageKey())) return;
+    if (e.key !== null && e.newValue === e.oldValue) return;
+    if (!pass) return;                         /* nothing open here */
+    if (conversationBusy()) { signOutAfterCall = "elsewhere"; return; }   /* never mid-conversation */
+    signOut("elsewhere", true);
+  });
+
   /* ── a new conversation: a clean panel first, exactly as the template does on the
         ElevenLabs call event (viewer, polls, Back target, debounce maps, self-fill card) ── */
   function newConversation(){
@@ -4497,7 +4736,7 @@
 
   async function connect(){
     if (connecting || isOpen()) return;
-    connecting = true; everOpened = false; endingByUser = false; muted = false;
+    connecting = true; everOpened = false; endingByUser = false; muted = false; droppingFrames = false;
     setButtons(); newConversation();
     setConn("busy", "Connecting…"); setMic("");
     // TOKEN FIRST. ⚠ Minted here and nowhere else, so a reconnect always gets a fresh one.
@@ -4523,6 +4762,7 @@
     url = null;                              /* the token is single use; nothing keeps it */
     sock.binaryType = "arraybuffer";
     sock.onopen = async () => {
+      if (droppingFrames) return;            /* signed out while it was connecting: End's close is on its way */
       everOpened = true; connecting = false;
       live(true);                            /* taps on forms now reach kev */
       setButtons(); setConn("on", "Connected"); setMic("starting the microphone…");
@@ -4533,6 +4773,7 @@
                 showMsg("The microphone is not available here, so type to Benedict instead."); }
     };
     sock.onmessage = (ev) => {
+      if (droppingFrames) return;            /* signed out: nothing more from kev reaches this screen */
       if (typeof ev.data === "string") { log("unexpected text frame"); return; }
       let f; try { f = decodeFrame(ev.data); } catch(e){ log("decode failed: " + e.message); return; }
       if (f.interruption) flushPlayback();
@@ -4561,6 +4802,7 @@
       if (!wasOpen && e.code === 1006) log("handshake failed (often a transient 502) — try again.");
       if (wasOpen) endNotice(); else hideNotice();
       log("closed, code " + e.code);
+      afterConversationEnded();              /* « SIGN-OUT »: a rule that waited for the conversation applies now */
     };
     sock.onerror = () => log("socket error");
   }
@@ -4645,6 +4887,8 @@
          used) and the unanswered list -> Confirm -> submit with the preview's confirm_token.
          ⚠ A different address needs a new preview: typing one switches Confirm off until it has
          been checked, and submit never carries an address, only the token, which names one.
+       · (21 Oct 2026, Yusuf's V2 decision 7) A SIGN-OUT arrives as the door's "lapse" event with code
+         SIGNED_OUT: both sheets close, the list and the "N open" badge are cleared.
        · (tiers 2 and 3, 21 Oct 2026) window.teckelPortalForms lets the tier-2/3 script beside this one
          add its "More for this form" disclosure to each row, read the list it last showed, reload it and
          write a line under it. It hands over no pass and no way to make a request.
@@ -5180,11 +5424,14 @@
     await loadForms();
   }
   function onLapse(d){
+    const code = String((d && d.code) || "");
     sending = false; sub = null; current = null;
     closeDlg(sb.dlg); closeDlg(rv.dlg);
     clearForms();                                 /* paused for privacy: the list goes, and comes back */
-    formsMsg(LAPSE.indexOf(String((d && d.code) || "")) !== -1
-             ? "Your forms appear again once your access code is accepted."
+    // (21 Oct 2026, Yusuf's V2 decision 7) SIGNED OUT: the badge's count is the practice's too, so it goes as well.
+    if (code === "SIGNED_OUT") setBadge(0);
+    formsMsg(code === "SIGNED_OUT" ? "Your forms appear here once you sign in again."
+             : LAPSE.indexOf(code) !== -1 ? "Your forms appear again once your access code is accepted."
              : "Your forms appear again once this page reopens.");
   }
   function onMode(m){
