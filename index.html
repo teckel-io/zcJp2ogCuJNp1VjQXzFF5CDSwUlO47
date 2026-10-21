@@ -3331,6 +3331,20 @@
         // (isValidTeckelUrl), an upload page only from the practice's own site (isValidUploadUrl, or
         // display_upload_link's short code, resolved the way that tool resolves it). Read-only for
         // the record either way. Resolves true when it is on screen, false when it was refused.
+        //
+        // (21 Oct 2026, Yusuf: "Keep it on screen") A FORM THE PAGE'S OWN VIEW PUT HERE SURVIVES START.
+        // portalHeldView is the very object setFormView was given for it. Every later display — Benedict's
+        // display_form, a directory, a guidance passage, an upload page, the "could not load" card, Back —
+        // goes through setFormView with a NEW object, so identity is the proof the viewer still holds the
+        // page's form; a refusal card written to srcdoc without setFormView is caught by the srcdoc test.
+        // The new-conversation reset keeps the viewer only when the transport asks AND this says yes; the
+        // transport asks only when that form is also the remembered screen_form. Sign out never asks.
+        var portalHeldView = null;
+        function viewerHeldByPage() {
+            var iframe = document.getElementById('form-viewer');
+            return !!(portalHeldView && currentFormView === portalHeldView && currentFormView.url
+                      && iframe && !iframe.hasAttribute('srcdoc'));
+        }
         window.teckelPortalShow = function (kind, url) {
             var iframe      = document.getElementById('form-viewer');
             var placeholder = document.getElementById('form-viewer-placeholder');
@@ -3353,6 +3367,7 @@
                 }
                 if (placeholder) placeholder.classList.add('hidden');
                 setFormView({ url: u, shownAt: Date.now() });
+                portalHeldView = currentFormView;   // the page's own form, until anything replaces it
                 return Promise.resolve(true);
             }
             if (kind === 'upload') {
@@ -3429,7 +3444,10 @@
         // LOCAL V2 — THE RESET IS A NAMED FUNCTION (20 Oct 2026). The local chain calls it as
         // window.teckelNewConversation() when the user starts a conversation; the (inert) EL
         // listener below calls the same function, so there is one reset, not two.
-        function resetPanelForNewConversation() {
+        // (21 Oct 2026, Yusuf: "Keep it on screen") opts.keepPageForm === true keeps the viewer when it
+        // still holds the form the page's own View put there (viewerHeldByPage). Only Start passes it,
+        // and only for the form the page told the conversation about; Sign out and the EL listener do not.
+        function resetPanelForNewConversation(opts) {
             // 2 Aug 2026 (1 Aug live-drive finding): a NEW conversation must start
             // with a clean panel — a stale autoclave log from the previous session
             // greeted a brand-new call until the next display_form. Reset the
@@ -3438,12 +3456,17 @@
             try {
                 var _iframe      = document.getElementById('form-viewer');
                 var _placeholder = document.getElementById('form-viewer-placeholder');
-                if (_iframe) {
-                    _iframe.removeAttribute('srcdoc');
-                    hidePdfHost();
-                    _iframe.src = 'about:blank';
+                // LOCAL V2 (21 Oct 2026, Yusuf: "Keep it on screen"): see V18 in the builder.
+                var keepPageForm = !!(opts && opts.keepPageForm === true) && viewerHeldByPage();
+                if (!keepPageForm) {
+                    if (_iframe) {
+                        _iframe.removeAttribute('srcdoc');
+                        hidePdfHost();
+                        _iframe.src = 'about:blank';
+                    }
+                    if (_placeholder) _placeholder.classList.remove('hidden');
+                    portalHeldView = null;
                 }
-                if (_placeholder) _placeholder.classList.remove('hidden');
                 stopInstanceCostPoll();
                 currentCostUrl  = null;
                 rollingPdfUrl   = null;
@@ -3453,8 +3476,13 @@
                 // is dead, and on a shared reception machine it would put the previous
                 // user's document back on screen. Read-only swaps must NOT clear it — that
                 // is the whole point of the button.
-                lastFormUrl = null;
-                setFormView({ url: null, shownAt: 0 });
+                if (keepPageForm) {
+                    lastFormUrl = currentFormView.url;   // LOCAL V2: the kept form, and nothing older
+                    console.log('[teckel] new conversation — the form the user opened stays on screen');
+                } else {
+                    lastFormUrl = null;
+                    setFormView({ url: null, shownAt: 0 });
+                }
                 lastDisplayFormBy = {};
                 lastUploadShown   = { url: null, ts: 0 };
                 lastSettingsShown = { url: null, ts: 0 };
@@ -3558,7 +3586,8 @@
          send the microphone and a voice token to another server;
        · the socket URL with its token is NEVER logged (the test portal printed it);
        · a new conversation clears the portal first (teckelNewConversation), as the
-         template does on the ElevenLabs call event;
+         template does on the ElevenLabs call event — except a form the user opened with the
+         page's own View, which stays on screen (21 Oct 2026, Yusuf: "Keep it on screen");
        · audio is unlocked inside the Start click, which is the only moment a phone
          allows it, and an interruption stops the queued audio instead of closing the
          playback context (a context re-created outside a tap stays silent on iOS);
@@ -3902,8 +3931,11 @@
        with something that is not one (the directory, a guidance passage, a reference document).
      · REMEMBERED in this closure — NEVER in storage — and SENT AGAIN once a conversation's socket opens: the case that
        bit Yusuf (View with no conversation, then Start). `at` is when the page showed it, not when it is re-sent.
-       ⚠ Start still clears the viewer (the per-conversation reset, v2.2.292): the hint survives that on purpose, so
-       "this form" still means the one the user just opened; kev opens it again through the server.
+     · START KEEPS IT ON SCREEN (21 Oct 2026, Yusuf: "Keep it on screen"): when the viewer still holds the form the
+       page's own View put there (viewerIid below) AND that form is the remembered screen_form, Start's reset leaves the
+       viewer alone and clears everything else as before. A form Benedict showed in an earlier conversation (his
+       display_* forgets both), a directory, guidance or a reference document ("closed"), an upload page, or a form
+       that is not the remembered one is cleared at Start, as before. Sign out clears everything.
      · NO CONVERSATION, NOTHING SENT: sendJSON refuses a closed socket and never throws; the memory waits for Start.
      · SIGN OUT sends {instance_id:null, action:"signed_out"} while the socket is still open (End's close comes after
        its "Ending…" moment) and forgets the form AND the ids below.
@@ -3918,8 +3950,23 @@
   const SCREEN_ID_OK = /^[A-Za-z0-9-]{1,64}$/;
   const screenIds = new Set();           /* copy ids the server's own replies named or accepted, this sign-in */
   let screenForm = null;                 /* the last copy the page's buttons showed or acted on (memory only) */
+  let viewerIid = null;                  /* the copy the page's own View put in the viewer, until something replaces it */
   function screenFormMsg(sf){
     return { kind: "screen_form", instance_id: sf.instance_id, form_name: sf.form_name, action: sf.action, at: sf.at };
+  }
+  // ⚠ SENDING IS OFF (Yusuf, 21 Oct ~21:3x BST: "Yes, switch it off now") until kev's "this form" matcher stops taking
+  //   survey answers ("that one's complete") as a reference to the screen (Yusuf CC's real-sentence fixture). The page
+  //   still REMEMBERS the form (Start keeps it on screen); only the message to kev is held. The suite turns it on with
+  //   window.__lvScreenFormSend = true; a hint is never an authority (contract §6), so the override is harmless.
+  const SCREEN_FORM_SEND = window.__lvScreenFormSend === true;
+  function sendScreen(m){
+    if (!SCREEN_FORM_SEND) { log("screen_form held (sending is off)"); return false; }
+    return sendJSON(m);
+  }
+  // Start keeps the viewer only for the form the page's own View put there that is ALSO the remembered screen_form.
+  // The reset asks the viewer too (viewerHeldByPage): anything shown since, by anyone, means "clear".
+  function keepFormAtStart(){
+    return !!(screenForm && viewerIid && screenForm.instance_id === viewerIid);
   }
   // Called from portalAction on every successful reply: the ids it can vouch for.
   function learnScreenIds(args, b){
@@ -3936,7 +3983,8 @@
     if (act === "view") clearList();       /* a form opening in the viewer answers the list on screen (§7) */
     if (instanceId === null || instanceId === undefined || instanceId === "") {
       screenForm = null;                   /* nothing of the page's is on screen now */
-      const ok = sendJSON(screenFormMsg({ instance_id: null, form_name: null, action: act, at: new Date().toISOString() }));
+      viewerIid = null;
+      const ok = sendScreen(screenFormMsg({ instance_id: null, form_name: null, action: act, at: new Date().toISOString() }));
       log("screen_form " + act + (ok ? " sent" : " (no conversation)"));
       return ok;
     }
@@ -3944,20 +3992,23 @@
     if (!SCREEN_ID_OK.test(iid) || !screenIds.has(iid)) { log("screen_form refused: not a copy this page was given"); return false; }
     const name = String(formName || "").replace(/\s+/g, " ").trim().slice(0, 300);
     screenForm = { instance_id: iid, form_name: name || null, action: act, at: new Date().toISOString() };
-    const ok = sendJSON(screenFormMsg(screenForm));
+    if (act === "view") viewerIid = iid;  /* only View puts the form itself in the viewer */
+    else if (act === "upload") viewerIid = null;   /* the upload page replaced it */
+    const ok = sendScreen(screenFormMsg(screenForm));
     log("screen_form " + act + (ok ? " sent" : " remembered for the next conversation"));
     return ok;
   }
   function resendScreenForm(){
     if (!screenForm) return false;
-    const ok = sendJSON(screenFormMsg(screenForm));
+    const ok = sendScreen(screenFormMsg(screenForm));
     log("screen_form " + screenForm.action + (ok ? " sent again for the new conversation" : " not sent (no socket)"));
     return ok;
   }
   function forgetScreenForm(why){
     const had = !!screenForm;
     screenForm = null; screenIds.clear();
-    if (why) sendJSON(screenFormMsg({ instance_id: null, form_name: null, action: why, at: new Date().toISOString() }));
+    viewerIid = null;
+    if (why) sendScreen(screenFormMsg({ instance_id: null, form_name: null, action: why, at: new Date().toISOString() }));
     return had;
   }
   Object.defineProperty(window, "teckelScreenForm", { configurable: false, enumerable: false, writable: false,
@@ -4176,6 +4227,7 @@
     // page forgets the form ITS buttons showed, so a later conversation is not told about a replaced form. A form he
     // opened also answers the numbered list on screen.
     if (DISPLAY_TOOLS.indexOf(name) !== -1 && result.indexOf(name + " completed") === 0) {
+      viewerIid = null;                    /* his display replaced the page's form: the next Start clears it */
       screenForm = null;
       if (name === "display_form") clearList();
     }
@@ -4909,10 +4961,13 @@
   });
 
   /* ── a new conversation: a clean panel first, exactly as the template does on the
-        ElevenLabs call event (viewer, polls, Back target, debounce maps, self-fill card) ── */
+        ElevenLabs call event (viewer, polls, Back target, debounce maps, self-fill card) —
+        except a form the user opened with the page's own View (« THE FORM ON SCREEN ») ── */
   function newConversation(){
-    try { if (typeof window.teckelNewConversation === "function") window.teckelNewConversation(); }
+    const keep = keepFormAtStart();
+    try { if (typeof window.teckelNewConversation === "function") window.teckelNewConversation({ keepPageForm: keep }); }
     catch(e) { log("panel reset failed: " + e.message); }
+    if (keep) log("the form the user opened stays on screen");
     clearTranscript(); showStatus({ text: "" }); hideNotice(); showMsg(""); clearList();
     lastRecorded = null; frames = 0;
     Object.keys(callIdByKey).forEach(function (k) { delete callIdByKey[k]; });
