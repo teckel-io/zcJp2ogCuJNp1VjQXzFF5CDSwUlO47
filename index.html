@@ -403,6 +403,29 @@
         }
         #lv-transcript .l.bot .w { color: var(--gold); }
         #lv-transcript .l.partial { opacity: 0.6; font-style: italic; }
+        /* (21 Oct 2026, contract §7) Benedict's numbered list on screen: one full-width, tappable row per
+           item (44px at least, for a thumb), the server's own number first. */
+        .lv-list {
+            margin-top: 12px; padding: 10px 12px; border-radius: 6px; background: var(--card-bg);
+            border: 1px solid var(--card-border); min-width: 0;
+        }
+        .lv-list[hidden] { display: none; }
+        .lv-list-h { margin: 0; font-size: 14px; font-weight: 600; color: var(--gold); overflow-wrap: anywhere; }
+        .lv-list-hint { margin: 2px 0 8px; font-size: 12px; color: var(--steel); }
+        .lv-list-items { list-style: none; margin: 0; padding: 0; max-height: 360px; overflow-y: auto; }
+        .lv-list-items > li { margin: 0 0 6px; }
+        .lv-list-item {
+            display: flex; gap: 10px; align-items: baseline; width: 100%; min-height: 44px; text-align: left;
+            font: inherit; font-size: 14px; line-height: 1.35; color: var(--white); background: transparent;
+            border: 1px solid var(--card-border); border-radius: 4px; padding: 9px 11px; cursor: pointer;
+        }
+        .lv-list-item:hover:not(:disabled) { border-color: var(--steel); }
+        .lv-list-item:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+        .lv-list-item.picked { border-color: var(--gold); }
+        .lv-list-item:disabled { opacity: 0.45; cursor: not-allowed; }
+        .lv-list-n { flex: 0 0 auto; min-width: 2.2em; color: var(--gold); font-variant-numeric: tabular-nums; }
+        .lv-list-label { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+        .lv-list-sub { display: block; margin-top: 2px; font-size: 12px; color: var(--steel); }
         /* ?debug=1 only: built by script, so the production page carries none of it. */
         .lv-debug {
             margin-top: 12px; padding: 8px; border: 1px dashed var(--card-border); border-radius: 4px;
@@ -416,6 +439,8 @@
         #app-safety-banner.tc-banner { margin-left: 16px; }
         @media (max-width: 900px) {
             #lv-transcript { max-height: 180px; }
+            /* stacked: the list grows with the page (a box scrolling inside a scrolling page hides its last rows) */
+            .lv-list-items { max-height: none; overflow: visible; }
         }
         /* ── THE PORTAL DOOR, THE REVIEW PANEL AND MY FORMS (21 Oct 2026) ─────────────────────
            Greyed while the page is signed out: a panel dims and is inert, a control is disabled and
@@ -1090,6 +1115,16 @@
                   </form>
                   <div id="lv-transcript" role="log" aria-live="polite" aria-relevant="additions"
                        aria-label="Conversation with Benedict"></div>
+                  <!-- A NUMBERED LIST BENEDICT IS READING (21 Oct 2026, contract §7; kev's
+                       {"kind":"display_numbered_list"}). One button per item, numbered as the server
+                       numbered it; a tap is the same pick as saying the number. Filled by the voice
+                       transport as TEXT only; hidden until a list arrives, and cleared when a form
+                       opens, the conversation ends or the page signs out. -->
+                  <section class="lv-list" id="lv-list" aria-labelledby="lv-list-h" hidden>
+                    <h3 class="lv-list-h" id="lv-list-h"></h3>
+                    <p class="lv-list-hint">Tap one, or say its number.</p>
+                    <ol class="lv-list-items" id="lv-list-items"></ol>
+                  </section>
                 </div>
                 <script>
                 /* 3 Oct 2026 (Steven) — CLICK A FORM AND BENEDICT OPENS IT. The ElevenLabs widget
@@ -3535,6 +3570,11 @@
        · (21 Oct 2026, Yusuf's V2 decision 7) SIGN-OUT: sign-in stays remembered per browser; a
          "Sign out" button in the header, and an automatic sign-out after a period without use
          and at local midnight. See « SIGN-OUT » below.
+       · (21 Oct 2026, contract §6) THE FORM ON SCREEN: a form the page's own buttons show or act
+         on is told to kev ({kind:"screen_form"}), remembered in memory and told again when a
+         conversation starts. See « THE FORM ON SCREEN » below.
+       · (21 Oct 2026, contract §7) kev's numbered lists ({kind:"display_numbered_list"}) are shown
+         as tappable numbered rows; a tap is the existing pick_form. See « A NUMBERED LIST ».
      ===================================================================== -->
 <script>
 "use strict";
@@ -3848,6 +3888,138 @@
     log("client_tool_followup " + name + (ok ? " sent" : " not sent (no socket)"));
     return ok;
   };
+
+  /* ══ THE FORM ON SCREEN -> THE CONVERSATION (contract §6, agreed DA CC + Yusuf CC, 21 Oct 2026) ═══════════════
+     Why: Yusuf opened a form with My forms → View, then said "let me work on this form", and kev searched for a form
+     CALLED that: it had no idea which form was on screen. So the page tells kev, as a client message routed on `kind`
+     (like pick_form; kev ignores `type`):
+       {kind:"screen_form", instance_id:"<id>"|null, form_name:"<the name the page shows>"|null, action, at:"<ISO UTC>"}
+     · SENT when the page's OWN buttons show or act on a copy (window.teckelScreenForm, called by the panels' scripts):
+       My forms' View / Sign / Upload, the Submit sheet ("submit" once its check answers, "submitted" on sent:true), a
+       section of "More for this form" opened ("customise" questions, "log", "machines", "survey", "evidence",
+       "schedule") and its buttons ("resend", "revise", "discard"), a copy opened from the review panel or the Practice
+       tools ("view"); and `instance_id: null` with action "closed" when a page button replaces the form in the viewer
+       with something that is not one (the directory, a guidance passage, a reference document).
+     · REMEMBERED in this closure — NEVER in storage — and SENT AGAIN once a conversation's socket opens: the case that
+       bit Yusuf (View with no conversation, then Start). `at` is when the page showed it, not when it is re-sent.
+       ⚠ Start still clears the viewer (the per-conversation reset, v2.2.292): the hint survives that on purpose, so
+       "this form" still means the one the user just opened; kev opens it again through the server.
+     · NO CONVERSATION, NOTHING SENT: sendJSON refuses a closed socket and never throws; the memory waits for Start.
+     · SIGN OUT sends {instance_id:null, action:"signed_out"} while the socket is still open (End's close comes after
+       its "Ending…" moment) and forgets the form AND the ids below.
+     · NO ECHO: a form Benedict puts on screen (kev's display_* tools) sends nothing — kev knows — and the page forgets
+       its own, so a later conversation is never told about a form that has since been replaced.
+     ⚠ ONLY IDS THE SERVER GAVE THIS PAGE: portalAction learns every copy id a successful reply named or accepted for
+       the signed-in practice (my_forms, view_link, …); any other id is refused here, before anything is sent. It stays
+       a HINT: kev opens the copy through the normal server call, and the server's owner check decides.
+     ⚠ NEVER A VALUE, NEVER THE PASS: the id, the form's display name, one word from SCREEN_ACTIONS and the time. */
+  const SCREEN_ACTIONS = Object.freeze(["view", "sign", "upload", "submit", "submitted", "customise", "log",
+    "machines", "survey", "evidence", "schedule", "resend", "revise", "discard", "closed", "signed_out"]);
+  const SCREEN_ID_OK = /^[A-Za-z0-9-]{1,64}$/;
+  const screenIds = new Set();           /* copy ids the server's own replies named or accepted, this sign-in */
+  let screenForm = null;                 /* the last copy the page's buttons showed or acted on (memory only) */
+  function screenFormMsg(sf){
+    return { kind: "screen_form", instance_id: sf.instance_id, form_name: sf.form_name, action: sf.action, at: sf.at };
+  }
+  // Called from portalAction on every successful reply: the ids it can vouch for.
+  function learnScreenIds(args, b){
+    const add = function (v) { if (typeof v === "string" && SCREEN_ID_OK.test(v.trim())) screenIds.add(v.trim()); };
+    if (args && typeof args === "object") add(args.instance_id);   /* the server accepted it for this practice */
+    add(b.instance_id);
+    ["forms", "machines"].forEach(function (k) {
+      if (Array.isArray(b[k])) b[k].forEach(function (x) { if (x && typeof x === "object") add(x.instance_id); });
+    });
+  }
+  function tellScreenForm(instanceId, formName, action){
+    const act = String(action || "");
+    if (SCREEN_ACTIONS.indexOf(act) === -1) { log("screen_form refused: unknown action"); return false; }
+    if (act === "view") clearList();       /* a form opening in the viewer answers the list on screen (§7) */
+    if (instanceId === null || instanceId === undefined || instanceId === "") {
+      screenForm = null;                   /* nothing of the page's is on screen now */
+      const ok = sendJSON(screenFormMsg({ instance_id: null, form_name: null, action: act, at: new Date().toISOString() }));
+      log("screen_form " + act + (ok ? " sent" : " (no conversation)"));
+      return ok;
+    }
+    const iid = String(instanceId).trim();
+    if (!SCREEN_ID_OK.test(iid) || !screenIds.has(iid)) { log("screen_form refused: not a copy this page was given"); return false; }
+    const name = String(formName || "").replace(/\s+/g, " ").trim().slice(0, 300);
+    screenForm = { instance_id: iid, form_name: name || null, action: act, at: new Date().toISOString() };
+    const ok = sendJSON(screenFormMsg(screenForm));
+    log("screen_form " + act + (ok ? " sent" : " remembered for the next conversation"));
+    return ok;
+  }
+  function resendScreenForm(){
+    if (!screenForm) return false;
+    const ok = sendJSON(screenFormMsg(screenForm));
+    log("screen_form " + screenForm.action + (ok ? " sent again for the new conversation" : " not sent (no socket)"));
+    return ok;
+  }
+  function forgetScreenForm(why){
+    const had = !!screenForm;
+    screenForm = null; screenIds.clear();
+    if (why) sendJSON(screenFormMsg({ instance_id: null, form_name: null, action: why, at: new Date().toISOString() }));
+    return had;
+  }
+  Object.defineProperty(window, "teckelScreenForm", { configurable: false, enumerable: false, writable: false,
+    value: function (instanceId, formName, action) {
+      try { return tellScreenForm(instanceId, formName, action); }
+      catch(e) { log("screen_form failed: " + e.message); return false; }
+    } });
+
+  /* ══ A NUMBERED LIST ON SCREEN (contract §7; Yusuf, 21 Oct 2026: "Where are the 65? I don't see them") ══════════
+     kev (1.67.0) sends {kind:"display_numbered_list", title, list_token, items} when it reads a numbered list:
+     browse_forms' OWN items, untouched — areas {n, key, label, count, aliases} or forms {n, form_id, title,
+     storage_key, in_progress}. The page shows them as numbered rows, each a button, numbered AS THE SERVER NUMBERED
+     THEM (n). A tap is the existing pick: teckelLocalPick(<the item's label or title>, list_token) ->
+     {kind:"pick_form", title, list_token}; kev re-runs the server's pick and never trusts the page's words as a key.
+     · CLEARED by: an empty items list, a form opening in the viewer (kev's display_form, or the page's own View), the
+       conversation ending, a new conversation, and Sign out.
+     ⚠ TEXT ONLY: every string is written as a text node (never markup). Nothing is kept in storage. */
+  const LIST_MAX = 200;
+  function clearList(){
+    const box = $("lv-list"), ol = $("lv-list-items"), h = $("lv-list-h");
+    if (ol) ol.textContent = "";
+    if (h) h.textContent = "";
+    if (box) box.hidden = true;
+  }
+  function itemText(v, max){ return (v === undefined || v === null) ? "" : String(v).replace(/\s+/g, " ").trim().slice(0, max); }
+  function showNumberedList(m){
+    const items = Array.isArray(m.items) ? m.items : [];
+    const box = $("lv-list"), ol = $("lv-list-items"), h = $("lv-list-h");
+    if (!items.length || !box || !ol || !h) { clearList(); return; }
+    const token = itemText(m.list_token, 80);
+    ol.textContent = "";
+    items.slice(0, LIST_MAX).forEach(function (it, i) {
+      if (!it || typeof it !== "object") return;
+      const label = itemText(shownText(it.label) ? it.label : it.title, 300);
+      if (!label) return;
+      const n = (typeof it.n === "number" && isFinite(it.n) && it.n > 0) ? Math.floor(it.n) : (i + 1);
+      let sub = itemText(it.sub, 120);
+      if (!sub && typeof it.count === "number" && isFinite(it.count)) sub = it.count + (it.count === 1 ? " form" : " forms");
+      if (!sub && it.in_progress === true) sub = "in progress";
+      const li = document.createElement("li"); li.value = n;
+      const b = document.createElement("button"); b.type = "button"; b.className = "lv-list-item";
+      const num = document.createElement("span"); num.className = "lv-list-n"; num.textContent = n + ".";
+      const txt = document.createElement("span"); txt.className = "lv-list-label"; txt.textContent = label;
+      b.appendChild(num); b.appendChild(txt);
+      if (sub) { const s = document.createElement("span"); s.className = "lv-list-sub"; s.textContent = sub; txt.appendChild(s); }
+      b.addEventListener("click", function () { pickFromList(b, label, token); });
+      li.appendChild(b); ol.appendChild(li);
+    });
+    if (!ol.children.length) { clearList(); return; }
+    h.textContent = itemText(m.title, 200) || "Benedict's list";
+    box.hidden = false;
+    log("list on screen: " + ol.children.length + " item(s)");
+  }
+  function shownText(v){ return v !== undefined && v !== null && String(v).trim() !== ""; }
+  function pickFromList(b, label, token){
+    const ok = typeof window.teckelLocalPick === "function" && window.teckelLocalPick(label, token);
+    if (!ok) { showMsg("That was not sent — the conversation is not connected. Start a conversation first."); return; }
+    showMsg("");
+    document.querySelectorAll("#lv-list-items .lv-list-item.picked").forEach(function (x) { x.classList.remove("picked"); });
+    b.classList.add("picked");
+  }
+
   function sendTyped(){
     const box = $("lv-type");
     const text = String(box.value || "").replace(/\s+/g, " ").trim().slice(0, TYPED_MAX);
@@ -4000,6 +4172,13 @@
     }
     result = (result === undefined || result === null) ? (name + " returned nothing") : String(result);
     log("client_tool " + name + " -> " + result.slice(0, 120));
+    // (contract §6, §7) Benedict changed the screen himself: kev knows, so NOTHING is sent back (no echo), and the
+    // page forgets the form ITS buttons showed, so a later conversation is not told about a replaced form. A form he
+    // opened also answers the numbered list on screen.
+    if (DISPLAY_TOOLS.indexOf(name) !== -1 && result.indexOf(name + " completed") === 0) {
+      screenForm = null;
+      if (name === "display_form") clearList();
+    }
     if (!sendJSON({ kind: "client_tool_result", name: name, id: m.id || null, result: result }))
       log("could not return the tool result (no socket)");
   }
@@ -4570,6 +4749,7 @@
     }
     const code = String(b.error_code || "").trim().toUpperCase();
     log("portal: " + a + " -> " + (b.success ? "ok" : (code || "refused")));
+    if (b.success === true) learnScreenIds(args, b);      /* « THE FORM ON SCREEN »: ids the server vouched for */
     if (DOOR_LAPSE.indexOf(code) !== -1) { if (pass === sent) passLapsed(code, "again"); }
     else if (code === "PORTAL_OFF") enterLegacy();
     return b;
@@ -4671,7 +4851,7 @@
   function clearScreen(){
     try { if (typeof window.teckelNewConversation === "function") window.teckelNewConversation(); }   /* the viewer */
     catch(e) { log("panel reset failed: " + e.message); }
-    clearTranscript(); showStatus({ text: "" }); hideNotice(); showMsg("");
+    clearTranscript(); showStatus({ text: "" }); hideNotice(); showMsg(""); clearList();
     lastRecorded = null;
     const box = $("form-search"), out = $("form-search-results");
     if (box) box.value = "";
@@ -4682,6 +4862,7 @@
     signOutEpoch++;                            /* ⚠ FIRST: every reply to a request sent before this is dropped */
     signedOutNote = SIGNED_OUT_SAY[why] || SIGNED_OUT_SAY.user;
     signOutAfterCall = ""; startAfterSignIn = false;
+    forgetScreenForm("signed_out");            /* kev hears it while the socket is still open; the page forgets */
     if (sock) { droppingFrames = true; endConversation(); }               /* a clean close, as End does */
     dropPass();                                /* the pass leaves memory, with its renewal and expiry timers */
     if (!alreadyReplaced) replaceBsid();       /* this browser is no longer verified; the old id is abandoned */
@@ -4732,7 +4913,7 @@
   function newConversation(){
     try { if (typeof window.teckelNewConversation === "function") window.teckelNewConversation(); }
     catch(e) { log("panel reset failed: " + e.message); }
-    clearTranscript(); showStatus({ text: "" }); hideNotice(); showMsg("");
+    clearTranscript(); showStatus({ text: "" }); hideNotice(); showMsg(""); clearList();
     lastRecorded = null; frames = 0;
     Object.keys(callIdByKey).forEach(function (k) { delete callIdByKey[k]; });
     activity();
@@ -4773,6 +4954,7 @@
       live(true);                            /* taps on forms now reach kev */
       setButtons(); setConn("on", "Connected"); setMic("starting the microphone…");
       log("connected");
+      resendScreenForm();                    /* « THE FORM ON SCREEN »: the form the user opened before Start */
       if (dbg.health) health();
       try { await startMic(); }
       catch(e){ log("mic refused: " + e.message); applyMute();
@@ -4792,6 +4974,7 @@
         else if (m.kind === "status") { activity(); showStatus(m); }
         else if (m.kind === "recorded") { activity(); onRecorded(m); }
         else if (m.kind === "client_tool") runClientTool(m);
+        else if (m.kind === "display_numbered_list") { activity(); showNumberedList(m); }   /* contract §7 */
         else log("message ignored: " + String(m.kind).slice(0, 40));
       } catch(e) { log("message handling failed: " + e.message); }
     };
@@ -4799,7 +4982,7 @@
       const wasOpen = everOpened, byUser = endingByUser;
       sock = null; connecting = false; endingByUser = false; muted = false;
       clearTimeout(muteTimer); muteTimer = null;
-      live(false); stopMic(); flushPlayback(); showStatus({ text: "" }); applyMute();
+      live(false); stopMic(); flushPlayback(); showStatus({ text: "" }); applyMute(); clearList();
       const part = document.querySelector("#lv-transcript .l.bot.partial"); if (part) part.remove();
       setButtons(); setMic("");
       if (byUser) setConn("", "Conversation ended");
@@ -4898,6 +5081,9 @@
        · (tiers 2 and 3, 21 Oct 2026) window.teckelPortalForms lets the tier-2/3 script beside this one
          add its "More for this form" disclosure to each row, read the list it last showed, reload it and
          write a line under it. It hands over no pass and no way to make a request.
+       · (21 Oct 2026, contract §6) THE FORM ON SCREEN: View, Sign, Upload, the Submit sheet and a copy opened
+         from the review panel tell the conversation which copy it is (window.teckelScreenForm, in the voice
+         transport: it sends only ids the server gave this page, and never a value).
      ⚠ Every request goes through window.teckelPortal.action, which adds the pass; this script never
        holds it. Every server string is written as TEXT, never as markup.
      ⚠ "Accepted", "Rejected" and "Sent" are said ONLY on the server's own confirmation (success, and
@@ -4989,6 +5175,10 @@
   function closeDlg(d){ if (!d || !d.open) return; try { d.close(); } catch(e) { d.removeAttribute("open"); } }
   function show(kind, url){
     return (typeof window.teckelPortalShow === "function") ? window.teckelPortalShow(kind, url) : Promise.resolve(false);
+  }
+  // (contract §6) The copy this button showed or acted on, for the conversation. A hint only; never throws.
+  function onScreen(iid, name, action){
+    try { if (typeof window.teckelScreenForm === "function") window.teckelScreenForm(iid, name, action); } catch(e) {}
   }
   // On a phone the viewer is below the list: bring it into view once something is on it.
   function revealViewer(){
@@ -5111,6 +5301,7 @@
       const r = await P.action("view_link", { instance_id: open.instance_id });
       if (lapsed(r)) return;
       const ok = (r && r.success && r.url) ? await show("form", r.url) : false;
+      if (ok) onScreen(open.instance_id, s.form_name, "view");
       txt(rv.result, ok ? ("Accepted. " + name + " is open in the form viewer, behind this panel.")
                         : ("Accepted. You will find " + name + " in My forms."));
       return;
@@ -5256,7 +5447,7 @@
     if (!r || !r.success || !r.url) { txt(row.res, msgOf(r, "This form could not be opened just now.")); return; }
     const ok = await show("form", r.url);
     txt(row.res, ok ? "It is open in the form viewer below." : "This form could not be shown here.");
-    if (ok) revealViewer();
+    if (ok) { onScreen(f.instance_id, f.form_name, "view"); revealViewer(); }
   }
   // The signing page opens in a NEW TAB (it needs the whole screen, as the e-mailed link does). The
   // tab is opened inside the click — the only moment a browser allows it — and pointed at the page
@@ -5278,6 +5469,7 @@
                                                     : msgOf(r, "The signing page could not be opened just now."));
       return;
     }
+    onScreen(f.instance_id, f.form_name, "sign");
     if (w && !w.closed) {
       try { w.location.replace(r.url); txt(row.res, "The signing page is open in a new tab."); return; }
       catch(e) { /* fall through to the link */ }
@@ -5295,7 +5487,7 @@
     if (!r || !r.success || !r.url) { txt(row.res, msgOf(r, "The upload page could not be opened just now.")); return; }
     const ok = await show("upload", r.url);
     txt(row.res, ok ? "The upload page is open in the form viewer below." : "The upload page could not be shown here.");
-    if (ok) revealViewer();
+    if (ok) { onScreen(f.instance_id, f.form_name, "upload"); revealViewer(); }
   }
   function setFormsOpen(open){
     fm.body.hidden = !open;
@@ -5349,7 +5541,7 @@
   async function openSubmit(iid, name){
     if (!shown(iid) || !P.held()) return;
     closeDlg(sb.dlg);
-    sub = { iid: iid, name: name, to: "", toArg: "", token: null, sent: false };
+    sub = { iid: iid, name: name, to: "", toArg: "", token: null, sent: false, told: false };
     txt(sb.form, name); txt(sb.to, ""); sb.other.value = ""; sb.missing.textContent = ""; txt(sb.result, "");
     sb.body.hidden = false; sb.confirm.hidden = false; sb.again.hidden = true; sb.cancel.textContent = "Cancel";
     syncConfirm();
@@ -5374,6 +5566,7 @@
     mine.toArg = toAddress || "";
     mine.token = (r.can_submit === true && typeof r.confirm_token === "string" && r.confirm_token) ? r.confirm_token : null;
     if (shown(r.form_name)) txt(sb.form, r.form_name);
+    if (!mine.told) { mine.told = true; onScreen(mine.iid, sb.form.textContent || mine.name, "submit"); }
     txt(sb.to, mine.to || "No e-mail address is set for this practice.");
     renderMissing(Array.isArray(r.unanswered) ? r.unanswered : [], r.can_submit === true);
     if (toAddress && mine.to) sb.other.value = "";
@@ -5394,6 +5587,7 @@
     if (sub !== mine || lapsed(r)) return;
     if (r && r.success && r.sent === true) {
       mine.sent = true;
+      onScreen(mine.iid, sb.form.textContent || mine.name, "submitted");
       const to = String(r.to_address || mine.to || "").trim();
       txt(sb.result, to ? ("Sent to " + to + ".") : "Sent.");
       sb.body.hidden = true; sb.confirm.hidden = true; sb.again.hidden = true; sb.cancel.textContent = "Close";
@@ -5476,6 +5670,10 @@
      ⚠ A FORM'S KEY. My forms lists copies; the actions that name a FORM (machines, schedule, a new copy, a
         blank copy) learn its key from customisations_list's reply for one of its copies (the module takes an
         owned copy there), once per copy, in this page's memory only.
+     ⚠ THE FORM ON SCREEN (21 Oct 2026, contract §6): opening a section of "More for this form", its Send again /
+        Correct / Discard buttons, and a copy opened in the viewer tell the conversation which copy it is
+        (window.teckelScreenForm, in the voice transport); a directory, a guidance passage or a reference document
+        put in the viewer by these controls tells it that no form is on screen ("closed").
      ⚠ Every request goes through window.teckelPortal.action (it adds the pass; this script never holds it).
         Every server string is written as TEXT. "Done", "Sent", "Removed" and the like are the server's own
         message on its own success, never the page's guess.
@@ -5538,6 +5736,10 @@
   function closeDlg(d){ if (!d || !d.open) return; try { d.close(); } catch(e) { d.removeAttribute("open"); } }
   function show(kind, url){
     return (typeof window.teckelPortalShow === "function") ? window.teckelPortalShow(kind, url) : Promise.resolve(false);
+  }
+  // (contract §6) The copy these controls showed or acted on, for the conversation (null: no form on screen now).
+  function onScreen(iid, name, action){
+    try { if (typeof window.teckelScreenForm === "function") window.teckelScreenForm(iid, name, action); } catch(e) {}
   }
   function urlOk(kind, url){
     return typeof window.teckelPortalUrlOk === "function" && window.teckelPortalUrlOk(kind, url) === true;
@@ -5745,14 +5947,14 @@
     say(msgOf(r, "This form's details could not be read just now. Please try again."));
     return null;
   }
-  async function viewCopy(iid, say){
+  async function viewCopy(iid, say, name){
     txt(say, "Opening…");
     const r = await P.action("view_link", { instance_id: iid });
     if (lapsed(r)) return;
     if (!r || r.success !== true || !r.url) { txt(say, msgOf(r, "It could not be opened just now.")); return; }
     const ok = await show("form", r.url);
     txt(say, ok ? "It is open in the form viewer below." : "It could not be shown here.");
-    if (ok) revealViewer();
+    if (ok) { onScreen(iid, name, "view"); revealViewer(); }
   }
   async function reloadThenSay(text){
     await F.reload();
@@ -5805,20 +6007,28 @@
     s.ev = section("Documents attached", nameId, function (c, again, note) { return loadAttached(c, again, note, ctx); });
     s.sched = section("Schedule", nameId, function (c, again, note) { return loadSchedule(c, again, note, ctx); });
     [s.q, s.log, s.mach, s.survey, s.ev, s.sched].forEach(function (d) { box.appendChild(d); });
+    // (contract §6) a section opened is this copy being worked on: the conversation is told which one
+    [[s.q, "customise"], [s.log, "log"], [s.mach, "machines"], [s.survey, "survey"], [s.ev, "evidence"],
+     [s.sched, "schedule"]].forEach(function (p) {
+      p[0].addEventListener("toggle", function () { if (p[0].open) onScreen(ctx.iid, ctx.f.form_name, p[1]); });
+    });
     applyKind(ctx);
     const acts = el("div", { cls: "pp-actions" });
     const after = function (r) { reloadThenSay(msgOf(r, "")); };
     if (ctx.submitted) {
       acts.appendChild(button("Send the submitted copy again", function () {
+        onScreen(ctx.iid, ctx.f.form_name, "resend");
         twoStep({ action: "submission_resend", args: { instance_id: ctx.iid }, outward: true,
                   title: "Send the submitted copy again?", sub: ctx.name });
       }, { describedBy: nameId }));
       acts.appendChild(button("Correct and resubmit", function () {
+        onScreen(ctx.iid, ctx.f.form_name, "revise");
         twoStep({ action: "revise", args: { instance_id: ctx.iid }, title: "Correct and resubmit?", sub: ctx.name,
                   confirmLabel: "Open a corrected copy", onDone: after });
       }, { describedBy: nameId }));
     } else {
       acts.appendChild(button("Discard this draft", function () {
+        onScreen(ctx.iid, ctx.f.form_name, "discard");
         twoStep({ action: "discard", args: { instance_id: ctx.iid }, title: "Discard this draft?", sub: ctx.name,
                   confirmLabel: "Discard it", onDone: after });
       }, { describedBy: nameId }));
@@ -6025,7 +6235,7 @@
     if (!ms.length) c.appendChild(line("No machines are on file for this log yet.", "pp-hint"));
     else c.appendChild(list(ms.map(function (m) {
       const it = item(shown(m.label) ? String(m.label) : "A machine", null, []);
-      addButtons(it, [button("View its log", function () { viewCopy(String(m.instance_id), note); }, { describedBy: it.id })]);
+      addButtons(it, [button("View its log", function () { viewCopy(String(m.instance_id), note, ctx.f.form_name); }, { describedBy: it.id })]);
       return it.li;
     })));
     const mid = uid("pp-mach");
@@ -6142,7 +6352,7 @@
     const name = shown(r && r.form_name) ? String(r.form_name) : String(f.form_name || "the form");
     if (!r || r.success !== true) {
       res.appendChild(document.createTextNode(msgOf(r, "A new copy could not be started just now.") + " "));
-      if (r && shown(r.instance_id)) res.appendChild(button("View that copy", function () { viewCopy(String(r.instance_id), res); }));
+      if (r && shown(r.instance_id)) res.appendChild(button("View that copy", function () { viewCopy(String(r.instance_id), res, name); }));
       if (r && r.confirmed_new_would_help === true) res.appendChild(button("Start a fresh copy anyway", function () { newCopy(f, true); }));
       return;
     }
@@ -6150,7 +6360,7 @@
       res.appendChild(document.createTextNode(msgOf(r, "This log is kept one per machine. Which machine is it for?") + " "));
       (Array.isArray(r.machines) ? r.machines : []).forEach(function (m) {
         if (m && shown(m.instance_id)) res.appendChild(button("View the log for " + (shown(m.label) ? m.label : "this machine"),
-                                                             function () { viewCopy(String(m.instance_id), res); }));
+                                                             function () { viewCopy(String(m.instance_id), res, name); }));
       });
       res.appendChild(el("p", { cls: "pp-hint", text: "To start the log for another machine, open Machines under this form in My forms." }));
       return;
@@ -6164,7 +6374,7 @@
     else said = msgOf(r, "It is in My forms.");
     await F.reload();
     txt(res, said + " ");
-    if (shown(r.instance_id)) res.appendChild(button("View it", function () { viewCopy(String(r.instance_id), res); }));
+    if (shown(r.instance_id)) res.appendChild(button("View it", function () { viewCopy(String(r.instance_id), res, name); }));
   }
   tl.newBtn.addEventListener("click", function () {
     if (!P.held()) return;
@@ -6253,7 +6463,7 @@
     if (!r || r.success !== true || !r.url) { txt(say, msgOf(r, "It could not be shown just now.")); return; }
     const ok = await show("guidance", r.url);
     txt(say, ok ? "It is open in the viewer below." : "It could not be shown here.");
-    if (ok) revealViewer();
+    if (ok) { onScreen(null, null, "closed"); revealViewer(); }
   }
   let asking = false;
   async function ask(){
@@ -6314,7 +6524,7 @@
           if (!u || u.success !== true || !u.url) { txt(note, msgOf(u, "It could not be opened just now.")); return; }
           const ok = await show("guidance", u.url);
           txt(note, ok ? (quoted(title) + " is open in the viewer below.") : "It could not be shown here.");
-          if (ok) revealViewer();
+          if (ok) { onScreen(null, null, "closed"); revealViewer(); }
         }, { describedBy: it.id }),
         button("E-mail it to me", function () { blankCopy(String(d.document_id), title); }, { describedBy: it.id })
       ]);
@@ -6334,7 +6544,7 @@
     if (!r || r.success !== true || !r.url) { txt(tl.dirRes, msgOf(r, "The directory could not be opened just now.")); return; }
     const ok = await show("directory", r.url);
     txt(tl.dirRes, ok ? "The directory is open in the viewer below." : "The directory could not be shown here.");
-    if (ok) revealViewer();
+    if (ok) { onScreen(null, null, "closed"); revealViewer(); }
   }
   tl.dirOpen.addEventListener("click", openDirectory);
   tl.dirQ.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); openDirectory(); } });
