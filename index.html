@@ -3604,6 +3604,11 @@
          conversation starts. See « THE FORM ON SCREEN » below.
        · (21 Oct 2026, contract §7) kev's numbered lists ({kind:"display_numbered_list"}) are shown
          as tappable numbered rows; a tap is the existing pick_form. See « A NUMBERED LIST ».
+       · (22 Oct 2026, Yusuf: "Yes, start automatically" and "Yes, tell kev") the conversation STARTS
+         BY ITSELF when the access code is accepted (« AUTO-START »), and every conversation opens
+         with {kind:"client_ready"} then {kind:"review_panel"} before the screen_form re-send, so
+         kev holds its greeting until the page can hear and speak, and mentions the back-office
+         review panel only when it is on screen. See « THE PAGE TELLS KEV IT IS READY ».
      ===================================================================== -->
 <script>
 "use strict";
@@ -4070,6 +4075,82 @@
     document.querySelectorAll("#lv-list-items .lv-list-item.picked").forEach(function (x) { x.classList.remove("picked"); });
     b.classList.add("picked");
   }
+
+  /* ══ THE PAGE TELLS KEV IT IS READY (Yusuf, 22 Oct 2026: "Yes, tell kev"; timing agreed with kev's side) ══════════
+     Why: kev speaks first. Its greeting went out the moment the socket opened — before the page could play it (an audio
+     context still starting), before the microphone could hear the reply, and with no idea that the back-office review
+     panel was on screen. So every conversation now OPENS with two client messages, routed on `kind` (never `type`), in
+     this order and in ONE synchronous run with no await between them, followed by the existing screen_form re-send:
+       1 {kind:"client_ready", audio_out:<the output context is "running">, mic:<the microphone is capturing>,
+          at:"<ISO UTC>"} — ONCE per conversation;
+       2 {kind:"review_panel", shown:<bool>, open_items:<int>} — shown:true ONLY while the review panel is open on
+          screen with N > 0 open items, N being the count the panel itself shows; otherwise shown:false, open_items:0;
+       3 the remembered screen_form, if any (« THE FORM ON SCREEN »), unchanged.
+     · WHEN: once the socket is open AND the audio output is "running" AND the microphone attempt has settled (capturing
+       or refused) AND the review panel's FIRST load after a sign-in has settled (opened, or confirmed empty) — each
+       waited for, never forever: the audio and the microphone at most HELLO_WAIT_MS from the open (then audio_out /
+       mic say false), the panel at most HELLO_PANEL_MS (then shown:false, and the re-send below follows if it opens).
+       The microphone is waited for so that mic means something (a granted microphone opens in a few ms, after the
+       socket) and so the greeting is not spoken to a page that cannot yet hear the answer.
+     · AGAIN: review_panel is sent again, during the conversation, whenever what it would say changes — the panel opened
+       or closed, or its count changed while open. Never before client_ready.
+     · The panel's script reports to window.teckelReviewPanel({pending, shown, open_items}); the page keeps nothing of
+       an item, and no item's content ever leaves it. Text only; nothing in storage; sendJSON refuses a closed socket
+       and never throws. */
+  const HELLO_WAIT_MS = 3000;            /* audio output "running" and the microphone settled, at most this long */
+  const HELLO_PANEL_MS = 1500;           /* the review panel's first load after a sign-in, at most this long */
+  const HELLO_POLL_MS = 50;
+  let hello = null;                      /* the conversation still waiting to say client_ready: {sock, t0, mic, timer} */
+  let helloSent = false;                 /* client_ready has gone out in the conversation now open */
+  let reviewSentKey = null;              /* what the last review_panel said in this conversation */
+  const review = { settled: true, shown: false, open_items: 0 };   /* what the panel reports; nothing of an item */
+  function audioOutRunning(){ return !!(outCtx && outCtx.state === "running"); }
+  function micCapturing(){ return !!(micStream && micNode); }
+  function reviewPanelMsg(){
+    const on = review.shown && review.open_items > 0;
+    return { kind: "review_panel", shown: on, open_items: on ? review.open_items : 0 };
+  }
+  function sendReviewPanel(always){
+    if (!helloSent || !isOpen()) return false;
+    const m = reviewPanelMsg(), key = m.shown + ":" + m.open_items;
+    if (!always && key === reviewSentKey) return false;
+    const ok = sendJSON(m);
+    if (ok) { reviewSentKey = key; log("review_panel " + (m.shown ? "shown, " + m.open_items + " open" : "not shown")); }
+    return ok;
+  }
+  function stopHello(){ if (hello) { clearInterval(hello.timer); hello = null; } }
+  function startHello(s){
+    stopHello(); helloSent = false; reviewSentKey = null;
+    hello = { sock: s, t0: Date.now(), mic: false, timer: setInterval(tryHello, HELLO_POLL_MS) };
+    tryHello();
+  }
+  function helloMicSettled(s){ if (hello && hello.sock === s) { hello.mic = true; tryHello(); } }
+  function tryHello(){
+    const h = hello; if (!h) return;
+    if (h.sock !== sock || !isOpen() || droppingFrames) { stopHello(); return; }
+    const waited = Date.now() - h.t0, audio = audioOutRunning();
+    if (!((audio && h.mic) || waited >= HELLO_WAIT_MS)) return;
+    if (!(review.settled || waited >= HELLO_PANEL_MS)) return;
+    stopHello();
+    // ⚠ ONE SYNCHRONOUS RUN: client_ready, review_panel, then the screen_form re-send — no await in between.
+    helloSent = sendJSON({ kind: "client_ready", audio_out: audio, mic: micCapturing(), at: new Date().toISOString() });
+    log("client_ready " + (helloSent ? "sent" : "not sent (no socket)") + " after " + waited + " ms"
+        + (audio ? "" : " — the audio output is not running") + (review.settled ? "" : " — the review panel had not loaded"));
+    if (!helloSent) return;
+    sendReviewPanel(true);
+    resendScreenForm();                  /* « THE FORM ON SCREEN »: the form the user opened before Start */
+  }
+  Object.defineProperty(window, "teckelReviewPanel", { configurable: false, enumerable: false, writable: false,
+    value: function (state) {
+      try {
+        const s = (state && typeof state === "object") ? state : {};
+        const n = (typeof s.open_items === "number" && isFinite(s.open_items) && s.open_items > 0) ? Math.floor(s.open_items) : 0;
+        review.settled = s.pending !== true;
+        review.shown = s.shown === true && n > 0;
+        review.open_items = review.shown ? n : 0;
+        if (hello) tryHello(); else sendReviewPanel(false);
+      } catch(e) { log("review_panel failed: " + e.message); }
+    } });
 
   function sendTyped(){
     const box = $("lv-type");
@@ -4807,10 +4888,23 @@
     return b;
   }
 
+  /* ══ AUTO-START (Yusuf, 22 Oct 2026: "Yes, start automatically") ═══════════════════════════════════════════════
+     The access code ACCEPTED is the start: the conversation begins exactly as Start would begin it, with no second tap.
+     verifyCode() already called unlockAudio() and prepareMicCtx() synchronously inside the Verify click (or its Enter
+     key) — a phone allows audio only inside the gesture — so connect() is all that is left. Only once the door has
+     opened (doorAllowsStart) and never over a conversation already open or starting. A browser that was ALREADY
+     verified (no code typed) never starts by itself: Start does it, as before. Whatever stops a start (a credit stop,
+     no token, a refused socket) leaves the page exactly as Start would have left it, Start available; a refused
+     microphone leaves the conversation open for typing, as after Start, and End then brings Start back. */
   async function afterCodeAccepted(){
-    if (doorMode === "legacy") { await connect(); return; }     /* as before this build */
+    if (doorMode === "legacy") { await autoStart(); return; }   /* the code was asked at Start, as before this build */
     const ok = await obtainPass("signin");
-    if (ok === true && startAfterSignIn) { startAfterSignIn = false; await connect(); }
+    if (ok === true) { startAfterSignIn = false; await autoStart(); }
+  }
+  async function autoStart(){
+    if (connecting || isOpen() || !doorAllowsStart()) return;
+    log("access: code accepted, so the conversation starts (no second tap)");
+    await connect();
   }
 
   // What the page's own buttons (the review panel, My forms) need — and NOT the pass.
@@ -5009,11 +5103,13 @@
       live(true);                            /* taps on forms now reach kev */
       setButtons(); setConn("on", "Connected"); setMic("starting the microphone…");
       log("connected");
-      resendScreenForm();                    /* « THE FORM ON SCREEN »: the form the user opened before Start */
+      const s = sock;
+      startHello(s);                         /* « THE PAGE TELLS KEV IT IS READY »: client_ready, review_panel, screen_form */
       if (dbg.health) health();
       try { await startMic(); }
       catch(e){ log("mic refused: " + e.message); applyMute();
                 showMsg("The microphone is not available here, so type to Benedict instead."); }
+      helloMicSettled(s);                    /* capturing or refused: client_ready can say which */
     };
     sock.onmessage = (ev) => {
       if (droppingFrames) return;            /* signed out: nothing more from kev reaches this screen */
@@ -5036,6 +5132,7 @@
     sock.onclose = (e) => {
       const wasOpen = everOpened, byUser = endingByUser;
       sock = null; connecting = false; endingByUser = false; muted = false;
+      stopHello(); helloSent = false; reviewSentKey = null;   /* the next conversation says client_ready afresh */
       clearTimeout(muteTimer); muteTimer = null;
       live(false); stopMic(); flushPlayback(); showStatus({ text: "" }); applyMute(); clearList();
       const part = document.querySelector("#lv-transcript .l.bot.partial"); if (part) part.remove();
@@ -5139,6 +5236,10 @@
        · (21 Oct 2026, contract §6) THE FORM ON SCREEN: View, Sign, Upload, the Submit sheet and a copy opened
          from the review panel tell the conversation which copy it is (window.teckelScreenForm, in the voice
          transport: it sends only ids the server gave this page, and never a value).
+       · (22 Oct 2026, Yusuf: "Yes, tell kev") THE REVIEW PANEL ON SCREEN: whether the panel is open with N > 0 open
+         items (N = the "N open" it shows), and whether its first load after a sign-in has settled, are reported to
+         window.teckelReviewPanel (in the voice transport), which tells the conversation {kind:"review_panel"} so
+         Benedict's greeting mentions the panel only when it is really on screen. Never an item's content.
      ⚠ Every request goes through window.teckelPortal.action, which adds the pass; this script never
        holds it. Every server string is written as TEXT, never as markup.
      ⚠ "Accepted", "Rejected" and "Sent" are said ONLY on the server's own confirmation (success, and
@@ -5254,12 +5355,24 @@
     missed_action: "Something you asked for that may not have been done"
   };
   let current = null, laterIds = new Set(), rvBusy = false, openCount = 0;
+  let rvFirstLoad = false;                   /* the first load after a sign-in is still deciding whether the panel opens */
 
+  // (22 Oct 2026, Yusuf: "Yes, tell kev") What the panel shows, for the conversation (window.teckelReviewPanel, in the
+  // voice transport, which tells kev {kind:"review_panel"}): open on screen or not, and the count it shows ("N open").
+  // Only those two facts and whether the first load has settled — never an item. A hint; never throws.
+  function reportPanel(){
+    try {
+      if (typeof window.teckelReviewPanel === "function")
+        window.teckelReviewPanel({ pending: rvFirstLoad, shown: !!rv.dlg.open && openCount > 0,
+                                   open_items: rv.dlg.open ? openCount : 0 });
+    } catch(e) {}
+  }
   function setBadge(n){
     openCount = (typeof n === "number" && isFinite(n) && n > 0) ? Math.floor(n) : 0;
     txt(rv.n, openCount);
     if (rv.badge) rv.badge.hidden = openCount === 0;
     txt(rv.count, openCount ? (openCount + " open") : "");
+    reportPanel();
   }
   async function refreshCount(){
     const r = await P.action("review_count", {});
@@ -5320,6 +5433,7 @@
     laterIds = new Set(); current = null; txt(rv.result, "");
     rv.item.hidden = true; rv.actions.hidden = true; rv.done.hidden = false; txt(rv.done, "Loading…");
     openDlg(rv.dlg);
+    reportPanel();                               /* on screen now, with its "N open" */
     await nextItem();
   }
   function readBack(rb){
@@ -5402,6 +5516,7 @@
   }
   if (rv.badge) rv.badge.addEventListener("click", openReview);
   $("pp-review-close").addEventListener("click", function () { closeDlg(rv.dlg); });   /* decides nothing */
+  rv.dlg.addEventListener("close", reportPanel);   /* Close, Escape, a lapse, a sign-out: off screen */
   $("pp-rv-accept").addEventListener("click", function () { resolve("accept"); });
   $("pp-rv-reject").addEventListener("click", function () { resolve("reject"); });
   $("pp-rv-later").addEventListener("click", function () { resolve("later"); });
@@ -5672,16 +5787,26 @@
   async function onSignIn(){
     fm.card.hidden = false;
     formsMsg("Loading your forms…");
-    const c = await P.action("review_count", {});
-    if (lapsed(c)) return;
-    setBadge((c && c.success && typeof c.open === "number") ? c.open : 0);
-    if (openCount > 0) await openReview();       // ⚠ FIRST: My forms is asked for only once this is up
+    // (22 Oct 2026) The conversation (auto-started with the code) waits a moment for this first decision: the panel
+    // opened, or nothing to check. Settled in every outcome, including a lapse or a failed count.
+    rvFirstLoad = true; reportPanel();
+    try {
+      const c = await P.action("review_count", {});
+      if (lapsed(c)) return;
+      setBadge((c && c.success && typeof c.open === "number") ? c.open : 0);
+      // Settled AS the panel opens (openReview reports it on screen), or now when there is nothing to check — never
+      // "settled, not shown" a moment before it opens.
+      if (openCount > 0) { rvFirstLoad = false; await openReview(); }   // ⚠ FIRST: My forms is asked for only once this is up
+    } finally {
+      rvFirstLoad = false; reportPanel();
+    }
     await loadForms();
   }
   function onLapse(d){
     const code = String((d && d.code) || "");
     sending = false; sub = null; current = null;
     closeDlg(sb.dlg); closeDlg(rv.dlg);
+    rvFirstLoad = false; reportPanel();           /* off screen (also where a dialog has no close event) */
     clearForms();                                 /* paused for privacy: the list goes, and comes back */
     // (21 Oct 2026, Yusuf's V2 decision 7) SIGNED OUT: the badge's count is the practice's too, so it goes as well.
     if (code === "SIGNED_OUT") setBadge(0);
@@ -5690,7 +5815,8 @@
              : "Your forms appear again once this page reopens.");
   }
   function onMode(m){
-    if (m === "legacy") { fm.card.hidden = true; setBadge(0); closeDlg(rv.dlg); closeDlg(sb.dlg); return; }
+    if (m === "legacy") { fm.card.hidden = true; setBadge(0); closeDlg(rv.dlg); closeDlg(sb.dlg);
+                          rvFirstLoad = false; reportPanel(); return; }
     if (m === "door") {
       fm.card.hidden = false;
       if (!P.held() && !fm.ip.children.length) formsMsg("Your forms appear here once your access code is accepted.");
