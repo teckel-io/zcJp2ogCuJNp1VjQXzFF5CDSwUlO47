@@ -33,6 +33,9 @@
      button in the header, and an automatic sign-out after 8 hours without use and at local
      midnight (two constants at the top of the voice transport). Signing out replaces the
      browser's id, so the next visit asks for the code.
+   · (23 Oct 2026, Steven via Yusuf) SETTINGS: a "Settings" button beside the User Guide, greyed
+     like the rest until the code is accepted; it asks the portal door for the practice's settings
+     page (server 2.2.415) and opens it in a new tab. Refused, it stays greyed: "Settings — coming soon".
 
   ELEVENLABS RESIDUE, KEPT AND INERT (on purpose): the <elevenlabs-convai> tag (hidden; the
   agent id is read off it), the allow-events script, the elevenlabs-convai:call listener (it
@@ -476,6 +479,18 @@
         .pp-signout:hover { border-color: var(--white); background-color: rgba(176, 196, 222, 0.08); }
         .pp-signout:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
         .pp-signout[hidden] { display: none !important; }
+        /* (23 Oct 2026, Steven via Yusuf; server 2.2.415) Settings, beside the User Guide in the header: the guide link's
+           own look, gold, because it opens a page of the practice's own as the guide does. Greyed until the code is
+           accepted (the door), and greyed for good, with its "Settings — coming soon" tooltip, when the server refuses. */
+        .pp-settings {
+            font: inherit; color: var(--gold); font-size: 11px; font-weight: 600; letter-spacing: 2.5px;
+            text-transform: uppercase; background: transparent; border: 1px solid rgba(240, 208, 96, 0.4);
+            padding: 8px 14px; border-radius: 4px; cursor: pointer;
+            transition: border-color 0.15s, background-color 0.15s;
+        }
+        .pp-settings:hover:not(:disabled) { border-color: var(--gold); background-color: rgba(240, 208, 96, 0.08); }
+        .pp-settings:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+        .pp-settings:disabled { opacity: 0.45; cursor: not-allowed; }
         .pp-card {
             background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px;
             padding: 16px 20px; min-width: 0;
@@ -952,6 +967,7 @@
     <header class="site-header">
         <nav class="site-nav">
             <a href="guide.html">User Guide</a>
+            <button type="button" id="pp-settings" class="pp-settings">Settings</button>
             <button type="button" id="pp-review-badge" class="pp-badge" hidden
                     aria-haspopup="dialog" aria-controls="pp-review">Review &middot; <span id="pp-review-n">0</span> open<span class="sr-only"> &mdash; answers to check</span></button>
             <button type="button" id="pp-signout" class="pp-signout" hidden>Sign out</button>
@@ -5236,6 +5252,9 @@
        · (21 Oct 2026, contract §6) THE FORM ON SCREEN: View, Sign, Upload, the Submit sheet and a copy opened
          from the review panel tell the conversation which copy it is (window.teckelScreenForm, in the voice
          transport: it sends only ids the server gave this page, and never a value).
+       · (23 Oct 2026, Steven via Yusuf; server 2.2.415) SETTINGS: the header's Settings button, beside the User Guide,
+         asks settings_link through the door (no arguments: the practice is the pass's) and opens the practice's own
+         settings page in a new tab; refused, it stays greyed, "Settings — coming soon" — never an error page.
        · (22 Oct 2026, Yusuf: "Yes, tell kev") THE REVIEW PANEL ON SCREEN: whether the panel is open with N > 0 open
          items (N = the "N open" it shows), and whether its first load after a sign-in has settled, are reported to
          window.teckelReviewPanel (in the voice transport), which tells the conversation {kind:"review_panel"} so
@@ -5783,6 +5802,62 @@
   sb.dlg.addEventListener("cancel", function (e) { if (sending) e.preventDefault(); });   /* Esc mid-send */
   sb.dlg.addEventListener("close", function () { if (!sending) sub = null; });
 
+  /* ══ SETTINGS (23 Oct 2026 — Steven via Yusuf; server 2.2.415, R415_PORTAL_SETTINGS) ═══════════════════════════
+     The header's Settings button, beside the User Guide (builder edit V19). Greyed until the code is accepted, like every
+     control but the guide links: the door's lockAll greys it, and nothing here acts without the pass. A click makes ONE
+     request — portal_action settings_link, no arguments: the pass is added by the door, and the practice comes from
+     the pass, never from the page — and opens the answer as the User Guide opens: a page of its own, here a NEW TAB,
+     opened inside the click (the only moment a browser allows one) and pointed at the settings page once the server
+     has answered, so this page, its pass and any conversation stay as they are. A tab the browser blocked: this tab
+     goes to it, as the User Guide link does. Only the practice's own settings page is ever opened (SETTINGS_PAGE).
+     ⚠ A REFUSAL IS NEVER AN ERROR PAGE. The server's switch off (UNKNOWN_ACTION), settings not on for the account
+     (SETTINGS_MENU_OFF), no settings page set up, the portal off (legacy mode), or an answer that is not a settings page:
+     the blank tab is closed and the button stays greyed, its tooltip "Settings — coming soon", for the rest of this
+     page's life. A lapsed pass is the door's to handle (it greys the page and asks for the code). No answer at all (the
+     network): the button stays usable and its tooltip says to try again. */
+  const SETTINGS_PAGE = /^https:\/\/teckel-io\.github\.io\/[^?#\s]*settings\.html\?token=[^\s]+$/;
+  const SETTINGS_OFF = ["UNKNOWN_ACTION", "SETTINGS_MENU_OFF", "SETTINGS_PAGE_NOT_CONFIGURED", "PORTAL_OFF", "NO_PASS"];
+  const SETTINGS_SOON = "Settings — coming soon";
+  const st = { btn: $("pp-settings"), off: false, busy: false };
+  function settingsOff(){
+    st.off = true;
+    if (!st.btn) return;
+    st.btn.disabled = true; st.btn.title = SETTINGS_SOON;
+    st.btn.setAttribute("aria-label", SETTINGS_SOON);
+    // Greyed by the door just now? Then reopening must keep it greyed: the state the door puts back is this one.
+    if (st.btn.hasAttribute("data-pp-lock")) st.btn.setAttribute("data-pp-was", "1");
+  }
+  async function openSettings(){
+    if (!st.btn || st.off || st.busy || !P.held()) return;
+    st.busy = true;
+    let w = null;
+    try { w = window.open("", "_blank"); } catch(e) { w = null; }
+    if (w) {
+      try { w.opener = null; } catch(e) {}
+      try { w.document.title = "Opening…"; if (w.document.body) w.document.body.textContent = "Opening your settings…"; }
+      catch(e) {}
+    }
+    try {
+      const r = await P.action("settings_link", {});
+      const ok = !!(r && r.success && typeof r.url === "string" && SETTINGS_PAGE.test(r.url));
+      if (!ok) {
+        if (w) { try { w.close(); } catch(e) {} }
+        if ((r && r.success) || SETTINGS_OFF.indexOf(codeOf(r)) !== -1) { settingsOff(); return; }
+        if (lapsed(r)) return;                       /* the door has greyed the page and raised the code row */
+        st.btn.title = "Settings could not be opened just now. Please try again.";
+        return;
+      }
+      st.btn.removeAttribute("title");
+      if (w && !w.closed) {
+        try { w.location.replace(r.url); return; } catch(e) { /* fall through: this tab goes to it */ }
+      }
+      window.location.assign(r.url);
+    } finally {
+      st.busy = false;
+    }
+  }
+  if (st.btn) st.btn.addEventListener("click", function () { openSettings(); });
+
   /* ══ THE DOOR'S EVENTS ═════════════════════════════════════════════════════════════════ */
   async function onSignIn(){
     fm.card.hidden = false;
@@ -5815,8 +5890,9 @@
              : "Your forms appear again once this page reopens.");
   }
   function onMode(m){
+    // (23 Oct 2026) the portal off: Settings has no door to ask, so it stays greyed, "Settings — coming soon".
     if (m === "legacy") { fm.card.hidden = true; setBadge(0); closeDlg(rv.dlg); closeDlg(sb.dlg);
-                          rvFirstLoad = false; reportPanel(); return; }
+                          rvFirstLoad = false; reportPanel(); settingsOff(); return; }
     if (m === "door") {
       fm.card.hidden = false;
       if (!P.held() && !fm.ip.children.length) formsMsg("Your forms appear here once your access code is accepted.");
