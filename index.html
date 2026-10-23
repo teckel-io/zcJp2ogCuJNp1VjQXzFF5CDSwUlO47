@@ -4303,7 +4303,10 @@
     if (!outCtx) {
       const C = window.AudioContext || window.webkitAudioContext;
       if (!C) return null;
-      outCtx = new C();
+      /* 23 Oct 2026 (Yusuf: "BUILD … THE NOTE10 FIX"; tcc's tested patch, run 18): on a Note 10+ / Samsung Internet the
+         default output context plays SILENCE; a PLAYBACK latency hint makes it audible (+9 ms base latency, output only —
+         this is the playback context, not the microphone's). A browser that rejects the hint gets the old context. */
+      try { outCtx = new C({ latencyHint: "playback" }); } catch (e) { outCtx = new C(); }
     }
     return outCtx;
   }
