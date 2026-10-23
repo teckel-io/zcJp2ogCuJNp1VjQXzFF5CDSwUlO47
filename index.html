@@ -630,6 +630,34 @@
         .pp-cf-words:empty { display: none; }
         /* With a form's tools open, the list grows instead of scrolling inside its box. */
         .pp-forms-body:has(.pp-more[open]) { max-height: none; overflow: visible; }
+        /* ── TYPE INTO THE FORM ON SCREEN (23 Oct 2026; server 2.2.417): the viewer strip's Edit button and the panel above
+           the viewer. Two columns (question | box) on a wide screen, one below 600px; every box takes its column's full
+           width and nothing is wider than its column, so 360px never scrolls sideways. ── */
+        #pp-edit[hidden], .pp-edit [hidden], .pp-edit-btn[hidden] { display: none !important; }
+        .form-refresh-btn.pp-edit-btn { opacity: 1; color: var(--text, #111827); font-weight: 600; margin-right: 6px; }
+        .pp-edit { margin: 0 0 10px 0; }
+        .pp-edit-title { color: var(--white); font-size: 14px; margin-top: 6px; overflow-wrap: anywhere; }
+        .pp-edit-title:empty { display: none; }
+        .pp-edit-body { margin-top: 8px; max-height: 560px; overflow-y: auto; min-width: 0; }
+        .pp-edit-list { min-width: 0; }
+        .pp-edit-row {
+            display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 4px 14px; align-items: start;
+            padding: 9px 0; border-top: 1px solid var(--card-border);
+        }
+        .pp-edit-label { color: var(--white); font-size: 13.5px; overflow-wrap: anywhere; min-width: 0; padding-top: 8px; }
+        .pp-edit-cell { min-width: 0; }
+        .pp-edit-input { display: block; width: 100%; max-width: 100%; box-sizing: border-box; min-width: 0; }
+        .pp-edit-hint { margin-top: 3px; }
+        .pp-edit-locked { color: var(--steel); font-size: 13px; font-style: italic; padding-top: 8px; overflow-wrap: anywhere; }
+        .pp-edit-status { font-size: 12.5px; margin-top: 4px; color: #ffe9b0; overflow-wrap: anywhere; }
+        .pp-edit-status:empty { display: none; }
+        .pp-edit-status.pp-ok { color: #9be7a8; }
+        .pp-edit-status.pp-bad { color: #ffb4a8; }
+        @media (max-width: 600px) {
+            .pp-edit-row { grid-template-columns: minmax(0, 1fr); }
+            .pp-edit-label, .pp-edit-locked { padding-top: 0; }
+            .pp-edit-body { max-height: none; overflow: visible; }
+        }
         /* Stacked layout: My forms grows with the page instead of scrolling inside itself (a box that
            scrolls inside a scrolling page hides its last rows on a phone). */
         @media (max-width: 900px) {
@@ -1339,6 +1367,8 @@
                     </svg>
                     Back to my form
                 </button>
+                <button type="button" id="pp-edit-btn" class="form-refresh-btn pp-edit-btn" hidden
+                        aria-expanded="false" aria-controls="pp-edit" title="Type your answers into this form">Edit</button>
                 <!-- v2.2.232 — refresh on demand. The page redraws itself when the form
                      actually changes; this is for the moment a user wants to be sure. -->
                 <button type="button" id="form-refresh-btn" class="form-refresh-btn"
@@ -1353,6 +1383,26 @@
                 </button>
             </div>
 
+            <!-- LOCAL V2 (23 Oct 2026, Yusuf: "Can we make the on-screen form *editable* so that a user can always override
+                 and simply type!!!"; server 2.2.417, R417_TYPED_ANSWERS) — TYPE INTO THE FORM ON SCREEN. Opened by the
+                 viewer strip's Edit button, only for a copy this page's own buttons put in the viewer (My forms → View, a
+                 copy opened from the review panel or the Practice tools). Built by the edit script at the end of the page
+                 from the server's form_fields: a question form's questions (each saved when the box is left or Enter is
+                 pressed) or a column log's NEW entry (saved with one button). Every value meets the server's own rules
+                 before anything is written; a refusal is shown beside its box, and nothing is written for it.
+                 ⚠ Server strings are written as TEXT. Greyed with everything else while the page is signed out, and
+                 closed and emptied when the page pauses or signs out. -->
+            <section class="pp-card pp-edit" id="pp-edit" aria-labelledby="pp-edit-h" hidden>
+                <div class="pp-card-head">
+                    <h2 class="pp-h" id="pp-edit-h">Type your answers</h2>
+                    <span class="pp-card-tools">
+                        <button type="button" id="pp-edit-close" class="lv-btn pp-small">Close</button>
+                    </span>
+                </div>
+                <p class="pp-edit-title" id="pp-edit-title"></p>
+                <p class="pp-forms-msg" id="pp-edit-msg" role="status" aria-live="polite"></p>
+                <div class="pp-edit-body" id="pp-edit-body"></div>
+            </section>
             <div class="form-viewer-shell">
                 <iframe id="form-viewer" name="form-viewer"
                         src="about:blank"
@@ -2137,6 +2187,7 @@
 
         function setFormView(v) {
             currentFormView = v || { url: null, shownAt: 0 };
+            if (typeof portalViewerChanged === 'function') portalViewerChanged();   // LOCAL V2 (23 Oct 2026, 2.2.417): the Edit control follows the viewer
             // Remember every REAL form we show. Deliberately not cleared when v.url is
             // null — that null is a read-only view arriving, which is precisely the case
             // the Back button exists for.
@@ -3361,7 +3412,34 @@
             return !!(portalHeldView && currentFormView === portalHeldView && currentFormView.url
                       && iframe && !iframe.hasAttribute('srcdoc'));
         }
-        window.teckelPortalShow = function (kind, url) {
+        // (23 Oct 2026; server 2.2.417, the Edit control) THE VIEWER FOR TYPING. A typed save that WROTE redraws the form
+        // the page's own View put here: the SAME view while its token is fresh (expiresAt, from view_link's expires_at,
+        // kept with the view; 20 s of margin), else "stale" and the edit script asks view_link once and shows the new
+        // view through teckelPortalShow's own checks. Anything else on the viewer: "gone", nothing is touched.
+        // portalViewerChanged is called from setFormView (builder edit V20c), so the Edit control follows every view.
+        // ⚠ The event is sent on the NEXT task, once: setFormView calls this before teckelPortalShow has recorded the
+        // view as the page's (portalHeldView), so a listener told at once would see the page's own form as replaced.
+        var portalViewerTick = null;
+        function portalViewerChanged() {
+            if (portalViewerTick) return;
+            portalViewerTick = setTimeout(function () {
+                portalViewerTick = null;
+                try { window.dispatchEvent(new Event('teckel-viewer')); } catch (e) {}
+            }, 0);
+        }
+        window.teckelPortalViewer = Object.freeze({
+            held: function () { return viewerHeldByPage(); },
+            redraw: function () {
+                var iframe = document.getElementById('form-viewer');
+                if (!iframe || !viewerHeldByPage()) return 'gone';
+                var exp = Number(portalHeldView.expiresAt) || 0;
+                if (!exp || Date.now() > exp - 20000) return 'stale';
+                markActivity();
+                showPdfUrl(iframe, bustCache(portalHeldView.url));
+                return 'redrawn';
+            }
+        });
+        window.teckelPortalShow = function (kind, url, expiresAt) {
             var iframe      = document.getElementById('form-viewer');
             var placeholder = document.getElementById('form-viewer-placeholder');
             var u = String(url || '').trim();
@@ -3382,8 +3460,9 @@
                     showPdfUrl(iframe, u);
                 }
                 if (placeholder) placeholder.classList.add('hidden');
-                setFormView({ url: u, shownAt: Date.now() });
+                setFormView({ url: u, shownAt: Date.now(), expiresAt: Date.parse(String(expiresAt || '')) || 0 });
                 portalHeldView = currentFormView;   // the page's own form, until anything replaces it
+                portalViewerChanged();              // (2.2.417) now held by the page: the Edit control may show
                 return Promise.resolve(true);
             }
             if (kind === 'upload') {
@@ -4007,6 +4086,7 @@
       viewerIid = null;
       const ok = sendScreen(screenFormMsg({ instance_id: null, form_name: null, action: act, at: new Date().toISOString() }));
       log("screen_form " + act + (ok ? " sent" : " (no conversation)"));
+      viewerEvent();
       return ok;
     }
     const iid = String(instanceId).trim();
@@ -4017,6 +4097,7 @@
     else if (act === "upload") viewerIid = null;   /* the upload page replaced it */
     const ok = sendScreen(screenFormMsg(screenForm));
     log("screen_form " + act + (ok ? " sent" : " remembered for the next conversation"));
+    viewerEvent();                         /* (2.2.417) the Edit control follows the copy on screen */
     return ok;
   }
   function resendScreenForm(){
@@ -4030,12 +4111,50 @@
     screenForm = null; screenIds.clear();
     viewerIid = null;
     if (why) sendScreen(screenFormMsg({ instance_id: null, form_name: null, action: why, at: new Date().toISOString() }));
+    viewerEvent();
     return had;
   }
   Object.defineProperty(window, "teckelScreenForm", { configurable: false, enumerable: false, writable: false,
     value: function (instanceId, formName, action) {
       try { return tellScreenForm(instanceId, formName, action); }
       catch(e) { log("screen_form failed: " + e.message); return false; }
+    } });
+
+  /* ══ TYPING INTO THE FORM ON SCREEN (23 Oct 2026; Yusuf: "Can we make the on-screen form *editable* …"; server 2.2.417,
+     R417_TYPED_ANSWERS) — the transport's two parts; the panel and its requests are the edit script at the end of the page.
+     · window.teckelScreenCopy() -> {instance_id, form_name} | null: the copy the page's own View put in the viewer
+       (viewerIid), only while it is an id the server gave this page. The edit script also asks the viewer whether it
+       still shows that very view (window.teckelPortalViewer.held()): both must say yes before Edit is offered.
+     · window.teckelFormChanged(instanceId, questionNumber | null): after a typed save that WROTE, the conversation is told
+       {kind:"form_changed", instance_id, question_number} (a question form) or {kind:"form_changed", instance_id,
+       entry:true} (a new log entry) — routed on kind; kev ignores a kind it does not know until it is wired. Only ids the
+       server gave this page; never a value; no conversation, nothing sent (sendJSON refuses a closed socket).
+     · "teckel-viewer" (a window event) fires whenever the copy on screen may have changed (screen_form told or forgotten,
+       Benedict's display replacing the page's form), and the viewer fires it from setFormView (builder edit V20c). */
+  function viewerEvent(){ try { window.dispatchEvent(new Event("teckel-viewer")); } catch(e) {} }
+  const FORM_CHANGED_QN = /^[A-Za-z0-9._-]{1,16}$/;
+  Object.defineProperty(window, "teckelScreenCopy", { configurable: false, enumerable: false, writable: false,
+    value: function () {
+      if (!viewerIid || !screenIds.has(viewerIid)) return null;
+      const name = (screenForm && screenForm.instance_id === viewerIid) ? screenForm.form_name : null;
+      return Object.freeze({ instance_id: viewerIid, form_name: name });
+    } });
+  Object.defineProperty(window, "teckelFormChanged", { configurable: false, enumerable: false, writable: false,
+    value: function (instanceId, questionNumber) {
+      try {
+        const iid = String(instanceId || "").trim();
+        if (!(SCREEN_ID_OK.test(iid) && screenIds.has(iid))) { log("form_changed refused: not a copy this page was given"); return false; }
+        const m = { kind: "form_changed", instance_id: iid };
+        if (questionNumber === null || questionNumber === undefined || questionNumber === "") m.entry = true;
+        else {
+          const q = String(questionNumber).trim();
+          if (!FORM_CHANGED_QN.test(q)) { log("form_changed refused: not a question number"); return false; }
+          m.question_number = q;
+        }
+        const ok = sendJSON(m);
+        log("form_changed " + (ok ? "sent" : "(no conversation)"));
+        return ok;
+      } catch(e) { log("form_changed failed: " + e.message); return false; }
     } });
 
   /* ══ A NUMBERED LIST ON SCREEN (contract §7; Yusuf, 21 Oct 2026: "Where are the 65? I don't see them") ══════════
@@ -4327,6 +4446,7 @@
       viewerIid = null;                    /* his display replaced the page's form: the next Start clears it */
       screenForm = null;
       if (name === "display_form") clearList();
+      viewerEvent();                       /* (2.2.417) no copy of the page's on screen now: no Edit */
     }
     if (!sendJSON({ kind: "client_tool_result", name: name, id: m.id || null, result: result }))
       log("could not return the tool result (no socket)");
@@ -5348,8 +5468,9 @@
   function quoted(s){ return "“" + String(s) + "”"; }
   function openDlg(d){ if (!d || d.open) return; try { d.showModal(); } catch(e) { d.setAttribute("open", ""); } }
   function closeDlg(d){ if (!d || !d.open) return; try { d.close(); } catch(e) { d.removeAttribute("open"); } }
-  function show(kind, url){
-    return (typeof window.teckelPortalShow === "function") ? window.teckelPortalShow(kind, url) : Promise.resolve(false);
+  // (2.2.417) a form's view carries view_link's expires_at, so a typed save can redraw it while its token is fresh
+  function show(kind, url, expiresAt){
+    return (typeof window.teckelPortalShow === "function") ? window.teckelPortalShow(kind, url, expiresAt) : Promise.resolve(false);
   }
   // (contract §6) The copy this button showed or acted on, for the conversation. A hint only; never throws.
   function onScreen(iid, name, action){
@@ -5488,7 +5609,7 @@
       txt(rv.result, "Accepted. Opening " + name + "…");
       const r = await P.action("view_link", { instance_id: open.instance_id });
       if (lapsed(r)) return;
-      const ok = (r && r.success && r.url) ? await show("form", r.url) : false;
+      const ok = (r && r.success && r.url) ? await show("form", r.url, r.expires_at) : false;
       if (ok) onScreen(open.instance_id, s.form_name, "view");
       txt(rv.result, ok ? ("Accepted. " + name + " is open in the form viewer, behind this panel.")
                         : ("Accepted. You will find " + name + " in My forms."));
@@ -5634,7 +5755,7 @@
     rowBusy(row, false, "");
     if (lapsed(r)) return;
     if (!r || !r.success || !r.url) { txt(row.res, msgOf(r, "This form could not be opened just now.")); return; }
-    const ok = await show("form", r.url);
+    const ok = await show("form", r.url, r.expires_at);
     txt(row.res, ok ? "It is open in the form viewer below." : "This form could not be shown here.");
     if (ok) { onScreen(f.instance_id, f.form_name, "view"); revealViewer(); }
   }
@@ -5991,8 +6112,8 @@
   function clone(o){ return JSON.parse(JSON.stringify(o || {})); }
   function openDlg(d){ if (!d || d.open) return; try { d.showModal(); } catch(e) { d.setAttribute("open", ""); } }
   function closeDlg(d){ if (!d || !d.open) return; try { d.close(); } catch(e) { d.removeAttribute("open"); } }
-  function show(kind, url){
-    return (typeof window.teckelPortalShow === "function") ? window.teckelPortalShow(kind, url) : Promise.resolve(false);
+  function show(kind, url, expiresAt){   /* (2.2.417) a form's view carries view_link's expires_at */
+    return (typeof window.teckelPortalShow === "function") ? window.teckelPortalShow(kind, url, expiresAt) : Promise.resolve(false);
   }
   // (contract §6) The copy these controls showed or acted on, for the conversation (null: no form on screen now).
   function onScreen(iid, name, action){
@@ -6209,7 +6330,7 @@
     const r = await P.action("view_link", { instance_id: iid });
     if (lapsed(r)) return;
     if (!r || r.success !== true || !r.url) { txt(say, msgOf(r, "It could not be opened just now.")); return; }
-    const ok = await show("form", r.url);
+    const ok = await show("form", r.url, r.expires_at);   /* (2.2.417) the view's expiry, for a typed save's redraw */
     txt(say, ok ? "It is open in the form viewer below." : "It could not be shown here.");
     if (ok) { onScreen(iid, name, "view"); revealViewer(); }
   }
@@ -6838,6 +6959,347 @@
   P.on("lapse", onLapse);
   P.on("mode", onMode);
   onMode(P.mode());
+})();
+</script>
+<!-- =====================================================================
+     TYPE INTO THE FORM ON SCREEN, V2 (23 Oct 2026). Yusuf: "Can we make the on-screen form *editable* so that a
+     user can always override and simply type!!!" — question forms and column logs first. Server 2.2.417
+     (teckel__r417_typed_answers_v1_0.py, switch DOCUMENT_ANALYSER_R417_TYPED_ANSWERS): three portal actions.
+       · THE EDIT BUTTON sits in the viewer strip (builder edit V20a) and shows ONLY while the viewer holds a copy this
+         page's own buttons put there (My forms → View, a copy opened from the review panel or the Practice tools):
+         window.teckelScreenCopy (the transport: the copy View showed, an id the server gave this page) AND
+         window.teckelPortalViewer.held() (the viewer: still that very view). A form Benedict showed has no copy id on
+         this page, so it has no Edit. Greyed until the access code is accepted, like every control but the guide
+         links: it is a <button> the door locks, and nothing here acts without the pass.
+       · OPEN: form_fields {instance_id}. A question form: one box per question — a list for a choice question, a
+         text box with a "dd/mm/yyyy or 'today'" hint for a date (slashes: the date engine reads "23/10/2026"
+         but not "23-10-2026" or an ISO date, so never <input type="date">), "hh:mm" for a time — and a personal question
+         LOCKED, "left blank — personal details aren't collected" (no box at all; the server never sends its value).
+         Each answer is saved (save_answer) when its box is left or Enter is pressed, ONLY when it changed; a tick,
+         or the server's own refusal line beside the box (nothing was written). An emptied box clears the answer.
+         A column log: a NEW entry, one box per column (a list for a choice, a number hint with its unit, a date
+         hint, personal locked) and Save entry (save_log_entry): every refused box marked with the server's line and
+         NOTHING saved; blank columns are named first and saved blank only on "Save with them blank" (save_blank);
+         "Saved — the log now has N entries" and the boxes cleared. A submitted copy, a task grid, a survey or a
+         consent form: the server's short note, nothing to type into.
+       · THE SWITCH OFF (UNKNOWN_ACTION) or the portal off (PORTAL_OFF): Edit greyed, "Editing — coming soon", for
+         the rest of this page's life. A lapsed pass (or NO_PASS, the page signed out under a request) is the door's:
+         the panel closes and empties, and Edit works again after the code.
+       · AFTER A SAVE THAT WROTE: the conversation, if one is open, is told {kind:"form_changed", instance_id,
+         question_number} or {kind:"form_changed", instance_id, entry:true} (window.teckelFormChanged in the
+         transport: ids the server gave this page only, never a value), and the form on screen is redrawn — the same
+         view while its token is fresh (teckelPortalViewer.redraw), else ONE new view_link, shown through
+         teckelPortalShow's own checks.
+     ⚠ Every request goes through window.teckelPortal.action, which adds the pass; this script never holds it and
+       makes no request of its own. Every server string is written as TEXT, never as markup; nothing is stored in the
+       browser. The panel closes, and its boxes empty, on a lapse, a sign-out and when the form leaves the viewer.
+     ===================================================================== -->
+<script>
+"use strict";
+(function () {
+  const P = window.teckelPortal;
+  const $ = (id) => document.getElementById(id);
+  const ed = { btn: $("pp-edit-btn"), panel: $("pp-edit"), title: $("pp-edit-title"), msg: $("pp-edit-msg"),
+               body: $("pp-edit-body"), close: $("pp-edit-close") };
+  if (!P || !ed.btn || !ed.panel || !ed.body) return;   /* no door on this page */
+  const LAPSE = P.lapseCodes;
+  const EDIT_OFF = ["UNKNOWN_ACTION", "PORTAL_OFF"];
+  const EDIT_SOON = "Editing — coming soon";
+  const PERSONAL_LINE = "left blank — personal details aren't collected";
+  const HINT = { date: "dd/mm/yyyy or 'today'", time: "hh:mm", datetime: "dd/mm/yyyy hh:mm" };
+  const MAX_VALUE = 2000;                                 /* the server's own cap on a typed value */
+  let off = false;          /* the server cannot take typed answers: greyed for the rest of this page's life */
+  let cur = null;           /* the open panel: { iid, name, kind } — a new object each time it opens */
+  let opening = false, redrawTimer = null, rowSeq = 0;
+
+  function codeOf(r){ return String((r && r.error_code) || "").trim().toUpperCase(); }
+  // The door has already greyed the page and raised the code row: the caller says nothing more.
+  function lapsed(r){ const c = codeOf(r); return LAPSE.indexOf(c) !== -1 || c === "NO_PASS"; }
+  function msgOf(r, fallback){
+    const m = (r && typeof r.message === "string") ? r.message.trim() : "";
+    return m || fallback;
+  }
+  function txt(el, s){ if (el) el.textContent = (s === undefined || s === null) ? "" : String(s); }
+  function shown(v){ return v !== undefined && v !== null && String(v).trim() !== ""; }
+  function el(tag, cls, text){
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = String(text);
+    return e;
+  }
+
+  /* ══ WHICH COPY IS ON SCREEN ════════════════════════════════════════════════════════════ */
+  // The copy THIS page's own buttons put in the viewer, while the viewer still shows that very view; else null.
+  function copyOnScreen(){
+    let c = null, held = false;
+    try { c = (typeof window.teckelScreenCopy === "function") ? window.teckelScreenCopy() : null; } catch(e) { c = null; }
+    try { held = !!(window.teckelPortalViewer && window.teckelPortalViewer.held()); } catch(e) { held = false; }
+    return (c && held && shown(c.instance_id)) ? c : null;
+  }
+  function syncBtn(){
+    const c = copyOnScreen();
+    ed.btn.hidden = !c;
+    if (cur && (!c || String(c.instance_id) !== cur.iid)) closePanel();   /* the form left the viewer */
+    ed.btn.setAttribute("aria-expanded", cur ? "true" : "false");
+  }
+  function setOff(){
+    off = true;
+    closePanel();
+    ed.btn.disabled = true; ed.btn.title = EDIT_SOON;
+    ed.btn.setAttribute("aria-label", EDIT_SOON);
+    // Greyed by the door just now? Then reopening must keep it greyed: the state the door puts back is this one.
+    if (ed.btn.hasAttribute("data-pp-lock")) ed.btn.setAttribute("data-pp-was", "1");
+  }
+  function closePanel(){
+    cur = null;
+    clearTimeout(redrawTimer); redrawTimer = null;
+    ed.body.textContent = ""; txt(ed.title, ""); txt(ed.msg, "");   /* the practice's answers leave the page */
+    ed.panel.hidden = true;
+    ed.btn.setAttribute("aria-expanded", "false");
+  }
+
+  /* ══ OPEN: form_fields ══════════════════════════════════════════════════════════════════ */
+  async function openPanel(){
+    if (off || opening || !P.held()) return;
+    const c = copyOnScreen();
+    if (!c) { syncBtn(); return; }
+    const mine = { iid: String(c.instance_id), name: shown(c.form_name) ? String(c.form_name) : "", kind: "" };
+    cur = mine;
+    ed.body.textContent = ""; txt(ed.title, mine.name); txt(ed.msg, "Loading the questions…");
+    ed.panel.hidden = false; ed.btn.setAttribute("aria-expanded", "true");
+    opening = true;
+    let r;
+    try { r = await P.action("form_fields", { instance_id: mine.iid }); }
+    finally { opening = false; }
+    if (cur !== mine) return;                               /* closed, or the form left the viewer, meanwhile */
+    if (EDIT_OFF.indexOf(codeOf(r)) !== -1) { setOff(); return; }
+    if (lapsed(r)) { closePanel(); return; }
+    if (!r || r.success !== true) { txt(ed.msg, msgOf(r, "This form could not be opened for typing just now.")); return; }
+    if (shown(r.title)) txt(ed.title, r.title);
+    if (r.editable !== true) {                              /* submitted, or a kind not editable yet: the server says why */
+      txt(ed.msg, msgOf(r, "This form can't be changed here."));
+      return;
+    }
+    mine.kind = String(r.form_kind || "");
+    if (mine.kind === "qa" && Array.isArray(r.questions)) {
+      renderQuestions(mine, r.questions);
+      txt(ed.msg, "Each answer is saved when you leave its box or press Enter.");
+    } else if (mine.kind === "log" && Array.isArray(r.columns)) {
+      renderEntry(mine, r.columns, r.entry_count);
+      txt(ed.msg, "Type a new entry, then press Save entry.");
+    } else {
+      txt(ed.msg, "This form can't be changed here.");
+    }
+  }
+
+  /* ══ ONE BOX ════════════════════════════════════════════════════════════════════════════ */
+  function unitHint(unit){
+    const u = String(unit || "");
+    if (u === "temperature") return "a number, in °C";
+    if (u === "days" || u === "hours" || u === "minutes") return "a number of " + u;
+    return "a number";
+  }
+  function pickOption(options, value){
+    const v = String(value || "").trim().toLowerCase();
+    if (!v) return "";
+    const hit = options.find(function (o) { return String(o).trim().toLowerCase() === v; });
+    return hit === undefined ? "" : String(hit);
+  }
+  // { el, hint } — a list for a choice, else a text box with the kind's hint. Built as DOM, never markup.
+  function box(kind, options, id, value, unit){
+    let ctl, h = "";
+    if (kind === "option" && Array.isArray(options) && options.length) {
+      ctl = document.createElement("select");
+      ctl.appendChild(el("option", "", "—"));
+      ctl.options[0].value = "";
+      options.forEach(function (o) { const op = el("option", "", o); op.value = String(o); ctl.appendChild(op); });
+      ctl.value = pickOption(options, value);
+    } else {
+      ctl = document.createElement("input");
+      ctl.type = "text"; ctl.maxLength = MAX_VALUE; ctl.autocomplete = "off";
+      ctl.value = shown(value) ? String(value) : "";
+      h = kind === "number" ? unitHint(unit) : (HINT[kind] || "");
+      if (kind === "number") ctl.inputMode = "decimal";
+      if (h) ctl.placeholder = h;
+    }
+    ctl.id = id; ctl.className = "lv-input pp-edit-input";
+    let hint = null;
+    if (h) { hint = el("p", "pp-hint pp-edit-hint", h); hint.id = id + "-h"; ctl.setAttribute("aria-describedby", hint.id); }
+    return { ctl: ctl, hint: hint };
+  }
+  function row(list, labelText, id){
+    const r = el("div", "pp-edit-row");
+    const lab = el("label", "pp-edit-label", labelText); lab.htmlFor = id;
+    const cell = el("div", "pp-edit-cell");
+    r.appendChild(lab); r.appendChild(cell); list.appendChild(r);
+    return cell;
+  }
+  function locked(cell, id){
+    const p = el("p", "pp-edit-locked", PERSONAL_LINE); p.id = id;
+    cell.appendChild(p);
+  }
+  function status(cell){
+    const s = el("p", "pp-edit-status"); s.setAttribute("role", "status"); s.setAttribute("aria-live", "polite");
+    cell.appendChild(s);
+    return s;
+  }
+  function say(s, text, good){
+    s.className = "pp-edit-status" + (good === true ? " pp-ok" : good === false ? " pp-bad" : "");
+    txt(s, text);
+  }
+
+  /* ══ A QUESTION FORM: save_answer, one question at a time ══════════════════════════════ */
+  function renderQuestions(mine, questions){
+    const list = el("div", "pp-edit-list");
+    questions.forEach(function (q) {
+      if (!q || typeof q !== "object" || !shown(q.number)) return;
+      const id = "pp-ed-" + (++rowSeq);
+      const cell = row(list, String(q.number) + ". " + String(q.label || ""), id);
+      if (q.personal === true) { locked(cell, id); return; }
+      const b = box(String(q.kind || "text"), q.options, id, q.answer);
+      cell.appendChild(b.ctl); if (b.hint) cell.appendChild(b.hint);
+      wireAnswer(mine, String(q.number), b.ctl, status(cell));
+    });
+    ed.body.appendChild(list);
+  }
+  function wireAnswer(mine, qn, ctl, st){
+    const s = { saved: String(ctl.value || ""), busy: false, again: false };   /* what the server holds, as far as we know */
+    async function save(){
+      if (cur !== mine || off) return;
+      const v = String(ctl.value || "");
+      if (v.trim() === s.saved.trim()) return;               /* nothing changed: no request */
+      if (s.busy) { s.again = true; return; }
+      s.busy = true; s.again = false;
+      say(st, "Saving…");
+      let r;
+      try { r = await P.action("save_answer", { instance_id: mine.iid, question_number: qn, value: v }); }
+      finally { s.busy = false; }
+      if (cur !== mine) return;
+      if (EDIT_OFF.indexOf(codeOf(r)) !== -1) { setOff(); return; }
+      if (lapsed(r)) return;                                  /* the door closes the panel with the page */
+      if (r && r.success === true) {
+        const kept = (typeof r.value_saved === "string") ? r.value_saved : v;
+        s.saved = kept;
+        if (ctl.tagName === "SELECT") ctl.value = pickOption(Array.from(ctl.options).map(function (o) { return o.value; }), kept);
+        else if (String(ctl.value || "") === v) ctl.value = kept;   /* the server's form of it (a date, an option) */
+        say(st, r.cleared === true ? "✓ Cleared" : "✓ Saved", true);
+        if (r.unchanged !== true) afterWrite(mine, qn);
+      } else {
+        say(st, msgOf(r, "That answer was not saved."), false);    /* nothing was written: the box keeps what was typed */
+      }
+      if (s.again) save();
+    }
+    if (ctl.tagName === "SELECT") ctl.addEventListener("change", save);
+    else {
+      ctl.addEventListener("blur", save);
+      ctl.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); save(); } });
+    }
+  }
+
+  /* ══ A COLUMN LOG: save_log_entry, one NEW entry ═══════════════════════════════════════ */
+  function entriesLine(n){ return "Saved — the log now has " + n + (n === 1 ? " entry." : " entries."); }
+  function renderEntry(mine, columns, count){
+    ed.body.appendChild(el("h3", "pp-h3", "New entry"));
+    if (typeof count === "number" && isFinite(count)) {
+      ed.body.appendChild(el("p", "pp-hint", "The log has " + count + (count === 1 ? " saved entry." : " saved entries.")));
+    }
+    const list = el("div", "pp-edit-list");
+    const boxes = [];
+    columns.forEach(function (c) {
+      if (!c || typeof c !== "object" || !shown(c.key)) return;
+      const id = "pp-ed-" + (++rowSeq);
+      const cell = row(list, String(c.label || c.key), id);
+      if (c.personal === true) { locked(cell, id); return; }
+      const b = box(String(c.kind || "text"), c.options, id, "", c.unit);
+      cell.appendChild(b.ctl); if (b.hint) cell.appendChild(b.hint);
+      boxes.push({ key: String(c.key), ctl: b.ctl, st: status(cell) });
+    });
+    ed.body.appendChild(list);
+    const acts = el("div", "pp-actions");
+    const saveBtn = el("button", "lv-btn primary", "Save entry"); saveBtn.type = "button"; saveBtn.id = "pp-ed-save";
+    const blankBtn = el("button", "lv-btn", "Save with them blank"); blankBtn.type = "button"; blankBtn.id = "pp-ed-blank";
+    blankBtn.hidden = true;
+    acts.appendChild(saveBtn); acts.appendChild(blankBtn);
+    ed.body.appendChild(acts);
+    const res = el("p", "pp-result"); res.id = "pp-ed-result";
+    res.setAttribute("role", "status"); res.setAttribute("aria-live", "polite");
+    ed.body.appendChild(res);
+    let busy = false;
+    async function saveEntry(saveBlank){
+      if (cur !== mine || off || busy) return;
+      busy = true; blankBtn.hidden = true;
+      boxes.forEach(function (x) { say(x.st, ""); });
+      const values = {};
+      boxes.forEach(function (x) { values[x.key] = String(x.ctl.value || ""); });
+      const args = { instance_id: mine.iid, values: values };
+      if (saveBlank === true) args.save_blank = true;
+      txt(res, "Saving…");
+      let r;
+      try { r = await P.action("save_log_entry", args); }
+      finally { busy = false; }
+      if (cur !== mine) return;
+      if (EDIT_OFF.indexOf(codeOf(r)) !== -1) { setOff(); return; }
+      if (lapsed(r)) return;
+      if (r && r.success === true) {
+        boxes.forEach(function (x) { x.ctl.value = ""; });
+        txt(res, (typeof r.entry_count === "number") ? entriesLine(r.entry_count) : "Saved.");
+        afterWrite(mine, null);
+        return;
+      }
+      const code = codeOf(r);
+      if (code === "ENTRY_REFUSED" && Array.isArray(r.refused)) {
+        const loose = [];
+        r.refused.forEach(function (f) {
+          if (!f || typeof f !== "object") return;
+          const x = boxes.find(function (b) { return b.key === String(f.key); });
+          if (x) say(x.st, msgOf(f, "This value was not accepted."), false);
+          else loose.push((shown(f.label) ? String(f.label) + ": " : "") + msgOf(f, "not accepted"));
+        });
+        txt(res, msgOf(r, "Nothing was saved.") + (loose.length ? " " + loose.join(" ") : ""));
+        return;
+      }
+      if (code === "BLANK_FIELDS") {                          /* named first; saved blank only when the user says so */
+        txt(res, msgOf(r, "Some fields are blank. Save the entry with them blank?"));
+        blankBtn.hidden = false;
+        return;
+      }
+      txt(res, msgOf(r, "The entry was not saved."));
+    }
+    saveBtn.addEventListener("click", function () { saveEntry(false); });
+    blankBtn.addEventListener("click", function () { saveEntry(true); });
+  }
+
+  /* ══ AFTER A SAVE THAT WROTE: tell the conversation, redraw the form ═══════════════════ */
+  function afterWrite(mine, qn){
+    try {
+      if (P.live() && typeof window.teckelFormChanged === "function") window.teckelFormChanged(mine.iid, qn);
+    } catch(e) {}
+    clearTimeout(redrawTimer);                              /* several saves in a row: one redraw */
+    redrawTimer = setTimeout(function () { redrawTimer = null; redraw(mine); }, 400);
+  }
+  async function redraw(mine){
+    if (cur !== mine) return;
+    let how = "gone";
+    try { how = window.teckelPortalViewer ? window.teckelPortalViewer.redraw() : "gone"; } catch(e) { how = "gone"; }
+    if (how !== "stale") return;                            /* redrawn, or the form is no longer on screen */
+    const r = await P.action("view_link", { instance_id: mine.iid });
+    if (cur !== mine || lapsed(r) || !r || r.success !== true || !r.url) return;
+    if (typeof window.teckelPortalShow === "function") await window.teckelPortalShow("form", r.url, r.expires_at);
+  }
+
+  /* ══ EVENTS ═════════════════════════════════════════════════════════════════════════════ */
+  ed.btn.addEventListener("click", function () { if (cur) closePanel(); else openPanel(); });
+  ed.close.addEventListener("click", function () { closePanel(); try { ed.btn.focus(); } catch(e) {} });
+  window.addEventListener("teckel-viewer", syncBtn);     /* the viewer or the copy on it changed */
+  const frame = $("form-viewer");
+  if (frame && typeof MutationObserver === "function") {   /* a card written into the frame replaces the form too */
+    new MutationObserver(syncBtn).observe(frame, { attributes: true, attributeFilter: ["src", "srcdoc"] });
+  }
+  P.on("signin", syncBtn);
+  P.on("lapse", function () { closePanel(); syncBtn(); });
+  P.on("mode", function (m) { if (m === "legacy") setOff(); syncBtn(); });
+  if (P.mode() === "legacy") setOff();
+  syncBtn();
 })();
 </script>
 </body>
