@@ -681,6 +681,77 @@
         .lv-btn.pp-walk-hl { outline: 3px solid var(--gold); outline-offset: 2px; }
         .pp-walk-count { color: var(--white); font-size: 14px; margin-top: 8px; overflow-wrap: anywhere; }
         .pp-walk-count:empty { display: none; }
+        /* ── THE LIVE FORM (24 Oct 2026, page 2.2.421; Yusuf: "the form itself turns into live fields … BY DEFAULT"): inside
+           the viewer, IN PLACE OF the read-only rendering. The shell's .pp-live-on hides the frame, the placeholder and the
+           phone's drawn form; .pp-live-ro (Read-only view) shows them again under the same header and hides the fields (kept,
+           with anything typed). The fields scroll INSIDE their own box, so moving the cursor never scrolls the page. Every
+           row is one column below 600px and nothing is wider than its column, so 360px never scrolls sideways. ── */
+        #pp-live[hidden], .pp-live [hidden], .pp-live-note[hidden] { display: none !important; }
+        .form-viewer-shell.pp-live-on:not(.pp-live-ro) > #form-viewer,
+        .form-viewer-shell.pp-live-on:not(.pp-live-ro) > #form-viewer-placeholder,
+        .form-viewer-shell.pp-live-on:not(.pp-live-ro) > #pdf-mobile-host { display: none !important; }
+        .form-viewer-shell.pp-live-on.pp-live-ro > #pp-live > #pp-live-body { display: none !important; }
+        .pp-live-note {
+            margin: 0; padding: 9px 14px; font-size: 13.5px; color: #ffe9b0; background: var(--card-bg);
+            border-bottom: 1px solid var(--card-border); overflow-wrap: anywhere;
+        }
+        .pp-live { display: flex; flex-direction: column; min-width: 0; min-height: 0; flex: 0 0 auto; }
+        .form-viewer-shell.pp-live-on:not(.pp-live-ro) > .pp-live { flex: 1 1 auto; }
+        .pp-live-head {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px;
+            border-bottom: 1px solid var(--card-border); min-width: 0;
+        }
+        .pp-live-id { flex: 1 1 14em; min-width: 0; }
+        .pp-live-name { margin: 0; color: var(--white); font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+        .pp-live-step { margin: 2px 0 0; color: var(--steel); font-size: 12.5px; }
+        .pp-live-step:empty { display: none; }
+        .pp-live-tools { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+        .pp-live-tools .lv-btn[aria-pressed="true"]#pp-live-ro { border-color: var(--gold); color: var(--gold); }
+        .pp-live-msg { margin: 0; padding: 6px 14px 0; color: #ffe9b0; font-size: 13px; overflow-wrap: anywhere; }
+        .pp-live-msg:empty { display: none; }
+        .pp-live-body {
+            flex: 1 1 auto; min-height: 0; max-height: 640px; overflow-y: auto; overscroll-behavior: contain;
+            padding: 4px 14px 14px; min-width: 0; position: relative;
+        }
+        .pp-lf-row {
+            display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 4px 14px; align-items: start;
+            padding: 9px 8px; border-top: 1px solid var(--card-border); border-left: 3px solid transparent; min-width: 0;
+        }
+        .pp-lf-row.pp-lf-cur { border-left-color: var(--gold); background: rgba(240, 208, 96, 0.08); }
+        .pp-lf-row.pp-lf-cur .pp-lf-label { color: var(--gold); font-weight: 600; }
+        .pp-lf-row.pp-lf-off { opacity: 0.55; }
+        .pp-lf-label { color: var(--white); font-size: 13.5px; overflow-wrap: anywhere; min-width: 0; padding-top: 8px; }
+        .pp-lf-cell { min-width: 0; }
+        .pp-lf-input { display: block; width: 100%; max-width: 100%; box-sizing: border-box; min-width: 0; }
+        .pp-lf-row.pp-lf-cur .pp-lf-input { border-color: var(--gold); }
+        .pp-lf-locked, .pp-lf-offline { color: var(--steel); font-size: 13px; font-style: italic; padding-top: 8px; overflow-wrap: anywhere; }
+        .pp-lf-calc { color: var(--white); font-size: 14px; padding-top: 8px; overflow-wrap: anywhere; }
+        .pp-lf-working { color: var(--steel); font-size: 12.5px; margin-top: 2px; overflow-wrap: anywhere; }
+        .pp-lf-working:empty { display: none; }
+        .pp-lf-link { background: none; border: 0; padding: 0; margin-top: 4px; color: var(--steel); text-decoration: underline;
+                      font: inherit; font-size: 12.5px; cursor: pointer; }
+        .pp-lf-link:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+        .pp-lf-status { font-size: 12.5px; margin-top: 4px; color: #ffe9b0; overflow-wrap: anywhere; }
+        .pp-lf-status:empty { display: none; }
+        .pp-lf-status.pp-ok { color: #9be7a8; }
+        .pp-lf-status.pp-bad { color: #ffb4a8; }
+        .pp-lf-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; min-width: 0; }
+        .pp-lf-acts { margin-top: 12px; padding: 10px 8px; border-top: 1px solid var(--card-border); border-left: 3px solid transparent; }
+        .pp-lf-acts.pp-lf-cur { border-left-color: var(--gold); background: rgba(240, 208, 96, 0.08); }
+        .pp-lf-acts .pp-walk-row { margin-top: 6px; }
+        .pp-lf-h3 { color: var(--white); font-size: 14px; margin: 14px 0 4px; }
+        .pp-lf-entries { margin: 4px 0 0; padding-left: 20px; }
+        .pp-lf-entries li { padding: 5px 0; border-top: 1px solid var(--card-border); color: var(--white); font-size: 13px; overflow-wrap: anywhere; }
+        .pp-lf-entries dl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 2px 10px; margin: 2px 0 0; }
+        .pp-lf-entries dt { color: var(--steel); }
+        .pp-lf-entries dd { margin: 0; overflow-wrap: anywhere; }
+        @media (max-width: 600px) {
+            .pp-lf-row { grid-template-columns: minmax(0, 1fr); padding-left: 6px; padding-right: 4px; }
+            .pp-lf-label, .pp-lf-locked, .pp-lf-calc { padding-top: 0; }
+            .pp-live-body { max-height: 70vh; padding-left: 8px; padding-right: 8px; }
+            .pp-live-head { padding: 8px 10px; }
+            .pp-lf-entries dl { grid-template-columns: minmax(0, 1fr); }
+        }
         /* Stacked layout: My forms grows with the page instead of scrolling inside itself (a box that
            scrolls inside a scrolling page hides its last rows on a phone). */
         @media (max-width: 900px) {
@@ -1451,6 +1522,32 @@
                 <p class="pp-forms-msg" id="pp-walk-msg" role="status" aria-live="polite"></p>
             </section>
             <div class="form-viewer-shell">
+                <!-- LOCAL V2 (24 Oct 2026, page 2.2.421; Yusuf: "when you start walking or editing, the form itself turns into
+                     live fields. THIS MUST BE THE EXPERIENCE, TOTALLY CONFUSING OTHERWISE. IN FACT, BY DEFAULT THE FORM
+                     SHOULD LOAD INTO EDIT/WALK/CURSOR MODE") — THE LIVE FORM. Inside the viewer, IN PLACE OF the read-only
+                     rendering, while the server's page_features say it is on: the form as fields (from form_fields), the
+                     current question highlighted (the cursor), and a small header — the form's name, "Question n of m",
+                     Voice on / off, Read-only view (the original rendering and back) and Stop. A form that cannot be typed
+                     into keeps the read-only rendering and the one line above it says why. Built by the live form script
+                     at the end of the page. ⚠ Server strings are written as TEXT. Greyed with the viewer while the page is
+                     signed out, and closed and emptied when it pauses or signs out. -->
+                <p class="pp-live-note" id="pp-live-note" role="status" aria-live="polite" hidden></p>
+                <section class="pp-live" id="pp-live" aria-labelledby="pp-live-h" hidden>
+                    <div class="pp-live-head">
+                        <div class="pp-live-id">
+                            <h2 class="pp-live-name" id="pp-live-h"></h2>
+                            <p class="pp-live-step" id="pp-live-step" role="status" aria-live="polite"></p>
+                        </div>
+                        <span class="pp-live-tools">
+                            <button type="button" id="pp-live-voice" class="lv-btn pp-small" aria-pressed="true">Voice on</button>
+                            <button type="button" id="pp-live-ro" class="lv-btn pp-small" aria-pressed="false"
+                                    aria-controls="pp-live-body">Read-only view</button>
+                            <button type="button" id="pp-live-stop" class="lv-btn pp-small">Stop</button>
+                        </span>
+                    </div>
+                    <p class="pp-live-msg" id="pp-live-msg" role="status" aria-live="polite"></p>
+                    <div class="pp-live-body" id="pp-live-body"></div>
+                </section>
                 <iframe id="form-viewer" name="form-viewer"
                         src="about:blank"
                         title="form viewer"
@@ -3491,6 +3588,14 @@
                 markActivity();
                 showPdfUrl(iframe, bustCache(portalHeldView.url));
                 return 'redrawn';
+            },
+            // (24 Oct 2026, page 2.2.421; the live form) a form BENEDICT opened, redrawn after typed answers so its
+            // read-only view shows them: the same redraw the Refresh button does (his freshest view). Never the page's
+            // own copy (redraw() above keeps its expiry rule), never a card.
+            refresh: function () {
+                var iframe = document.getElementById('form-viewer');
+                if (!iframe || viewerHeldByPage() || iframe.hasAttribute('srcdoc')) return false;
+                return redrawForm('typed answers');
             }
         });
         window.teckelPortalShow = function (kind, url, expiresAt) {
@@ -3762,6 +3867,11 @@
          by voice is named by the server (resolve_view) so it can be typed into and walked; the walk's messages to kev
          ({kind:"walk_step"}, one envelope for every step, and {kind:"walk_control"}) and kev's two to the page
          ({kind:"walk_result"}, {kind:"walk_control"}). See « WALKING THE FORM ».
+       · (24 Oct 2026, Yusuf: "BY DEFAULT THE FORM SHOULD LOAD INTO EDIT/WALK/CURSOR MODE"; page 2.2.421) THE LIVE FORM's
+         transport parts: the copy on screen names its KIND (form_kind, from the server's own replies — My forms' rows and
+         form_fields), its status and which DISPLAY it is; page_features carries the server's live_form when it says one;
+         and the live form learns when a conversation has said client_ready (window.teckelConversationReady, the
+         "teckel-hello" event), so its first walk_step never goes before the page's own opening run. See « THE LIVE FORM ».
      ===================================================================== -->
 <script>
 "use strict";
@@ -4134,7 +4244,39 @@
     ["forms", "machines"].forEach(function (k) {
       if (Array.isArray(b[k])) b[k].forEach(function (x) { if (x && typeof x === "object") add(x.instance_id); });
     });
+    learnCopyKinds(b);                     /* (2.2.421) « THE LIVE FORM »: what kind of copy each one is */
   }
+  /* ══ THE LIVE FORM — WHAT KIND OF COPY IT IS (24 Oct 2026, page 2.2.421; fixes F-FP: the Walk button showed on a consent
+     form opened with View, because the copy on screen carried no kind). Learned from the server's own successful replies,
+     never guessed from a name: my_forms' rows (template_type, mapped EXACTLY as teckel__r417_typed_answers_v1_0.py's
+     form_kind maps a template: scheduled_grid_log / survey_log / consent_form -> "other", a log -> "log", else "qa"; and the
+     row's status), then form_fields' and resolve_view's own form_kind and status for one copy, which win. A row whose
+     template_type is empty (the server could not read the template) leaves the kind unknown (""): the server decides when
+     it is asked. Kept in memory with the ids, forgotten with them. The server stays the authority: form_fields says
+     whether a copy can be typed into; this only stops the page offering typing on a kind the server never takes. */
+  const copyKinds = new Map();             /* instance_id -> { form_kind: "qa" | "log" | "other" | "", status } */
+  const NOT_TYPED_TYPES = Object.freeze(["scheduled_grid_log", "survey_log", "consent_form"]);
+  const COPY_KINDS = Object.freeze(["qa", "log", "other"]);
+  function kindOfTemplateType(tt){
+    const t = String(tt === undefined || tt === null ? "" : tt).trim().toLowerCase();
+    if (!t) return "";
+    if (NOT_TYPED_TYPES.indexOf(t) !== -1) return "other";
+    return (t === "log" || /_log$/.test(t)) ? "log" : "qa";
+  }
+  function learnCopyKinds(b){
+    if (Array.isArray(b.forms)) b.forms.forEach(function (x) {
+      if (!x || typeof x !== "object") return;
+      const iid = String(x.instance_id || "").trim();
+      if (!SCREEN_ID_OK.test(iid) || !("template_type" in x)) return;
+      copyKinds.set(iid, Object.freeze({ form_kind: kindOfTemplateType(x.template_type), status: String(x.status || "") }));
+    });
+    const one = String(b.instance_id || "").trim();
+    if (SCREEN_ID_OK.test(one) && COPY_KINDS.indexOf(b.form_kind) !== -1) {
+      copyKinds.set(one, Object.freeze({ form_kind: b.form_kind, status: String(b.status || "") }));
+    }
+  }
+  let displaySeq = 0;                      /* one number per display of a copy (a View, a form Benedict opened) */
+  let viewDisplay = "";                    /* the display the page's own View last made ("p<n>") */
   function tellScreenForm(instanceId, formName, action){
     const act = String(action || "");
     if (SCREEN_ACTIONS.indexOf(act) === -1) { log("screen_form refused: unknown action"); return false; }
@@ -4154,6 +4296,7 @@
     const name = String(formName || "").replace(/\s+/g, " ").trim().slice(0, 300);
     screenForm = { instance_id: iid, form_name: name || null, action: act, at: new Date().toISOString() };
     if (act === "view") viewerIid = iid;  /* only View puts the form itself in the viewer */
+    if (act === "view") viewDisplay = "p" + (++displaySeq);   /* (2.2.421) a new display of the page's own copy */
     else if (act === "upload") viewerIid = null;   /* the upload page replaced it */
     const ok = sendScreen(screenFormMsg(screenForm));
     log("screen_form " + act + (ok ? " sent" : " remembered for the next conversation"));
@@ -4169,6 +4312,7 @@
   function forgetScreenForm(why){
     const had = !!screenForm;
     screenForm = null; screenIds.clear();
+    copyKinds.clear();                     /* (2.2.421) the kinds go with the ids */
     viewerIid = null;
     forgetVoiceCopy();                     /* (2.2.419) the voice copy goes with the ids */
     if (why) sendScreen(screenFormMsg({ instance_id: null, form_name: null, action: why, at: new Date().toISOString() }));
@@ -4183,9 +4327,12 @@
 
   /* ══ TYPING INTO THE FORM ON SCREEN (23 Oct 2026; Yusuf: "Can we make the on-screen form *editable* …"; server 2.2.417,
      R417_TYPED_ANSWERS) — the transport's two parts; the panel and its requests are the edit script at the end of the page.
-     · window.teckelScreenCopy() -> {instance_id, form_name} | null: the copy the page's own View put in the viewer
-       (viewerIid), only while it is an id the server gave this page. The edit script also asks the viewer whether it
-       still shows that very view (window.teckelPortalViewer.held()): both must say yes before Edit is offered.
+     · window.teckelScreenCopy() -> {instance_id, form_name, form_kind, status, display} | null: the copy the page's own View
+       put in the viewer (viewerIid), only while it is an id the server gave this page. The edit script also asks the viewer
+       whether it still shows that very view (window.teckelPortalViewer.held()): both must say yes before Edit is offered.
+       (2.2.421, F-FP) form_kind and status are what the server's own replies said of that copy (« THE LIVE FORM — WHAT
+       KIND OF COPY IT IS »), "" when not known; display names this View (a new one for every View), so the live form
+       opens once per display.
      · window.teckelFormChanged(instanceId, questionNumber | null): after a typed save that WROTE, the conversation is told
        {kind:"form_changed", instance_id, question_number} (a question form) or {kind:"form_changed", instance_id,
        entry:true} (a new log entry) — routed on kind; kev ignores a kind it does not know until it is wired. Only ids the
@@ -4198,7 +4345,9 @@
     value: function () {
       if (!viewerIid || !screenIds.has(viewerIid)) return null;
       const name = (screenForm && screenForm.instance_id === viewerIid) ? screenForm.form_name : null;
-      return Object.freeze({ instance_id: viewerIid, form_name: name });
+      const k = copyKinds.get(viewerIid) || null;
+      return Object.freeze({ instance_id: viewerIid, form_name: name, form_kind: k ? k.form_kind : "",
+                             status: k ? k.status : "", display: viewDisplay });
     } });
   Object.defineProperty(window, "teckelFormChanged", { configurable: false, enumerable: false, writable: false,
     value: function (instanceId, questionNumber) {
@@ -4236,11 +4385,16 @@
        Silent, "again" and the rest are handled once, whatever the step. A step this page does not know — "row" (a cursor
        over a list) is reserved and NOT built — is refused here and never sent. The copy's id only one the server gave this
        page; no conversation, nothing sent (sendJSON refuses a closed socket).
+     · (2.2.421, kev 1.113.0) a walk_result also carries the copy's instance_id, passed on as given: the live form ignores
+       a result naming another copy (the walk panel, 2.2.420's, does not read it).
      · kev's {kind:"walk_result", number, ok, value_saved | reason, floor} and {kind:"walk_control", op, number} reach the
        ONE listener the walk script registers (window.teckelWalkListen), as plain copies of those fields only. The walk
        script decides what an op may do (its allowlist); nothing here acts on one. */
   let voiceCopy = null, voiceSeq = 0;
-  function forgetVoiceCopy(){ if (voiceCopy) { voiceCopy = null; viewerEvent(); } voiceSeq++; }
+  // (2.2.421) the server's own words when it says the form Benedict opened is NOT this practice's (NOT_YOURS): shown by
+  // the live form as the one line beside the read-only form. Forgotten with the voice copy.
+  let voiceNote = null;
+  function forgetVoiceCopy(){ if (voiceCopy || voiceNote) { voiceCopy = null; voiceNote = null; viewerEvent(); } voiceSeq++; }
   async function resolveVoiceCopy(vsid){
     const seq = ++voiceSeq;
     const id = String(vsid || "").trim();
@@ -4250,10 +4404,23 @@
     catch(e) { log("resolve_view failed: " + e.message); return; }
     if (seq !== voiceSeq) { log("resolve_view answered after the screen changed; dropped"); return; }
     const iid = r && r.success === true ? String(r.instance_id || "").trim() : "";
-    if (!walkIid(iid)) { log("resolve_view: not a copy of this practice's to type into"); return; }
+    if (!walkIid(iid)) {
+      log("resolve_view: not a copy of this practice's to type into");
+      if (r && String(r.error_code || "").trim().toUpperCase() === "NOT_YOURS" && typeof r.message === "string" && r.message.trim()) {
+        voiceNote = r.message.trim().slice(0, 300);
+        viewerEvent();
+      }
+      return;
+    }
+    // (2.2.421) status and display ride with it, for the live form; walks_on_open is the server's own verdict (2.2.421's
+    // server half: page_features.walks_on_open on this reply) that kev stays silent on open because the page walks it —
+    // the page decides by its own rule and logs (never a value) when the two disagree.
+    const pf = (r.page_features && typeof r.page_features === "object") ? r.page_features : null;
     voiceCopy = Object.freeze({ instance_id: iid,
                                 form_name: String(r.form_title || "").replace(/\s+/g, " ").trim().slice(0, 300) || null,
-                                editable: r.editable === true, form_kind: String(r.form_kind || "") });
+                                editable: r.editable === true, form_kind: String(r.form_kind || ""),
+                                status: String(r.status || ""), display: "v" + (++displaySeq),
+                                walks_on_open: pf && typeof pf.walks_on_open === "boolean" ? pf.walks_on_open : null });
     log("resolve_view: the form Benedict opened is " + (voiceCopy.editable ? "editable" : "not editable") + " here");
     viewerEvent();
   }
@@ -4263,6 +4430,13 @@
       let on = false;
       try { on = !!(window.teckelPortalViewer && window.teckelPortalViewer.formShown()); } catch(e) { on = false; }
       return on ? voiceCopy : null;
+    } });
+  Object.defineProperty(window, "teckelVoiceNote", { configurable: false, enumerable: false, writable: false,
+    value: function () {
+      if (!voiceNote) return null;
+      let on = false;
+      try { on = !!(window.teckelPortalViewer && window.teckelPortalViewer.formShown()); } catch(e) { on = false; }
+      return on ? voiceNote : null;
     } });
   const WALK_STEPS = Object.freeze(["field", "action"]);   /* "row" is reserved (a cursor over a list): not in this build */
   const WALK_ACTIONS = Object.freeze(["sign", "submit"]);
@@ -4306,7 +4480,7 @@
   function walkFrame(m){
     if (!walkListener) { log("walk frame ignored: no walk on this page"); return; }
     const out = { kind: m.kind };
-    ["number", "ok", "value_saved", "reason", "floor", "op"].forEach(function (k) {
+    ["number", "ok", "value_saved", "reason", "floor", "op", "instance_id"].forEach(function (k) {
       if (m[k] !== undefined && m[k] !== null && typeof m[k] !== "object") out[k] = m[k];
     });
     try { walkListener(Object.freeze(out)); } catch(e) { log("walk frame failed: " + e.message); }
@@ -4429,7 +4603,17 @@
     if (!helloSent) return;
     sendReviewPanel(true);
     resendScreenForm();                  /* « THE FORM ON SCREEN »: the form the user opened before Start */
+    // (2.2.421) « THE LIVE FORM »: the conversation has heard the page's opening run — the live form may now send its
+    // cursor's walk_step. On the NEXT task, so the opening run stays exactly client_ready, review_panel, screen_form.
+    const heard = sock;
+    setTimeout(function () {
+      if (helloSent && sock === heard && isOpen()) { try { window.dispatchEvent(new Event("teckel-hello")); } catch(e) {} }
+    }, 0);
   }
+  // (2.2.421) true while a conversation is open AND has said client_ready: before that, a walk_step would reach kev ahead
+  // of the page's own opening run (and of the screen_form it carries).
+  Object.defineProperty(window, "teckelConversationReady", { configurable: false, enumerable: false, writable: false,
+    value: function () { return !!(helloSent && isOpen()); } });
   Object.defineProperty(window, "teckelReviewPanel", { configurable: false, enumerable: false, writable: false,
     value: function (state) {
       try {
@@ -5145,6 +5329,27 @@
     else if (Date.now() >= renewAt) renewPass();
   });
 
+  /* ══ PAGE FEATURES (24 Oct 2026; Yusuf: "yes please", F-FK; server 2.2.420, R420_OPEN_EDIT) ══════════════════════════
+     While the switch is on, EVERY successful door reply carries page_features {open_edit, voice_edit_walk, walk_says_why,
+     walk_saves_on_leave}. The last successful reply decides: one without it (the switch turned off) puts every feature
+     back off, so with the switch off this page is exactly 2.2.419's. window.teckelPageFeatures() hands the edit and walk
+     scripts a frozen copy of the four flags (true only when the server said true), or null. Never a value, never the pass.
+     (2.2.421) live_form rides too, but ONLY when the server says it (true or false): absent, it is absent, and the live
+     form's own default decides (the live form script, LIVE_FORM_DEFAULT). With the switch off there is still no
+     page_features at all, so no live form. */
+  let pageFeatures = null;
+  const PAGE_FEATURE_KEYS = Object.freeze(["open_edit", "voice_edit_walk", "walk_says_why", "walk_saves_on_leave"]);
+  function notePageFeatures(b){
+    const f = (b && b.page_features && typeof b.page_features === "object" && !Array.isArray(b.page_features)) ? b.page_features : null;
+    if (!f) { pageFeatures = null; return; }
+    const out = {};
+    PAGE_FEATURE_KEYS.forEach(function (k) { out[k] = f[k] === true; });
+    if (typeof f.live_form === "boolean") out.live_form = f.live_form;   /* (2.2.421) only when the server says it */
+    pageFeatures = Object.freeze(out);
+  }
+  Object.defineProperty(window, "teckelPageFeatures", { configurable: false, enumerable: false, writable: false,
+    value: function () { return pageFeatures; } });
+
   // THE ONE WAY A PORTAL REQUEST LEAVES THIS PAGE. Every reply comes back as the server sent it;
   // a failure to reach the server comes back in the same shape, with a plain sentence.
   async function portalAction(action, args){
@@ -5183,6 +5388,7 @@
     const code = String(b.error_code || "").trim().toUpperCase();
     log("portal: " + a + " -> " + (b.success ? "ok" : (code || "refused")));
     if (b.success === true) learnScreenIds(args, b);      /* « THE FORM ON SCREEN »: ids the server vouched for */
+    if (b.success === true) notePageFeatures(b);          /* (2.2.420) « PAGE FEATURES »: what this server turned on */
     if (DOOR_LAPSE.indexOf(code) !== -1) { if (pass === sent) passLapsed(code, "again"); }
     else if (code === "PORTAL_OFF") enterLegacy();
     return b;
@@ -7153,6 +7359,13 @@
        · THE SWITCH OFF (UNKNOWN_ACTION) or the portal off (PORTAL_OFF): Edit greyed, "Editing — coming soon", for
          the rest of this page's life. A lapsed pass (or NO_PASS, the page signed out under a request) is the door's:
          the panel closes and empties, and Edit works again after the code.
+       · (24 Oct 2026, page 2.2.421; Yusuf: "BY DEFAULT THE FORM SHOULD LOAD INTO EDIT/WALK/CURSOR MODE") WHILE THE LIVE
+         FORM IS ON (window.teckelLiveForm.on(): the server's page_features present, and its live_form not false) this
+         panel never opens: the form on screen itself becomes live fields (the live form script), the Edit button opens
+         THAT, and is shown only while the live form is not already showing the copy on screen. With page_features absent
+         (the 2.2.420 switch off) everything here is as 2.2.420 built it.
+       · (2.2.421, F-FP) no Edit for a copy the server's replies name as a kind that is never typed into (form_kind
+         "other": a task grid, a survey, a consent form) — the transport's teckelScreenCopy now carries it.
        · AFTER A SAVE THAT WROTE: the conversation, if one is open, is told {kind:"form_changed", instance_id,
          question_number} or {kind:"form_changed", instance_id, entry:true} (window.teckelFormChanged in the
          transport: ids the server gave this page only, never a value), and the form on screen is redrawn — the same
@@ -7220,14 +7433,70 @@
     value: function () {
       const c = copyOnScreen();
       return c ? Object.freeze({ instance_id: String(c.instance_id), form_name: c.form_name || null,
-                                 form_kind: c.form_kind ? String(c.form_kind) : "" }) : null;
+                                 form_kind: c.form_kind ? String(c.form_kind) : "",
+                                 status: c.status ? String(c.status) : "", display: c.display ? String(c.display) : "",
+                                 by_voice: c !== null && c === voiceOnScreen() }) : null;
     } });
+  // (2.2.421) the live form (its script comes after the walk script), while the server's page_features say it is on
+  function liveForm(){
+    const L = window.teckelLiveForm;
+    try { return (L && typeof L.on === "function" && L.on() === true) ? L : null; } catch(e) { return null; }
+  }
   function syncBtn(){
     const c = copyOnScreen();
-    ed.btn.hidden = !c;
-    if (cur && (!c || String(c.instance_id) !== cur.iid)) closePanel();   /* the form left the viewer */
+    const L = liveForm();
+    ed.btn.hidden = !c || (shown(c.form_kind) && c.form_kind === "other") || (!!L && L.offersEdit() !== true);
+    if (cur && (!c || String(c.instance_id) !== cur.iid || L)) closePanel();   /* the form left the viewer (or went live) */
     ed.btn.setAttribute("aria-expanded", cur ? "true" : "false");
+    autoOpen(c);                                            /* (2.2.420) a form Benedict opened: Edit at once */
   }
+
+  /* ══ (24 Oct 2026; Yusuf: "the form should open in edit mode", F-FK; server 2.2.420, R420_OPEN_EDIT) ════════════════
+     · A FORM BENEDICT OPENED BY VOICE OPENS IN EDIT AT ONCE: when the copy on screen is the one the server named for his
+       display_form (resolve_view, window.teckelVoiceCopy — a NEW object for every display of his), editable, and the
+       server says page_features.open_edit, the panel opens by itself, ONCE for that display (closing it keeps it
+       closed). In place: no focus is taken (the user may be typing elsewhere), nothing is scrolled into view, and when the
+       panel opens above a viewer the user has scrolled into, the page is moved by exactly the height it added, so what
+       is under the user's eyes stays still. Not while the walk panel is open, not over the page's own form.
+     · window.teckelEditOpen() — the walk script's voice op "edit" (kev's {kind:"walk_control", op:"edit"}): opens this
+       panel for the copy on screen exactly as the Edit button does, only while Edit is shown and usable and the server
+       says page_features.voice_edit_walk; true when it opened (or was open for that copy). */
+  function features(){
+    try { return (typeof window.teckelPageFeatures === "function") ? window.teckelPageFeatures() : null; }
+    catch(e) { return null; }
+  }
+  let autoFor = null;      /* the voice copy (its object) the panel last opened itself for */
+  function usableBtn(){ return !!(ed.btn && !ed.btn.hidden && !ed.btn.disabled && !ed.btn.hasAttribute("data-pp-lock")); }
+  function inPlace(fn){
+    const shell = document.querySelector(".form-viewer-shell");
+    const before = shell ? shell.getBoundingClientRect().top : null;
+    fn();
+    if (shell === null || before === null || before >= 0) return;   /* the viewer's top was in view: the panel shows */
+    const moved = shell.getBoundingClientRect().top - before;
+    if (moved) { try { window.scrollBy(0, moved); } catch(e) {} }
+  }
+  function autoOpen(c){
+    if (liveForm()) return;                                 /* (2.2.421) the live form opens instead */
+    const f = features();
+    if (!f || f.open_edit !== true || off || cur || opening || !P.held() || !c) return;
+    let v = null;
+    try { v = (typeof window.teckelVoiceCopy === "function") ? window.teckelVoiceCopy() : null; } catch(e) { v = null; }
+    if (!v || v === autoFor || v.editable !== true || String(v.instance_id) !== String(c.instance_id)) return;
+    const wp = document.getElementById("pp-walk");
+    if (wp && !wp.hidden) return;
+    autoFor = v;
+    openPanel(true);
+  }
+  Object.defineProperty(window, "teckelEditOpen", { configurable: false, enumerable: false, writable: false,
+    value: function () {
+      const f = features();
+      if (!f || f.voice_edit_walk !== true || off || !P.held() || !usableBtn()) return false;
+      const c = copyOnScreen();
+      if (!c) return false;
+      if (cur && cur.iid === String(c.instance_id)) return true;
+      openPanel(true);
+      return true;
+    } });
   function setOff(){
     off = true;
     closePanel();
@@ -7245,14 +7514,18 @@
   }
 
   /* ══ OPEN: form_fields ══════════════════════════════════════════════════════════════════ */
-  async function openPanel(){
+  async function openPanel(here){
     if (off || opening || !P.held()) return;
     const c = copyOnScreen();
     if (!c) { syncBtn(); return; }
+    // (2.2.420) opened by itself or by voice: in place (no focus, no scroll under the user); a click: as 2.2.419
+    const show = function (fn) { if (here === true) inPlace(fn); else fn(); };
     const mine = { iid: String(c.instance_id), name: shown(c.form_name) ? String(c.form_name) : "", kind: "" };
     cur = mine;
-    ed.body.textContent = ""; txt(ed.title, mine.name); txt(ed.msg, "Loading the questions…");
-    ed.panel.hidden = false; ed.btn.setAttribute("aria-expanded", "true");
+    show(function () {
+      ed.body.textContent = ""; txt(ed.title, mine.name); txt(ed.msg, "Loading the questions…");
+      ed.panel.hidden = false; ed.btn.setAttribute("aria-expanded", "true");
+    });
     opening = true;
     let r;
     try { r = await P.action("form_fields", { instance_id: mine.iid }); }
@@ -7267,15 +7540,17 @@
       return;
     }
     mine.kind = String(r.form_kind || "");
-    if (mine.kind === "qa" && Array.isArray(r.questions)) {
-      renderQuestions(mine, r.questions);
-      txt(ed.msg, "Each answer is saved when you leave its box or press Enter.");
-    } else if (mine.kind === "log" && Array.isArray(r.columns)) {
-      renderEntry(mine, r.columns, r.entry_count);
-      txt(ed.msg, "Type a new entry, then press Save entry.");
-    } else {
-      txt(ed.msg, "This form can't be changed here.");
-    }
+    show(function () {
+      if (mine.kind === "qa" && Array.isArray(r.questions)) {
+        renderQuestions(mine, r.questions);
+        txt(ed.msg, "Each answer is saved when you leave its box or press Enter.");
+      } else if (mine.kind === "log" && Array.isArray(r.columns)) {
+        renderEntry(mine, r.columns, r.entry_count);
+        txt(ed.msg, "Type a new entry, then press Save entry.");
+      } else {
+        txt(ed.msg, "This form can't be changed here.");
+      }
+    });
   }
 
   /* ══ ONE BOX ════════════════════════════════════════════════════════════════════════════ */
@@ -7474,7 +7749,11 @@
   }
 
   /* ══ EVENTS ═════════════════════════════════════════════════════════════════════════════ */
-  ed.btn.addEventListener("click", function () { if (cur) closePanel(); else openPanel(); });
+  ed.btn.addEventListener("click", function () {
+    const L = liveForm();
+    if (L) { L.open(); return; }                            /* (2.2.421) Edit opens the live form */
+    if (cur) closePanel(); else openPanel();
+  });
   ed.close.addEventListener("click", function () { closePanel(); try { ed.btn.focus(); } catch(e) {} });
   window.addEventListener("teckel-viewer", syncBtn);     /* the viewer or the copy on it changed */
   const frame = $("form-viewer");
@@ -7531,6 +7810,10 @@
          RED it checks again and, still blocked, sends the fresh step with speak:true once — nothing is submitted.
        · Voice on / off sends {kind:"walk_control", op:"speak" | "quiet"}; Stop (and a walk that ends) sends
          {kind:"walk_control", op:"stop"} so the conversation drops the field.
+       · (24 Oct 2026, page 2.2.421; Yusuf: "THE FORM ITSELF TURNS INTO LIVE FIELDS ... BY DEFAULT") WHILE THE LIVE FORM IS
+         ON (window.teckelLiveForm.on()) the live form IS the walk: this panel never opens, the Walk button is not shown,
+         and kev's walk frames go to the live form first (window.teckelLiveForm.frame takes every frame while it is on) —
+         so there is never a second driver. Off (page_features absent, or live_form false), everything here is 2.2.420's.
        · WALK_TIDY_HOOK — ⬜ NOT IN THIS BUILD: the surface-only tidy-up of a long free-text answer, SHOWN before it saves,
          is kev's (Yusuf's contract, local model first). Until it lands the page shows what kev saved, in the box, editable.
      ⚠ Every request goes through window.teckelPortal.action, which adds the pass; this script never holds it and makes no
@@ -7559,7 +7842,9 @@
   // ⛔ THE VOICE ALLOWLIST — the ONLY ops a conversation may drive on this page. Destructive and outward actions (discard,
   //    remove, evidence_remove / detach, log_entry_remove, a custom question's removal, resend, the status report) are
   //    NOT here and never will be by voice: they stay click-only.
-  const VOICE_OPS = Object.freeze(["submit", "sign", "upload", "skip", "back", "stop", "again", "quiet", "speak"]);
+  //    (2.2.420) "edit" and "walk" open the Edit panel / start the walk on the form on screen — each only while that form is
+  //    editable (Walk: a question form) and the server says page_features.voice_edit_walk; ignored otherwise.
+  const VOICE_OPS = Object.freeze(["submit", "sign", "upload", "skip", "back", "stop", "again", "quiet", "speak", "edit", "walk"]);
   const ADVANCE_MS = 900;          /* a saved value stays on screen this long before the next question */
   const COUNTDOWN_MS = 3000;       /* a VOICE submit can be cancelled for this long */
   const SIGN_PAGE = /^https:\/\/teckel-io\.github\.io\/[^?#\s]*sign\.html\?\S+$/;
@@ -7588,14 +7873,72 @@
   }
   function usable(b){ return !!(b && b.isConnected && !b.hidden && !b.disabled && !b.hasAttribute("data-pp-lock")); }
 
+  /* ══ (24 Oct 2026; Yusuf: "yes please" (F-FK) and "YES 1 AND 3"; server 2.2.420) ══════════════════════════════════════
+     · NEVER A SILENT DEAD END (page_features.walk_says_why): a step that cannot reach the conversation says why on the
+       panel — "Benedict isn't connected — start the conversation, then press Walk." (no conversation open) or "Benedict
+       didn't get this question …" (open, but refused) — and a walk the form leaving the viewer ended says so instead of
+       the panel just closing. The walk itself (typing) carries on either way.
+     · A FOLLOW-UP BOX THAT DOES NOT APPLY IS NOT WALKED (server R420_FOLLOWUP_BOXES): form_fields marks such a box
+       active:false, with depends_on (its item's number) and inactive_when (the item's answers that turn it off); the walk
+       skips a box that is off now — also one an answer given DURING the walk turns off (the item's answer as saved here, or
+       as the server gave it); an item left blank, or answered anything else, keeps the box (fail open). "Question n of m"
+       counts the questions that apply.
+     · A TYPED BOX SAVES WHEN IT IS LEFT (page_features.walk_saves_on_leave): Enter saves and moves on (as before); leaving
+       the box — Tab, or a click elsewhere — with a CHANGED, non-empty value saves it; the button reads "Save & next" and a
+       line under the box says "Press Enter, or Save & next". Never on blur: an unchanged or empty box, the value the
+       server has just refused (it stays, with its reason), a box the walk has moved on from, or a press of the walk's own
+       buttons (Save, Save as typed, Skip, Back, Stop, Voice, Walk — each does its own thing; Skip never saves). */
+  function features(){
+    try { return (typeof window.teckelPageFeatures === "function") ? window.teckelPageFeatures() : null; }
+    catch(e) { return null; }
+  }
+  function feature(name){ const f = features(); return !!(f && f[name] === true); }
+  const SAYS_NO_SOCKET = "Benedict isn't connected — start the conversation, then press Walk. You can still type your answers here.";
+  const SAYS_NOT_SENT = "Benedict didn't get this question — press Walk to try again, or type your answer.";
+  const SAYS_LEFT = "The form is no longer on screen, so the walk stopped. Open it again to carry on.";
+  // a PRESS of any of the walk's own buttons: the box's blur saves nothing (the button does its own thing)
+  const NO_BLUR_SAVE = Object.freeze(["pp-walk-save", "pp-walk-typed", "pp-walk-skip", "pp-walk-back", "pp-walk-stop",
+                                      "pp-walk-voice", "pp-walk-btn"]);
+  // keyboard focus moving ONTO one of these (Tab): a skip, a step back or a stop — the blur saves nothing either; Tab onto
+  // Save & next is leaving the box (saved), and Save & next then only moves on
+  const TAB_NO_SAVE = Object.freeze(["pp-walk-skip", "pp-walk-back", "pp-walk-stop", "pp-walk-voice", "pp-walk-btn"]);
+  let pressing = null;              /* one of the walk's own buttons being pressed: its blur saves nothing */
+  function tellSent(ok){
+    if (!feature("walk_says_why")) return;
+    const m = w.msg ? w.msg.textContent : "";
+    if (ok) { if (m === SAYS_NO_SOCKET || m === SAYS_NOT_SENT) txt(w.msg, ""); return; }
+    let live = false;
+    try { live = !!P.live(); } catch(e) { live = false; }
+    txt(w.msg, live ? SAYS_NOT_SENT : SAYS_NO_SOCKET);
+  }
+  function norm(v){ return String(v === undefined || v === null ? "" : v).replace(/\s+/g, " ").trim().replace(/\.$/, "").trim().toLowerCase(); }
+  function activeNow(mine, q){
+    if (!q) return false;
+    if (shown(q.depends_on) && Array.isArray(q.inactive_when)) {
+      const v = norm((mine.known || {})[String(q.depends_on)]);
+      if (!v) return true;                                  /* the item blank: the box applies (fail open) */
+      return q.inactive_when.map(norm).indexOf(v) === -1;
+    }
+    return q.active !== false;
+  }
+  function seek(mine, from, dir){
+    for (let j = from; j >= 0 && j < mine.list.length; j += dir) { if (activeNow(mine, mine.list[j])) return j; }
+    return -1;
+  }
+
   /* ══ WHICH COPY IS ON SCREEN — the same one Edit is offered for ══════════════════════════════════════════════════ */
   function copyOnScreen(){
     try { return (typeof window.teckelEditableCopy === "function") ? window.teckelEditableCopy() : null; }
     catch(e) { return null; }
   }
+  // (2.2.421) the live form (its script comes after this one), while the server's page_features say it is on
+  function liveOn(){
+    const L = window.teckelLiveForm;
+    try { return !!(L && typeof L.on === "function" && L.on() === true); } catch(e) { return false; }
+  }
   function syncBtn(){
     const c = copyOnScreen();
-    w.btn.hidden = !c || (shown(c.form_kind) && c.form_kind !== "qa");
+    w.btn.hidden = !c || (shown(c.form_kind) && c.form_kind !== "qa") || liveOn();
     if (walk && walk.mode !== "done" && (!c || String(c.instance_id) !== walk.iid)) endWalk("left", true);
     w.btn.setAttribute("aria-expanded", walk ? "true" : "false");
   }
@@ -7611,7 +7954,9 @@
   function send(step, payload, say, forceSpeak){
     if (!walk) return false;
     last = { step: step, payload: payload, say: say }; walk.sentAny = true;
-    return sendLast(forceSpeak === true);
+    const ok = sendLast(forceSpeak === true);
+    tellSent(ok);                                           /* (2.2.420) a step that could not go says why */
+    return ok;
   }
   function sendLast(forceSpeak){
     if (!walk || !last || typeof window.teckelWalkSend !== "function") return false;
@@ -7631,6 +7976,7 @@
 
   /* ══ OPEN: form_fields ═════════════════════════════════════════════════════════════════════════════════════════ */
   async function openWalk(){
+    if (liveOn()) return;                                   /* (2.2.421) the live form IS the walk: never a second driver */
     if (off || opening || !P.held()) return;
     const c = copyOnScreen();
     if (!c) { syncBtn(); return; }
@@ -7661,9 +8007,12 @@
     mine.list = r.questions.filter(function (q) {
       return q && typeof q === "object" && shown(q.number) && q.personal !== true && !shown(q.answer);
     });
+    mine.known = {};                                      /* (2.2.420) each answer as known here: a box's item */
+    r.questions.forEach(function (q) { if (q && typeof q === "object" && shown(q.number)) mine.known[String(q.number)] = q.answer; });
     txt(w.msg, "");
-    if (!mine.list.length) { actions(true); return; }
-    showQ(0);
+    const first = seek(mine, 0, 1);
+    if (!mine.list.length || first === -1) { actions(true); return; }
+    showQ(first);
   }
 
   /* ══ ONE QUESTION ══════════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -7699,32 +8048,58 @@
     mine.mode = "q"; mine.i = Math.max(0, Math.min(i, mine.list.length - 1)); mine.seq++;
     const q = mine.list[mine.i];
     w.body.textContent = "";
-    txt(w.step, "Question " + (mine.i + 1) + " of " + mine.list.length);
+    const applies = mine.list.filter(function (x) { return activeNow(mine, x); });   /* (2.2.420) the ones that apply */
+    txt(w.step, "Question " + (applies.indexOf(q) + 1 || mine.i + 1) + " of " + (applies.length || mine.list.length));
     const qp = el("p", "pp-walk-q", String(q.number) + ". " + String(q.label || "")); qp.id = "pp-walk-q";
     w.body.appendChild(qp);
     const b = box(q, q.saved);
+    const leave = b.ctl.tagName !== "SELECT" && feature("walk_saves_on_leave");      /* (2.2.420) saved when left */
     w.body.appendChild(b.ctl); if (b.hint) w.body.appendChild(b.hint);
+    if (leave) { const hl = el("p", "pp-hint pp-walk-enter", "Press Enter, or Save & next"); hl.id = "pp-walk-enter"; w.body.appendChild(hl); }
     const saved = el("p", "pp-walk-saved"); saved.id = "pp-walk-saved"; saved.setAttribute("role", "status");
     const why = el("p", "pp-walk-why"); why.id = "pp-walk-why"; why.setAttribute("role", "status");
     w.body.appendChild(saved); w.body.appendChild(why);
     const row = el("div", "pp-walk-row");
-    const save = button("Save", "primary", function () { typed(false); }); save.id = "pp-walk-save";
+    const save = button(leave ? "Save & next" : "Save", "primary", function () { typed(false); }); save.id = "pp-walk-save";
     const asTyped = button("Save as typed", "", function () { typed(true); }); asTyped.id = "pp-walk-typed"; asTyped.hidden = true;
     const skip = button("Skip", "", function () { next(); }); skip.id = "pp-walk-skip";
-    const back = button("Back", "", function () { showQ(walk ? walk.i - 1 : 0); }); back.id = "pp-walk-back";
-    back.disabled = mine.i === 0;
+    const back = button("Back", "", function () { back_(); }); back.id = "pp-walk-back";
+    back.disabled = seek(mine, mine.i - 1, -1) === -1;
     [save, asTyped, skip, back].forEach(function (x) { row.appendChild(x); });
     w.body.appendChild(row);
     if (b.ctl.tagName === "SELECT") b.ctl.addEventListener("change", function () { typed(false); });
     else b.ctl.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); typed(false); } });
+    if (leave) {
+      const seq = mine.seq;
+      [save, asTyped, skip, back].forEach(function (x) { x.addEventListener("pointerdown", function () { press(x.id); }); });
+      b.ctl.addEventListener("blur", function (e) { leftBox(mine, q, b.ctl, seq, e); });
+    }
     send("field", { number: String(q.number), label: String(q.label || ""), field_type: String(q.field_type || q.kind || "text"),
                     options: Array.isArray(q.options) ? q.options.map(String) : [], lane: "qa" }, String(q.say || ""));
+  }
+  function press(id){ pressing = id; }
+  function leftBox(mine, q, ctl, seq, e){
+    const to = (e && e.relatedTarget && e.relatedTarget.id) || "";
+    if (walk !== mine || current() !== q || mine.seq !== seq || mine.busy || off || !ctl.isConnected) return;  /* moved on */
+    if (pressing && NO_BLUR_SAVE.indexOf(String(pressing)) !== -1) return;       /* a press of the walk's own buttons */
+    if (to && TAB_NO_SAVE.indexOf(String(to)) !== -1) return;                     /* Tab onto Skip, Back, Stop … */
+    const v = String(ctl.value || "");
+    if (!v.trim()) return;                                                         /* never an empty box */
+    if (v.trim() === String(shown(q.saved) ? q.saved : "").trim()) return;        /* unchanged */
+    if (mine.tried === v) return;                                                  /* just refused: kept, with its reason */
+    typed(false);
+  }
+  function back_(){
+    if (!walk) return;
+    const j = seek(walk, walk.i - 1, -1);
+    if (j !== -1) showQ(j);
   }
   function next(){
     if (!walk) return;
     if (walk.mode !== "q") return;
-    if (walk.i + 1 >= walk.list.length) { actions(false); return; }
-    showQ(walk.i + 1);
+    const j = seek(walk, walk.i + 1, 1);                    /* (2.2.420) the next question that applies */
+    if (j === -1) { actions(false); return; }
+    showQ(j);
   }
   function refused(text, floor, overridable){
     const why = $("pp-walk-why"), asTyped = $("pp-walk-typed");
@@ -7736,6 +8111,7 @@
   function savedThen(mine, value){
     const q = mine.list[mine.i];
     q.saved = value;
+    (mine.known || (mine.known = {}))[String(q.number)] = value;   /* (2.2.420) a box's item, as saved here */
     txt($("pp-walk-why"), "");
     const t = $("pp-walk-typed"); if (t) t.hidden = true;
     txt($("pp-walk-saved"), "✓ Saved: " + String(value));
@@ -7752,9 +8128,12 @@
     const ctl = $("pp-walk-box");
     const v = String(ctl ? ctl.value : "");
     if (!v.trim()) { refused(override ? "Type the answer in the box first." : "Type an answer, or press Skip.", null, false); return; }
+    // (2.2.420) Save & next on a value already saved (left the box, so saved): it moves on, no second request
+    if (override !== true && feature("walk_saves_on_leave") && shown(q.saved) && v.trim() === String(q.saved).trim()) { next(); return; }
     const args = { instance_id: mine.iid, question_number: String(q.number), value: v };
     if (override === true) args.override = true;
     mine.busy = true;
+    if (override !== true) mine.tried = v;                  /* (2.2.420) a refused value is not re-sent when the box is left */
     txt($("pp-walk-saved"), "Saving…");
     let r;
     try { r = await P.action("save_answer", args); }
@@ -7960,6 +8339,7 @@
     const op = String(m.op || "");
     if (VOICE_OPS.indexOf(op) === -1) { ignore("not an op a conversation may drive", m); return; }
     if (op === "quiet" || op === "speak") { setVoice(op === "speak", false); return; }
+    if (op === "edit" || op === "walk") { voiceOpen(op, m); return; }     /* (2.2.420) */
     const mine = walk;
     if (!mine || mine.mode === "done") { ignore("no walk", m); return; }
     if (op === "stop") { endWalk("kev", true); return; }
@@ -7972,7 +8352,7 @@
       if (mine.mode !== "q" || !sameNumber(m)) { ignore("not the question on screen", m); return; }
       const b = $(op === "skip" ? "pp-walk-skip" : "pp-walk-back");
       if (!usable(b)) { ignore("its button is not usable", m); return; }
-      if (op === "skip") next(); else showQ(mine.i - 1);
+      if (op === "skip") next(); else back_();
       return;
     }
     // the action steps: the op acts ONLY through a button that is on screen and usable for this copy now
@@ -7983,9 +8363,29 @@
     if (mine.pv && mine.pv.can) { countdown(); return; }   /* GREEN by voice: 3 seconds to cancel */
     preview(true);                                          /* RED: check again; still blocked, the fresh step spoken once */
   }
+  // (2.2.420) kev's op "edit" / "walk": the Edit panel, or the walk, on the form on screen — ONLY while it is editable (the
+  // copy Edit and Walk are offered for), Walk only for a question form, and only while the server says
+  // page_features.voice_edit_walk. Anything else: ignored (logged to the console), as every op outside its button is.
+  function voiceOpen(op, m){
+    if (!feature("voice_edit_walk")) { ignore("not switched on by the server", m); return; }
+    const c = copyOnScreen();
+    if (!c) { ignore("no editable form on screen", m); return; }
+    if (op === "edit") {
+      let ok = false;
+      try { ok = (typeof window.teckelEditOpen === "function") ? window.teckelEditOpen() === true : false; } catch(e) { ok = false; }
+      if (!ok) ignore("Edit is not shown and usable", m);
+      return;
+    }
+    if (shown(c.form_kind) && c.form_kind !== "qa") { ignore("only a question form is walked", m); return; }
+    if (!usable(w.btn)) { ignore("its button is not shown and usable", m); return; }
+    if (walk && walk.mode !== "done" && walk.iid === String(c.instance_id)) { ignore("already walking this form", m); return; }
+    openWalk();
+  }
   if (typeof window.teckelWalkListen === "function") {
     window.teckelWalkListen(function (m) {
       if (!m || typeof m !== "object") return;
+      // (2.2.421) while the live form is on, every frame is the live form's (it acts on it, or ignores it): never both
+      try { if (!walk && window.teckelLiveForm && window.teckelLiveForm.frame(m) === true) return; } catch(e) {}
       if (m.kind === "walk_result") onResult(m);
       else if (m.kind === "walk_control") onControl(m);
     });
@@ -8000,7 +8400,10 @@
       if (mine.sentAny && why !== "kev" && why !== "restart" && mine.mode !== "done") control("stop");   /* only after a step went out */
     }
     walk = null; last = null;
-    if (closePanel) {
+    if (closePanel && why === "left" && mine && feature("walk_says_why")) {   /* (2.2.420) never a silent end */
+      w.body.textContent = ""; txt(w.step, ""); txt(w.msg, SAYS_LEFT); txt(w.stop, "Close");
+      w.panel.hidden = false;
+    } else if (closePanel) {
       w.body.textContent = ""; txt(w.title, ""); txt(w.step, ""); txt(w.msg, "");
       w.panel.hidden = true; txt(w.stop, "Stop");
     }
@@ -8011,6 +8414,10 @@
   w.btn.addEventListener("click", function () { if (walk) endWalk("user", true); else openWalk(); });
   w.stop.addEventListener("click", function () { endWalk("user", true); try { w.btn.focus(); } catch(e) {} });
   w.voice.addEventListener("click", function () { setVoice(!speak, true); });
+  // (2.2.420) a press of the walk's own buttons: the typed box's blur saves nothing (each does its own thing)
+  [w.btn, w.stop, w.voice].forEach(function (x) { x.addEventListener("pointerdown", function () { press(x.id); }); });
+  document.addEventListener("pointerup", function () { setTimeout(function () { pressing = null; }, 0); }, true);
+  document.addEventListener("pointercancel", function () { pressing = null; }, true);
   window.addEventListener("teckel-viewer", syncBtn);
   const frame = $("form-viewer");
   if (frame && typeof MutationObserver === "function") {
@@ -8022,6 +8429,1247 @@
   if (P.mode() === "legacy") setOff();
   setVoice(true, false);
   syncBtn();
+})();
+</script>
+<!-- =====================================================================
+     THE LIVE FORM, V2 (24 Oct 2026, page 2.2.421). Yusuf, 24 Oct: "when you start walking or editing, the form itself turns
+     into live fields. THIS MUST BE THE EXPERIENCE, TOTALLY CONFUSING OTHERWISE. IN FACT, BY DEFAULT THE FORM SHOULD LOAD INTO
+     EDIT/WALK/CURSOR MODE". What went wrong (FINDINGS F-FP / F-FQ, agent_docs/campaign_2026-09-25/round4/
+     FINDINGS_da22_2026-10-17.md): the walk opened a separate panel ABOVE the viewer and the read-only form below never
+     changed ("nothing happen"); a first Walk press could do nothing; Walk showed on a consent form. Server contracts: 2.2.417
+     (form_fields, save_answer, save_log_entry), 2.2.419 (say, field_type, override, the preview's say), 2.2.420 (active /
+     depends_on on follow-up boxes, page_features), and the computed boxes of the server half (rendered, not built here).
+       · WHEN: the server's page_features present (2.2.420's switch on) and its live_form not false — absent, this page's
+         default (LIVE_FORM_DEFAULT, on). page_features absent: this script does nothing and the page is 2.2.420's (the Edit
+         panel, the walk panel). Every request is a server door that refuses on its own when its switch is off.
+       · AN EDITABLE FORM IN THE VIEWER becomes live fields IN PLACE OF the read-only rendering: one opened with My forms →
+         View (the page's own copy), or one Benedict opened by voice that the server names as this practice's own and
+         editable (display_form, then resolve_view). Once per display: Stop closes it for that display, the viewer strip's
+         Edit button brings it back, the next display opens it again. A form that cannot be typed into (a task grid, a
+         survey, a consent form, a submitted copy, not this practice's) keeps the read-only rendering with ONE plain line
+         above it — the page's kind and status of the copy come from the server's own replies; form_fields decides.
+       · A QUESTION FORM: every question in order, its label then its box (a list for a choice; a text box with 2.2.417's
+         hint for a date, a time, a number), a personal question LOCKED with the existing line, saved answers filled in, a
+         follow-up box that does not apply greyed ("only needed if not compliant", never asked), a computed box read-only
+         with the server's value and working ("Worked out once … are filled" while it has none; "Type over" saves the typed
+         value with override:true, the server deciding). THE CURSOR: the first unanswered question that is not personal,
+         not computed and applies — highlighted, aria-current, focused (unless the user is typing somewhere else) and
+         scrolled into view INSIDE the live form's own box, never the page. Header: the form's name, "Question n of m",
+         Voice on / off, Read-only view (the original rendering, and back, with anything typed kept) and Stop.
+       · ONE MODE FOR TYPING AND VOICE — the live form IS the walk. Enter, Save & next, a choice picked, or leaving a changed
+         box saves through save_answer (2.2.420's rules: never on a press of Skip / Back / Stop / Voice / Read-only, never a
+         value the server has just refused); the cursor then moves to the next unanswered question. A refusal keeps the
+         cursor, with the server's line and its check beside the box, and "Save as typed" only for a FORMAT floor the
+         server calls overridable. A save that wrote sends {kind:"form_changed"}. With a conversation that has said
+         client_ready, every cursor move sends EXACTLY ONE {kind:"walk_step"} (the 2.2.419 envelope, speak per Voice on /
+         off); none while none is connected — the cursor's step goes when one connects. The walk starts on load exactly when
+         the copy is editable, a question form, not submitted, and a conversation is connected (the server half's
+         page_features.walks_on_open names the same four, so kev stays silent on open). kev's walk_result fills the cursor's
+         box and moves on; his walk_control ops act on the live form, the SAME allowlist as the walk (LIVE_OPS).
+       · (24 Oct 2026, Yusuf: "2 yes") A FOLLOW-UP'S SHORT SPOKEN FORM: where form_fields gives a question say_short (its text
+         is the question above's text + " - " + a suffix), the walk_step's say is say_short ONLY when the cursor came straight
+         on from that parent — the walk's previous field step, in this conversation, was the question just above, on the
+         move just before, and the cursor moved on after it was answered (a save, Save & next, kev's saved value). Cold
+         (the first step, a conversation that connects later), after Skip or Back, or a click into the box: the full say.
+         "Again" re-sends the same envelope. No say_short (today's server): always the full say.
+       · (24 Oct 2026, the coordinator with Yusuf CC: 2.2.420 is LIVE, 2.2.421's walks_on_open is NOT yet) A FORM BENEDICT
+         OPENED BY VOICE walks on open ONLY when the server's resolve_view said page_features.walks_on_open === true — kev
+         stops his own opening words only then, so anything else would double-speak. null or false: the live form opens
+         HELD — the cursor and typing, Voice off, no walk_step — and the walk starts (the cursor's step, once) when the user
+         turns Voice on, or kev says "speak" or asks to "walk". A View-opened copy is never held (kev says nothing on a View).
+       · ⭐ THE VOICE DEFAULT FOLLOWS HOW THE FORM WAS OPENED (Yusuf, 24 Oct: "How about it defaults with voice on when opened
+         via voice, and defaults off if opened by button press or text?"). Derived at every opening, never stored:
+           BUTTON or TEXT opened (My forms → View, the directory, a page control, the strip's Edit): the walk runs SILENT —
+             every walk_step speak:false (kev holds the cursor's field, so a spoken answer still lands on it; nothing is
+             spoken); Voice on / off sends speak / quiet as before.
+           VOICE opened (Benedict's display_form): Voice ON — but only when resolve_view's walks_on_open === true; null or
+             false: held (below). kev's own "walk": Voice on.
+           COMPLETED (and submitted, which is never typed into): no walk on load (below).
+       · (24 Oct 2026, the coordinator; Yusuf CC from the live DB: 123 copies are "completed" — every answer in, not
+         submitted; Yusuf: "the form was already filled and was ready to submit") A COMPLETED COPY never walks on open,
+         View-opened or Benedict's, whatever walks_on_open says (the server's should be false there; a true is logged as a
+         disagreement): its answers as live fields, typing allowed for a correction, NO cursor and NO walk_step on load, the
+         green / red Submit in place with the preview's say as text, and "Every question is answered — check it, then
+         Submit." The walk, the action step included, starts only when the user turns Voice on (or kev says speak / walk).
+       · (kev 1.113.0) kev's walk_result echoes the copy's instance_id: one naming another copy is ignored; one without it
+         keeps the rule before it (the cursor's question, whose step went out in this conversation).
+       · AT THE END: 2.2.419's action steps, unchanged — Sign while signatures are outstanding, then Submit GREEN / RED with
+         the preview's say, Check again, Upload; a voice submit on GREEN shows "Sending to …" with Cancel for 3 seconds.
+       · A LOG (form_kind "log"): the NEW ENTRY's column boxes with the cursor, its saved entries listed read-only below (a
+         personal column only "Provided" / "Blank"), saved with save_log_entry. NO walk_step for a log: "Say the entry, or
+         type it here." (the log walk is the next pass).
+     ⚠ Every request goes through window.teckelPortal.action, which adds the pass; this script never holds it. Every server
+       string is written as TEXT; nothing is stored in the browser; the console never carries a value. The live form closes,
+       and empties, on a lapse, a sign-out and when the form leaves the viewer.
+     ===================================================================== -->
+<script>
+"use strict";
+(function () {
+  const P = window.teckelPortal;
+  const $ = (id) => document.getElementById(id);
+  const ui = { sec: $("pp-live"), name: $("pp-live-h"), step: $("pp-live-step"), voice: $("pp-live-voice"),
+               ro: $("pp-live-ro"), stop: $("pp-live-stop"), msg: $("pp-live-msg"), body: $("pp-live-body"),
+               note: $("pp-live-note"), shell: document.querySelector(".form-viewer-shell"), edit: $("pp-edit-btn") };
+  if (!P || !ui.sec || !ui.body || !ui.shell || !ui.note) return;   /* no door, or no live form on this page */
+  const LAPSE = P.lapseCodes;
+  // ⭐ THE DEFAULT (Yusuf, 24 Oct: "BY DEFAULT THE FORM SHOULD LOAD INTO EDIT/WALK/CURSOR MODE"): with page_features present
+  //   and no live_form in them, the live form is ON. The server can say live_form:false; page_features absent = off.
+  const LIVE_FORM_DEFAULT = true;
+  const TYPING_OFF = Object.freeze(["UNKNOWN_ACTION", "PORTAL_OFF"]);
+  const SAYS_KIND = "This kind of form can't be typed into here yet — tell Benedict the answers.";
+  const SAYS_SUBMITTED = "This form has been submitted — it can't be changed here.";
+  const SAYS_SOON = "Typing into the form is coming soon — tell Benedict the answers.";
+  const SAYS_FAIL = "This form could not be opened for typing just now, so it is shown as it is.";
+  const SAYS_LOG = "Say the entry, or type it here.";
+  const SAYS_QA = "Each answer is saved when you press Enter or leave its box.";
+  // (the coordinator, 24 Oct) the hint points at the CONTROL only: kev does not yet send op "walk" / "edit", so nothing
+  // here ever suggests saying "walk me through it" (op "walk" is still accepted if it arrives, just never advertised)
+  const SAYS_HELD = "Press Voice on and Benedict will read the questions one by one, or type your answers.";
+  const SAYS_COMPLETED = "Every question is answered — check it, then Submit.";
+  const LOCKED_LINE = "left blank — personal details aren't collected";
+  const FOLLOW_UP_LINE = "only needed if not compliant";
+  const BOX_HINT = Object.freeze({ date: "dd/mm/yyyy or 'today'", time: "hh:mm", datetime: "dd/mm/yyyy hh:mm" });
+  const MAX_TYPED = 2000;
+  // the server's FORMAT floors (teckel__r419_walk_v1_0.py FORMAT_FLOORS): only these are ever offered "Save as typed"
+  const AS_TYPED_FLOORS = Object.freeze(["date", "time", "identifier", "number_box"]);
+  const FLOOR_WORDS = Object.freeze({ date: "the date check", time: "the time check", identifier: "the specific-answer check",
+    number_box: "the number check", option: "the list of answers", blank_words: "the blank-answer rule",
+    kev_type_precheck: "Benedict's own check", unclassified: "a check" });
+  // ⛔ THE VOICE ALLOWLIST — the walk's (VOICE_OPS in the walk script), the same eleven: never discard, remove, a document's
+  //    removal or detaching, a log entry's removal, a custom question's removal, a resend or the status report.
+  const LIVE_OPS = Object.freeze(["submit", "sign", "upload", "edit", "walk", "skip", "back", "stop", "again", "quiet", "speak"]);
+  const VOICE_ADVANCE_MS = 600;    /* a value kev saved stays at the cursor this long before it moves on */
+  const SEND_CANCEL_MS = 3000;     /* a VOICE submit can be cancelled for this long */
+  const SIGN_URL = /^https:\/\/teckel-io\.github\.io\/[^?#\s]*sign\.html\?\S+$/;
+  // a PRESS of these: the box's blur saves nothing (each does its own thing; Skip never saves)
+  const PRESS_NO_SAVE = Object.freeze(["pp-lf-save", "pp-lf-typed", "pp-lf-skip", "pp-lf-back", "pp-live-stop",
+                                       "pp-live-voice", "pp-live-ro"]);
+  // keyboard focus moving ONTO these (Tab): no save either; Tab onto Save & next is leaving the box (saved)
+  const TAB_KEEPS = Object.freeze(["pp-lf-skip", "pp-lf-back", "pp-live-stop", "pp-live-voice", "pp-live-ro"]);
+
+  let lf = null;          /* the live form open now: a new object each time (see openLive) */
+  let opening = null;     /* the live form whose questions are loading */
+  let handled = "";       /* the display (copy + display) the live form last opened itself for — once per display */
+  let kept = { key: "", text: "" };   /* the line for a display the server said cannot be typed into */
+  let liveOff = false;    /* the server cannot take typed answers (its switch off): the page is 2.2.420's again */
+  let offKey = "";        /* …and the display that found it out, which keeps the line saying so */
+  let speak = true;       /* Voice on / off: the mode; "again" never changes it */
+  let conv = 0;           /* the conversations whose opening run (client_ready) this page has seen */
+  let lastEnv = null;     /* the last walk_step sent: { step, say, payload } */
+  let pressing = null, uid = 0, syncing = false;
+
+  function codeOf(r){ return String((r && r.error_code) || "").trim().toUpperCase(); }
+  function lapsed(r){ const c = codeOf(r); return LAPSE.indexOf(c) !== -1 || c === "NO_PASS"; }
+  function msgOf(r, fallback){ const m = (r && typeof r.message === "string") ? r.message.trim() : ""; return m || fallback; }
+  function txt(e, s){ if (e) e.textContent = (s === undefined || s === null) ? "" : String(s); }
+  function shown(v){ return v !== undefined && v !== null && String(v).trim() !== ""; }
+  function el(tag, cls, text){
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = String(text);
+    return e;
+  }
+  function button(label, cls, fn){
+    const b = el("button", "lv-btn" + (cls ? " " + cls : ""), label);
+    b.type = "button";
+    b.addEventListener("click", fn);
+    return b;
+  }
+  function usable(b){ return !!(b && b.isConnected && !b.hidden && !b.disabled && !b.hasAttribute("data-pp-lock")); }
+  function log(why){ try { console.info("[teckel-live] " + why); } catch(e) {} }   /* never a value */
+  function ignore(why, m){ log("ignored " + String(m && m.kind) + " " + String(m && m.op || "") + ": " + why); return true; }
+  function norm(v){ return String(v === undefined || v === null ? "" : v).replace(/\s+/g, " ").trim().replace(/\.$/, "").trim().toLowerCase(); }
+
+  /* ══ IS IT ON ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+  function features(){
+    try { return (typeof window.teckelPageFeatures === "function") ? window.teckelPageFeatures() : null; }
+    catch(e) { return null; }
+  }
+  function liveOn(){
+    if (liveOff) return false;
+    const f = features();
+    if (!f) return false;                                   /* page_features absent: 2.2.420's page */
+    return (typeof f.live_form === "boolean") ? f.live_form : LIVE_FORM_DEFAULT;
+  }
+  // a conversation that has heard the page's own opening run (client_ready): only then does a walk_step go
+  function ready(){
+    try { return (typeof window.teckelConversationReady === "function") ? window.teckelConversationReady() === true : false; }
+    catch(e) { return false; }
+  }
+
+  /* ══ WHICH COPY IS ON SCREEN ════════════════════════════════════════════════════════════════════════════════════ */
+  function editableCopy(){
+    try { return (typeof window.teckelEditableCopy === "function") ? window.teckelEditableCopy() : null; }
+    catch(e) { return null; }
+  }
+  function voiceAny(){
+    try { return (typeof window.teckelVoiceCopy === "function") ? window.teckelVoiceCopy() : null; } catch(e) { return null; }
+  }
+  function voiceRefused(){
+    try { return (typeof window.teckelVoiceNote === "function") ? window.teckelVoiceNote() : null; } catch(e) { return null; }
+  }
+  function keyOf(c){ return c ? String(c.instance_id) + "#" + String(c.display || "") : ""; }
+  // what the server's own replies already say about the copy: a line, or "" when form_fields must be asked
+  function knownWhyNot(c){
+    if (!c) return "";
+    if (String(c.status || "") === "submitted") return SAYS_SUBMITTED;
+    if (String(c.form_kind || "") === "other") return SAYS_KIND;
+    return "";
+  }
+  function whyNotFromServer(r){
+    const reason = String((r && r.reason) || "").trim().toUpperCase();
+    if (reason === "SUBMITTED" || String((r && r.status) || "") === "submitted") return SAYS_SUBMITTED;
+    if (reason === "NOT_EDITABLE_YET" || String((r && r.form_kind) || "") === "other") return SAYS_KIND;
+    return msgOf(r, SAYS_KIND);
+  }
+  function panelsOpen(){
+    const a = $("pp-walk"), b = $("pp-edit");
+    return !!((a && !a.hidden) || (b && !b.hidden));
+  }
+  function note(s){ txt(ui.note, s || ""); ui.note.hidden = !shown(s); }
+  function keepNote(key, text){ kept = { key: key, text: text }; note(text); }
+  // the strip's Edit / Walk follow the live form: their scripts listen for "teckel-viewer" (on the next task, never nested)
+  let stripTick = null;
+  function tellStrip(){
+    if (stripTick) return;
+    stripTick = setTimeout(function () { stripTick = null; try { window.dispatchEvent(new Event("teckel-viewer")); } catch(e) {} }, 0);
+  }
+
+  function sync(){
+    if (syncing) return;
+    syncing = true;
+    try { syncNow(); } finally { syncing = false; }
+  }
+  function syncNow(){
+    if (!liveOn()) {
+      if (lf) closeLive("off");
+      const c = editableCopy();
+      note(liveOff && c && keyOf(c) === offKey ? SAYS_SOON : "");
+      return;
+    }
+    if (!P.held()) { if (lf) closeLive("lapse"); note(""); return; }   /* signed out or paused: the code comes first */
+    const c = editableCopy();
+    if (!c) {
+      if (lf) closeLive("left");
+      const v = voiceAny();
+      if (v && v.editable !== true) { note(knownWhyNot(v) || SAYS_KIND); return; }   /* Benedict's form, not typed here */
+      note(voiceRefused() || "");                           /* not this practice's: the server's own line */
+      return;
+    }
+    if (lf && lf.iid === String(c.instance_id)) return;     /* the same copy: still live */
+    if (lf) closeLive("left");
+    const why = knownWhyNot(c);
+    if (why) { note(why); return; }
+    const key = keyOf(c);
+    if (key === handled) { note(kept.key === key ? kept.text : ""); return; }   /* once per display */
+    if (panelsOpen()) { note(""); return; }                 /* a 2.2.420 panel is open: never a second driver */
+    handled = key;
+    note("");
+    openLive(c, "auto");
+  }
+
+  /* ══ OPEN: form_fields ═════════════════════════════════════════════════════════════════════════════════════════ */
+  // how: "auto" (the form arrived in the viewer) | "press" (the strip's Edit) | "kev" (kev's own "walk")
+  async function openLive(c, how){
+    const iid = String(c.instance_id);
+    // (Yusuf, 24 Oct) the voice default follows how it was opened: Benedict's display — voice; kev's walk — voice; a button
+    // or text (View, the directory, a page control, Edit) — silent. Derived here, every time; never stored.
+    const openedBy = how === "kev" ? "kev" : ((how === "auto" && c.by_voice === true) ? "voice" : "button");
+    const me = { iid: iid, key: keyOf(c), name: shown(c.form_name) ? String(c.form_name) : "", kind: "", rows: [], byNum: {},
+                 cur: -1, mode: "load", seq: 0, sent: null, sentAny: false, pv: null, step: "", busy: false, timer: null,
+                 countdown: null, viewDirty: false, known: {}, voiceless: false, stopArmed: false, baseMsg: "",
+                 tools: null, acts: null, calcTimer: null, entry: null, how: "", lastField: null,
+                 openedBy: openedBy, held: false, completed: false, noCursor: false };
+    lf = me;
+    speak = openedBy !== "button";                          /* the walk's voice: on when opened by voice, else silent */
+    paintVoice();
+    setRo(false);
+    ui.body.textContent = ""; txt(ui.name, me.name); txt(ui.step, ""); txt(ui.msg, "Loading the questions…");
+    ui.voice.hidden = false; txt(ui.stop, "Stop");
+    ui.shell.classList.add("pp-live-on");                   /* the viewer area IS the live form from this moment */
+    ui.sec.hidden = false;
+    tellStrip();
+    opening = me;
+    let r;
+    try { r = await P.action("form_fields", { instance_id: iid }); }
+    finally { if (opening === me) opening = null; }
+    if (lf !== me) return;                                  /* closed, or the form left the viewer, meanwhile */
+    if (TYPING_OFF.indexOf(codeOf(r)) !== -1) { liveOff = true; offKey = me.key; closeLive("off"); note(SAYS_SOON); return; }
+    if (lapsed(r)) { closeLive("lapse"); return; }
+    if (!r || r.success !== true) { closeLive("fail"); keepNote(me.key, msgOf(r, SAYS_FAIL)); return; }
+    if (shown(r.title)) { me.name = String(r.title); txt(ui.name, me.name); }
+    if (r.editable !== true || String(r.status || "") === "submitted") { closeLive("not"); keepNote(me.key, whyNotFromServer(r)); return; }
+    me.kind = String(r.form_kind || "");
+    me.completed = String(r.status || "").trim().toLowerCase() === "completed";   /* every answer in, not submitted */
+    if (me.kind === "qa" && Array.isArray(r.questions)) { renderQa(me, r.questions); return; }
+    if (me.kind === "log" && Array.isArray(r.columns)) { renderLog(me, r); return; }
+    closeLive("not"); keepNote(me.key, SAYS_KIND);
+  }
+
+  /* ══ ONE BOX ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+  function fieldType(q){ return String(q.field_type || q.kind || "text"); }
+  function unitHint(unit){
+    const u = String(unit || "");
+    if (u === "temperature") return "a number, in °C";
+    if (u === "days" || u === "hours" || u === "minutes") return "a number of " + u;
+    return "a number";
+  }
+  function pickOption(options, value){
+    const v = String(value || "").trim().toLowerCase();
+    if (!v) return "";
+    const hit = options.find(function (o) { return String(o).trim().toLowerCase() === v; });
+    return hit === undefined ? "" : String(hit);
+  }
+  function makeBox(kind, options, id, value, unit){
+    let ctl, h = "";
+    if (kind === "option" && Array.isArray(options) && options.length) {
+      ctl = document.createElement("select");
+      ctl.appendChild(el("option", "", "—"));
+      ctl.options[0].value = "";
+      options.forEach(function (o) { const op = el("option", "", o); op.value = String(o); ctl.appendChild(op); });
+      ctl.value = pickOption(options, value);
+    } else {
+      ctl = document.createElement("input");
+      ctl.type = "text"; ctl.maxLength = MAX_TYPED; ctl.autocomplete = "off";
+      ctl.value = shown(value) ? String(value) : "";
+      h = kind === "number" ? unitHint(unit) : (BOX_HINT[kind] || "");
+      if (kind === "number") ctl.inputMode = "decimal";
+      if (h) ctl.placeholder = h;
+    }
+    ctl.id = id; ctl.className = "lv-input pp-lf-input";
+    let hint = null;
+    if (h) { hint = el("p", "pp-hint pp-edit-hint", h); hint.id = id + "-h"; ctl.setAttribute("aria-describedby", hint.id); }
+    return { ctl: ctl, hint: hint };
+  }
+  function statusLine(cell){
+    const s = el("p", "pp-lf-status"); s.setAttribute("role", "status"); s.setAttribute("aria-live", "polite");
+    cell.appendChild(s);
+    return s;
+  }
+  function say(s, text, good){
+    if (!s) return;
+    s.className = "pp-lf-status" + (good === true ? " pp-ok" : good === false ? " pp-bad" : "");
+    txt(s, text);
+  }
+  function press(id){ pressing = id; }
+
+  /* ══ A QUESTION FORM ═════════════════════════════════════════════════════════════════════════════════════════════ */
+  function renderQa(me, questions){
+    const list = el("div", "pp-lf-list");
+    questions.forEach(function (q) {
+      if (!q || typeof q !== "object" || !shown(q.number)) return;
+      const num = String(q.number);
+      if (me.byNum[num]) return;                            /* a number given twice: the first one */
+      const row = { q: q, num: num, i: me.rows.length, saved: shown(q.answer) ? String(q.answer) : "", ctl: null, st: null,
+                    el: null, cell: null, id: "", personal: q.personal === true, calc: fieldType(q) === "computed",
+                    busy: false, tried: null, asTyped: false, offLine: null };
+      me.known[num] = row.saved;
+      me.rows.push(row); me.byNum[num] = row;
+      list.appendChild(buildRow(me, row));
+    });
+    ui.body.textContent = "";
+    ui.body.appendChild(list);
+    const acts = el("div", "pp-lf-acts"); acts.id = "pp-lf-acts"; acts.hidden = true;
+    ui.body.appendChild(acts);
+    me.acts = acts;
+    // the server gives every question its spoken line (2.2.419); without them there is no walk, only typing
+    me.voiceless = !me.rows.every(function (x) { return x.personal || x.calc || typeof x.q.say === "string"; });
+    ui.voice.hidden = me.voiceless;
+    me.held = holdsOnOpen(me);                              /* completed, or Benedict's form without walks_on_open */
+    paintVoice();
+    me.baseMsg = me.completed ? SAYS_COMPLETED : (me.held ? SAYS_HELD : SAYS_QA);
+    txt(ui.msg, me.baseMsg);
+    refreshActive(me);
+    agreeWithServer(me);
+    if (me.completed) {                                     /* no cursor, no step: the Submit control in place */
+      me.noCursor = true;
+      toActions(me, true);
+      txt(ui.step, "");
+      return;
+    }
+    const first = seekUnanswered(me, 0);
+    if (first === -1) { toActions(me, true); return; }
+    moveTo(me, first, "load");
+  }
+  // (the server half, 2.2.421) resolve_view's page_features.walks_on_open is the server's own verdict for a form Benedict
+  // opened: kev stays silent on open exactly when the page walks it. The page decides by its own rule (editable, a question
+  // form, not submitted, not completed — and a conversation connected) and only SAYS so in the console when they disagree.
+  function agreeWithServer(me){
+    const v = voiceAny();
+    if (!v || String(v.instance_id) !== me.iid || typeof v.walks_on_open !== "boolean") return;
+    const pageWalks = me.kind === "qa" && !me.voiceless && !me.held;
+    if (v.walks_on_open !== pageWalks) log("walk on open: the page and the server disagree (page " + pageWalks + ")");
+  }
+  // Held (no walk on open): a COMPLETED copy, always; a form BENEDICT opened, unless the server said walks_on_open === true
+  // for it. Never when kev asked to walk; never an in-progress View-opened copy.
+  function holdsOnOpen(me){
+    if (me.openedBy === "kev") return false;
+    if (me.completed) return true;                          /* every answer in: the user starts the walk */
+    if (me.openedBy !== "voice") return false;
+    const v = voiceAny();
+    return !(v && String(v.instance_id) === me.iid && v.walks_on_open === true);
+  }
+  function buildRow(me, row){
+    const q = row.q;
+    const id = "pp-lf-b-" + (++uid);
+    const r = el("div", "pp-lf-row"); r.setAttribute("data-n", row.num);
+    const lab = el("label", "pp-lf-label", row.num + ". " + String(q.label || "")); lab.htmlFor = id; lab.id = id + "-l";
+    const cell = el("div", "pp-lf-cell");
+    r.appendChild(lab); r.appendChild(cell);
+    row.el = r; row.cell = cell; row.id = id;
+    if (row.personal) { const p = el("p", "pp-lf-locked", LOCKED_LINE); p.id = id; cell.appendChild(p); return r; }
+    if (row.calc) { buildCalc(me, row); return r; }
+    const b = makeBox(fieldType(q), q.options, id, row.saved, q.unit);
+    row.ctl = b.ctl;
+    cell.appendChild(b.ctl); if (b.hint) cell.appendChild(b.hint);
+    row.offLine = el("p", "pp-lf-offline", FOLLOW_UP_LINE); row.offLine.hidden = true;
+    cell.appendChild(row.offLine);
+    row.st = statusLine(cell);
+    wireBox(me, row);
+    return r;
+  }
+  function wireBox(me, row){
+    const ctl = row.ctl;
+    ctl.addEventListener("focus", function () { onFocusBox(me, row); });
+    if (ctl.tagName === "SELECT") ctl.addEventListener("change", function () { saveRow(me, row, "pick"); });
+    else {
+      ctl.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); saveRow(me, row, "enter"); } });
+      ctl.addEventListener("blur", function (e) { leftBox(me, row, e); });
+    }
+  }
+
+  /* ── follow-up boxes (2.2.420): one that does not apply is greyed, never asked ── */
+  function activeNow(me, q){
+    if (!q) return false;
+    if (shown(q.depends_on) && Array.isArray(q.inactive_when)) {
+      const v = norm(me.known[String(q.depends_on)]);
+      if (!v) return true;                                  /* the item blank: the box applies (fail open) */
+      return q.inactive_when.map(norm).indexOf(v) === -1;
+    }
+    return q.active !== false;
+  }
+  function refreshActive(me){
+    me.rows.forEach(function (row) {
+      if (!row.ctl || row.calc || row.personal) return;
+      const on = activeNow(me, row.q);
+      row.el.classList.toggle("pp-lf-off", !on);
+      row.ctl.disabled = !on;
+      if (row.offLine) row.offLine.hidden = on;
+    });
+  }
+  function walkable(me, row){ return !!(row && row.ctl && !row.personal && !row.calc && activeNow(me, row.q)); }
+  function seekUnanswered(me, from){
+    for (let j = Math.max(0, from); j < me.rows.length; j++) { if (walkable(me, me.rows[j]) && !shown(me.rows[j].saved)) return j; }
+    return -1;
+  }
+  function seekBack(me, from){
+    for (let j = Math.min(from, me.rows.length - 1); j >= 0; j--) { if (walkable(me, me.rows[j])) return j; }
+    return -1;
+  }
+  function curRow(me){ return (me && me.mode === "q") ? me.rows[me.cur] || null : null; }
+  function isCursor(me, row){ return !!(me && row && me.mode === "q" && me.cur === row.i); }
+
+  /* ── computed boxes (the server half; rendered, never built here): read-only, the server's value and working ── */
+  function labelsOf(me, inputs){
+    const names = (Array.isArray(inputs) ? inputs : []).map(function (n) {
+      const r = me.byNum[String(n)];
+      return r ? String(r.q.label || ("question " + r.num)).replace(/[\s?:]+$/, "") : "";
+    }).filter(shown);
+    if (!names.length) return "the questions it uses";
+    return names.length === 1 ? names[0] : names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+  }
+  function paintCalc(me, row){
+    const c = (row.q.computed && typeof row.q.computed === "object") ? row.q.computed : {};
+    const has = c.value !== null && c.value !== undefined && shown(c.value);
+    const n = Array.isArray(c.inputs) ? c.inputs.length : 0;
+    txt(row.calcOut, has ? String(c.value) : ("Worked out once " + labelsOf(me, c.inputs) + (n === 1 ? " is filled" : " are filled")));
+    txt(row.calcWork, has && shown(c.working) ? String(c.working) : "");
+  }
+  function buildCalc(me, row){
+    const cell = row.cell;
+    row.calcOut = el("p", "pp-lf-calc"); row.calcOut.id = row.id;
+    row.calcWork = el("p", "pp-lf-working");
+    cell.appendChild(row.calcOut); cell.appendChild(row.calcWork);
+    me.byNum[row.num] = row;
+    const over = el("button", "pp-lf-link", "Type over"); over.type = "button"; over.id = row.id + "-over";
+    const box = el("input", "lv-input pp-lf-input"); box.type = "text"; box.maxLength = MAX_TYPED; box.autocomplete = "off";
+    box.id = row.id + "-t"; box.hidden = true; box.setAttribute("aria-labelledby", row.id + "-l");
+    const save = button("Save as typed", "pp-small", function () { typeOver(me, row, box); }); save.hidden = true;
+    save.id = row.id + "-ts";
+    over.addEventListener("click", function () {
+      const c = row.q.computed || {};
+      box.hidden = false; save.hidden = false; over.hidden = true;
+      box.value = shown(c.value) ? String(c.value) : "";
+      try { box.focus({ preventScroll: true }); } catch(e) {}
+    });
+    box.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); typeOver(me, row, box); } });
+    cell.appendChild(over); cell.appendChild(box); cell.appendChild(save);
+    row.st = statusLine(cell);
+    paintCalc(me, row);
+  }
+  async function typeOver(me, row, box){
+    if (lf !== me || row.busy) return;
+    const v = String(box.value || "");
+    if (!v.trim()) { say(row.st, "Type the value in the box first.", false); return; }
+    row.busy = true;
+    say(row.st, "Saving…", null);
+    let r;
+    try { r = await P.action("save_answer", { instance_id: me.iid, question_number: row.num, value: v, override: true }); }
+    finally { row.busy = false; }
+    if (lf !== me || lapsed(r)) return;
+    if (r && r.success === true) {
+      const kept2 = typeof r.value_saved === "string" ? r.value_saved : v;
+      row.q.computed = Object.assign({}, row.q.computed || {}, { value: kept2, working: "typed over" });
+      paintCalc(me, row);
+      say(row.st, "✓ Saved as typed", true);
+      if (r.unchanged !== true) { tellChanged(me, row.num); me.viewDirty = true; }
+      return;
+    }
+    say(row.st, msgOf(r, "That value was not saved."), false);
+  }
+  // after a save to one of a computed box's inputs: the save's own computed_updates, else ONE re-read of form_fields
+  function afterInputs(me, num, r){
+    refreshActive(me);
+    const ups = (r && Array.isArray(r.computed_updates)) ? r.computed_updates : null;
+    if (ups) {
+      ups.forEach(function (u) {
+        const row = u && me.byNum[String(u.number)];
+        if (row && row.calc) { row.q.computed = Object.assign({}, row.q.computed || {}, { value: u.value, working: u.working }); paintCalc(me, row); }
+      });
+      return;
+    }
+    const uses = me.rows.some(function (x) {
+      const c = x.calc && x.q.computed;
+      return !!(c && Array.isArray(c.inputs) && c.inputs.map(String).indexOf(String(num)) !== -1);
+    });
+    if (!uses) return;
+    clearTimeout(me.calcTimer);
+    me.calcTimer = setTimeout(function () { rereadCalcs(me); }, 250);
+  }
+  async function rereadCalcs(me){
+    if (lf !== me) return;
+    const r = await P.action("form_fields", { instance_id: me.iid });
+    if (lf !== me || !r || r.success !== true || !Array.isArray(r.questions)) return;
+    r.questions.forEach(function (q) {
+      const row = q && me.byNum[String(q.number)];
+      if (row && row.calc && q.computed && typeof q.computed === "object") { row.q.computed = q.computed; paintCalc(me, row); }
+    });
+  }
+
+  /* ══ THE CURSOR ═════════════════════════════════════════════════════════════════════════════════════════════════ */
+  function toolsFor(me){
+    if (me.tools) return me.tools;
+    const t = el("div", "pp-lf-tools");
+    const save = button("Save & next", "primary pp-small", function () { const row = curRow(me); if (row) saveRow(me, row, "button"); });
+    save.id = "pp-lf-save";
+    const typedB = button("Save as typed", "pp-small", function () { const row = curRow(me); if (row) saveRow(me, row, "astyped"); });
+    typedB.id = "pp-lf-typed"; typedB.hidden = true;
+    const skip = button("Skip", "pp-small", function () { next(me, "skip"); }); skip.id = "pp-lf-skip";
+    const back = button("Back", "pp-small", function () { stepBack(me); }); back.id = "pp-lf-back";
+    [save, typedB, skip, back].forEach(function (x) { x.addEventListener("pointerdown", function () { press(x.id); }); t.appendChild(x); });
+    me.tools = t;
+    return t;
+  }
+  function paintCursor(me){
+    me.rows.forEach(function (x) {
+      x.el.classList.remove("pp-lf-cur"); x.el.removeAttribute("aria-current");
+      if (x.ctl) x.ctl.removeAttribute("aria-current");
+    });
+    if (me.acts) { me.acts.classList.remove("pp-lf-cur"); me.acts.removeAttribute("aria-current"); }
+    const row = curRow(me);
+    const t = toolsFor(me);
+    if (row) {
+      row.el.classList.add("pp-lf-cur"); row.el.setAttribute("aria-current", "step");
+      row.ctl.setAttribute("aria-current", "step");
+      row.cell.appendChild(t);
+      $("pp-lf-typed").hidden = !row.asTyped;
+      $("pp-lf-back").disabled = seekBack(me, row.i - 1) === -1;
+      return;
+    }
+    if (t.parentNode) t.parentNode.removeChild(t);
+    if (me.mode === "act" && me.acts && !me.noCursor) { me.acts.classList.add("pp-lf-cur"); me.acts.setAttribute("aria-current", "step"); }
+  }
+  function stepLine(me){
+    const ws = me.rows.filter(function (x) { return walkable(me, x); });
+    const row = curRow(me);
+    if (row) txt(ui.step, "Question " + (ws.indexOf(row) + 1) + " of " + ws.length);
+  }
+  // scrolled into view INSIDE the live form's own box — the page itself never moves. "In view" is the part of the box
+  // that is on the screen (all of the box when hardly any of it shows), so the cursor always ends where it can be seen.
+  function keepInView(target){
+    const box = ui.body;
+    if (!target || !box || box.scrollHeight <= box.clientHeight + 1) return;
+    const b = box.getBoundingClientRect(), r = target.getBoundingClientRect();
+    let top = Math.max(b.top, 0), bottom = Math.min(b.bottom, window.innerHeight || b.bottom);
+    if (bottom - top < r.height) { top = b.top; bottom = b.bottom; }
+    if (r.top >= top && r.bottom <= bottom) return;
+    box.scrollTop = Math.max(0, box.scrollTop + (r.top - top) - Math.max(0, Math.round((bottom - top - r.height) / 3)));
+  }
+  function typingElsewhere(){
+    const a = document.activeElement;
+    if (!a || a === document.body || ui.sec.contains(a)) return false;
+    return a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT" || a.isContentEditable === true;
+  }
+  function focusIn(target){
+    if (!target || typingElsewhere() || ui.shell.classList.contains("pp-live-ro")) return;
+    try { target.focus({ preventScroll: true }); } catch(e) {}
+  }
+  function moveTo(me, i, how){
+    const row = me.rows[i];
+    if (lf !== me || !walkable(me, row)) return;
+    clearTimeout(me.timer); me.timer = null;
+    stopCountdown(me);
+    me.mode = "q"; me.cur = i; me.seq++; me.how = how; me.noCursor = false;
+    paintCursor(me);
+    stepLine(me);
+    keepInView(row.el);
+    if (how !== "focus") focusIn(row.ctl);
+    stepOut(me);                                            /* the ONE walk_step of this move */
+  }
+  function onFocusBox(me, row){
+    if (lf !== me || isCursor(me, row) || !walkable(me, row)) return;
+    moveTo(me, row.i, "focus");
+  }
+  // via: "saved" (the answer is in: a save, Save & next, kev's saved value) | "skip" (Skip, by press or by voice)
+  function next(me, via){
+    if (lf !== me || me.mode === "load" || me.mode === "done" || me.mode === "act") return;
+    const j = seekUnanswered(me, me.cur + 1);               /* the next unanswered question that applies */
+    if (j === -1) { toActions(me, false); return; }
+    moveTo(me, j, via === "skip" ? "skip" : "next");
+  }
+  function stepBack(me){
+    if (lf !== me || me.mode === "load" || me.mode === "done") return;
+    const j = seekBack(me, me.mode === "q" ? me.cur - 1 : me.rows.length - 1);
+    if (j !== -1) moveTo(me, j, "back");
+  }
+
+  /* ══ THE ONE ENVELOPE: exactly one walk_step per cursor move, and only into a conversation that is ready ═══════════ */
+  function stepOut(me){
+    if (lf !== me || me.kind !== "qa" || me.voiceless || me.held || !ready()) return false;
+    if (me.sent && me.sent.seq === me.seq && me.sent.conv === conv) return false;   /* this move's step has gone */
+    let env = null;
+    if (me.mode === "q") {
+      const row = curRow(me);
+      if (!walkable(me, row)) return false;
+      // (Yusuf, 24 Oct: "2 yes") the follow-up's short form, ONLY straight on from its parent: the walk's previous field
+      // step was the question just above, in this conversation, on the move just before, and the cursor moved on after it
+      // was answered. Cold, after Skip or Back, or a click: the full say.
+      const parent = me.rows[row.i - 1], was = me.lastField;
+      const straight = me.how === "next" && !!parent && !!was && was.num === parent.num && was.conv === conv
+                       && was.seq === me.seq - 1;
+      const short = straight && typeof row.q.say_short === "string" && row.q.say_short.trim() !== "";
+      env = { step: "field", say: String(short ? row.q.say_short : (row.q.say || "")),
+              payload: { number: row.num, label: String(row.q.label || ""), field_type: fieldType(row.q),
+                         options: Array.isArray(row.q.options) ? row.q.options.map(String) : [], lane: "qa" } };
+      me.lastField = { num: row.num, seq: me.seq, conv: conv };
+    } else if (me.mode === "act" && me.pv) {
+      env = { step: "action", say: me.pv.say, payload: { action: me.step, ready: me.pv.can } };
+    }
+    if (!env) return false;
+    me.sent = { seq: me.seq, conv: conv }; me.sentAny = true; lastEnv = env;
+    return emit(me, env, false);
+  }
+  function emit(me, env, loud){
+    if (typeof window.teckelWalkSend !== "function") return false;
+    return window.teckelWalkSend({ kind: "walk_step", step: env.step, instance_id: me.iid,
+                                   speak: loud === true ? true : speak, say: env.say, payload: env.payload });
+  }
+  function stepIsCurrent(me){ return !!(me && me.sent && me.sent.seq === me.seq && me.sent.conv === conv); }
+  function control(op){
+    try { return (typeof window.teckelWalkSend === "function") ? window.teckelWalkSend({ kind: "walk_control", op: op }) : false; }
+    catch(e) { return false; }
+  }
+  function voiceOnNow(){ return speak && !(lf && lf.held); }
+  function paintVoice(){
+    txt(ui.voice, voiceOnNow() ? "Voice on" : "Voice off");
+    ui.voice.setAttribute("aria-pressed", voiceOnNow() ? "true" : "false");
+  }
+  function setVoice(on, tell){
+    speak = !!on;
+    const me = lf, starts = !!(speak && me && me.held);
+    if (starts) {
+      me.held = false; me.noCursor = false;
+      if (me.kind === "qa" && !me.completed) { me.baseMsg = SAYS_QA; txt(ui.msg, SAYS_QA); }
+      if (me.mode === "act") paintCursor(me);               /* a completed copy: the action step is the cursor now */
+    }
+    paintVoice();
+    if (tell) control(speak ? "speak" : "quiet");
+    if (starts && me.mode !== "load") stepOut(me);          /* the held walk starts: the cursor's step, once */
+  }
+  function tellChanged(me, num){
+    try { if (typeof window.teckelFormChanged === "function") window.teckelFormChanged(me.iid, num); } catch(e) {}
+  }
+
+  /* ══ A TYPED ANSWER: save_answer ═══════════════════════════════════════════════════════════════════════════════════ */
+  function leftBox(me, row, e){
+    const to = (e && e.relatedTarget && e.relatedTarget.id) || "";
+    if (lf !== me || row.busy || !row.ctl || !row.ctl.isConnected || me.mode === "done") return;
+    if (pressing && PRESS_NO_SAVE.indexOf(String(pressing)) !== -1) return;   /* a press of the live form's own buttons */
+    if (to && TAB_KEEPS.indexOf(String(to)) !== -1) return;                /* Tab onto Skip, Back, Stop … */
+    saveRow(me, row, "leave");
+  }
+  function dirty(row){ return !!(row && row.ctl && String(row.ctl.value || "").trim() !== String(row.saved || "").trim()); }
+  async function saveRow(me, row, how){
+    if (lf !== me || !row.ctl || row.busy || me.mode === "done") return;
+    const astyped = how === "astyped";
+    const v = String(row.ctl.value || "");
+    if (!astyped && v.trim() === String(row.saved || "").trim()) {          /* nothing changed: no request */
+      if ((how === "enter" || how === "button") && isCursor(me, row)) {
+        if (!shown(v)) { say(row.st, row.ctl.tagName === "SELECT" ? "Pick an answer, or press Skip." : "Type an answer, or press Skip.", null); return; }
+        next(me);
+      }
+      return;
+    }
+    if (how === "leave" && row.tried === v) return;         /* just refused: kept, with its reason */
+    if (astyped && !v.trim()) { say(row.st, "Type the answer in the box first.", false); return; }
+    const at = me.seq;
+    row.busy = true;
+    if (!astyped) row.tried = v;
+    say(row.st, "Saving…", null);
+    const args = { instance_id: me.iid, question_number: row.num, value: v };
+    if (astyped) args.override = true;
+    let r;
+    try { r = await P.action("save_answer", args); }
+    finally { row.busy = false; }
+    if (lf !== me) return;
+    if (TYPING_OFF.indexOf(codeOf(r)) !== -1) { liveOff = true; offKey = me.key; closeLive("off"); note(SAYS_SOON); return; }
+    if (lapsed(r)) return;                                  /* the door closes the live form with the page */
+    if (r && r.success === true) {
+      const kept2 = (typeof r.value_saved === "string") ? r.value_saved : v;
+      row.tried = null; row.asTyped = false;
+      setSaved(me, row, kept2, v);
+      say(row.st, r.cleared === true ? "✓ Cleared" : "✓ Saved", true);
+      if (r.unchanged !== true) { tellChanged(me, row.num); me.viewDirty = true; }
+      afterInputs(me, row.num, r);
+      if (isCursor(me, row) && me.seq === at) next(me);     /* the cursor moves on — only if it is still here */
+      else if (isCursor(me, row)) paintCursor(me);
+      return;
+    }
+    refusedRow(me, row, msgOf(r, "That answer was not saved."), r && r.floor, !!(r && r.overridable === true));
+  }
+  // the value the server holds now. A typed save: the box shows the server's form of it unless it was typed into again
+  // meanwhile. A value kev saved (sent null): the box shows it — "✓ Saved" never sits beside a different value.
+  function setSaved(me, row, value, sent){
+    row.saved = String(value);
+    me.known[row.num] = row.saved;
+    if (!row.ctl) return;
+    if (row.ctl.tagName === "SELECT") { row.ctl.value = pickOption(Array.from(row.ctl.options).map(function (o) { return o.value; }), row.saved); return; }
+    if (sent === null || String(row.ctl.value || "") === sent) row.ctl.value = row.saved;
+  }
+  function refusedRow(me, row, text, floor, overridable){
+    const f = String(floor || "");
+    const said = FLOOR_WORDS[f];
+    say(row.st, String(text || "That answer was not saved.") + (said ? " (" + said + ")" : ""), false);
+    row.asTyped = !!overridable && AS_TYPED_FLOORS.indexOf(f) !== -1;   /* only a FORMAT floor, only when overridable */
+    if (isCursor(me, row)) { const t = $("pp-lf-typed"); if (t) t.hidden = !row.asTyped; }
+  }
+
+  /* ══ THE ACTION STEPS (2.2.419's, unchanged): Sign while signatures are outstanding, Submit GREEN / RED, Upload ═══════ */
+  function toActions(me, nothingLeft){
+    if (lf !== me) return;
+    clearTimeout(me.timer); me.timer = null;
+    me.mode = "act"; me.cur = -1;
+    paintCursor(me);
+    txt(ui.step, nothingLeft ? "Every question has an answer" : "That was the last question");
+    me.acts.hidden = false;
+    preview(me, false);
+  }
+  function previewSay(r){
+    return shown(r && r.say) ? String(r.say) : msgOf(r, (r && r.can_submit === true) ? "Ready to submit." : "It can't be submitted yet.");
+  }
+  async function preview(me, fromVoice){
+    if (lf !== me || me.mode !== "act") return null;
+    me.busy = true;
+    renderActs(me, "Checking the form…");
+    let r;
+    try { r = await P.action("submit_preview", { instance_id: me.iid }); }
+    finally { me.busy = false; }
+    if (lf !== me || me.mode !== "act") return null;
+    if (lapsed(r)) return null;
+    if (!r || r.success !== true) { me.pv = null; renderActs(me, msgOf(r, "This form could not be checked just now.")); return null; }
+    me.pv = { can: r.can_submit === true, token: (r.can_submit === true && typeof r.confirm_token === "string") ? r.confirm_token : null,
+              exp: Date.parse(String(r.confirm_expires_at || "")) || 0, to: String(r.to_address || "").trim(),
+              say: previewSay(r), sign: Array.isArray(r.blocked_by) && r.blocked_by.indexOf("SIGNATURES_OUTSTANDING") !== -1 };
+    me.step = me.pv.sign ? "sign" : "submit";
+    me.seq++;                                               /* a fresh action step: its ONE walk_step */
+    renderActs(me, "");
+    if (fromVoice === true && ready()) {                    /* RED by voice: the fresh step, spoken once */
+      me.sent = { seq: me.seq, conv: conv }; me.sentAny = true;
+      lastEnv = { step: "action", say: me.pv.say, payload: { action: me.step, ready: me.pv.can } };
+      emit(me, lastEnv, true);
+    } else stepOut(me);
+    return me.pv;
+  }
+  function renderActs(me, line){
+    const a = me.acts;
+    if (!a) return;
+    a.textContent = "";
+    const p = me.pv;
+    a.appendChild(el("h3", "pp-lf-h3", "Sign and submit"));
+    const row = el("div", "pp-walk-row");
+    if (p && p.sign) { const sg = button("Sign", "pp-walk-hl", function () { doSign(me, false); }); sg.id = "pp-lf-sign"; row.appendChild(sg); }
+    const sub = button("Submit", (p && p.can) ? "pp-go" : "pp-stop", function () { onSubmitClick(me); });
+    sub.id = "pp-lf-submit"; sub.setAttribute("aria-describedby", "pp-lf-reason");
+    if (!p) sub.disabled = true;
+    if (p && !p.sign) sub.classList.add("pp-walk-hl");
+    row.appendChild(sub);
+    const again = button("Check again", "", function () { preview(me, false); }); again.id = "pp-lf-again";
+    const up = button("Upload a document", "", function () { doUpload(me); }); up.id = "pp-lf-upload";
+    const bk = button("Back to the questions", "", function () { stepBack(me); }); bk.id = "pp-lf-acts-back";
+    bk.disabled = seekBack(me, me.rows.length - 1) === -1;
+    row.appendChild(again); row.appendChild(up); row.appendChild(bk);
+    a.appendChild(row);
+    const reason = el("p", "pp-walk-why", line || (p ? p.say : "")); reason.id = "pp-lf-reason"; reason.setAttribute("role", "status");
+    a.appendChild(reason);
+    const res = el("p", "pp-walk-count"); res.id = "pp-lf-result"; res.setAttribute("role", "status"); res.setAttribute("aria-live", "polite");
+    a.appendChild(res);
+    keepInView(a);
+    if (p && !me.noCursor) focusIn(p.sign ? $("pp-lf-sign") : sub);
+  }
+  function actsBusy(on){
+    ["pp-lf-sign", "pp-lf-submit", "pp-lf-again", "pp-lf-upload", "pp-lf-acts-back"].forEach(function (id) { const b = $(id); if (b) b.disabled = on; });
+  }
+  function onSubmitClick(me){
+    if (lf !== me || me.mode !== "act" || me.busy || me.countdown) return;
+    if (!me.pv || me.pv.can !== true) { preview(me, false); return; }   /* RED: check again; nothing is sent */
+    doSubmit(me);                                                      /* GREEN: the click IS the confirmation */
+  }
+  async function doSubmit(me){
+    if (lf !== me || me.mode !== "act" || me.busy) return;
+    let p = me.pv;
+    if (!p || p.can !== true) return;
+    if (!p.token || (p.exp && Date.now() > p.exp - 5000)) {           /* the confirmation ran out: preview first */
+      p = await preview(me, false);
+      if (lf !== me || !p || p.can !== true || !p.token) return;
+    }
+    const token = p.token;
+    p.token = null;                                                    /* single use */
+    me.busy = true; actsBusy(true);
+    txt($("pp-lf-result"), "Sending…");
+    let r;
+    try { r = await P.action("submit", { instance_id: me.iid, confirm_token: token }); }
+    finally { me.busy = false; }
+    if (lf !== me || lapsed(r)) return;
+    if (r && r.success === true && r.sent === true) { sentAndDone(me, String(r.to_address || p.to || "").trim()); return; }
+    actsBusy(false);
+    txt($("pp-lf-result"), msgOf(r, "It was not sent."));
+  }
+  function sentAndDone(me, to){
+    me.mode = "done"; lastEnv = null;
+    try { if (typeof window.teckelScreenForm === "function") window.teckelScreenForm(me.iid, me.name, "submitted"); } catch(e) {}
+    try { if (window.teckelPortalForms) window.teckelPortalForms.reload(); } catch(e) {}
+    control("stop");
+    const key = me.key;
+    closeLive("sent");
+    keepNote(key, (to ? "Sent to " + to + ". " : "Sent. ") + SAYS_SUBMITTED);
+    refreshView(me);                                        /* the read-only view shows the submitted copy */
+  }
+  // A VOICE submit on GREEN: "Sending to <address>…" with Cancel for 3 seconds; Cancel sends nothing.
+  function countdown(me){
+    if (lf !== me || me.countdown) return;
+    actsBusy(true);
+    const res = $("pp-lf-result");
+    txt(res, "Sending to " + (me.pv.to || "the practice's address") + "… ");
+    const cancel = button("Cancel", "", function () {
+      stopCountdown(me);
+      log("voice submit cancelled; nothing was sent");
+    });
+    cancel.id = "pp-lf-cancel";
+    if (res) res.appendChild(cancel);
+    me.countdown = setTimeout(function () {
+      me.countdown = null;
+      if (lf !== me || me.mode !== "act") return;
+      cancel.remove();
+      doSubmit(me);
+    }, SEND_CANCEL_MS);
+  }
+  function stopCountdown(me){
+    if (!me || !me.countdown) return;
+    clearTimeout(me.countdown); me.countdown = null;
+    const c = $("pp-lf-cancel"); if (c) c.remove();
+    txt($("pp-lf-result"), "Not sent.");                    /* Cancel, or the cursor moved away: nothing was sent */
+    actsBusy(false);
+  }
+  async function doSign(me, fromVoice){
+    if (lf !== me || me.mode !== "act" || me.busy) return;
+    let tab = null;
+    if (!fromVoice) {                                       /* opened inside the click — the only moment a browser allows it */
+      try { tab = window.open("", "_blank"); } catch(e) { tab = null; }
+      if (tab) { try { tab.opener = null; } catch(e) {} try { tab.document.title = "Opening…"; } catch(e) {} }
+    }
+    const res = $("pp-lf-result");
+    txt(res, "Opening the signing page…");
+    me.busy = true;
+    let r;
+    try { r = await P.action("sign_link", { instance_id: me.iid }); }
+    finally { me.busy = false; }
+    const ok = !!(r && r.success && typeof r.url === "string" && SIGN_URL.test(r.url));
+    if (!ok) {
+      if (tab) { try { tab.close(); } catch(e) {} }
+      if (!lapsed(r) && lf === me) txt(res, (r && r.success) ? "The signing page could not be opened."
+                                                             : msgOf(r, "The signing page could not be opened just now."));
+      return;
+    }
+    try { if (typeof window.teckelScreenForm === "function") window.teckelScreenForm(me.iid, me.name, "sign"); } catch(e) {}
+    if (tab && !tab.closed) {
+      try { tab.location.replace(r.url); txt(res, "The signing page is open in a new tab. Then press Check again."); return; }
+      catch(e) { /* fall through to the link */ }
+    }
+    const a = document.createElement("a");
+    a.href = r.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open the signing page";
+    if (res) { res.textContent = "Open the signing page in a new tab, then press Check again. "; res.appendChild(a); }
+  }
+  async function doUpload(me){
+    if (lf !== me || me.mode !== "act" || me.busy) return;
+    me.busy = true;
+    let r;
+    try { r = await P.action("upload_link", { instance_id: me.iid }); }
+    finally { me.busy = false; }
+    if (lf !== me || lapsed(r)) return;
+    if (!r || !r.success || !r.url) { txt($("pp-lf-result"), msgOf(r, "The upload page could not be opened just now.")); return; }
+    me.mode = "done"; control("stop");
+    closeLive("sent");
+    const ok = (typeof window.teckelPortalShow === "function") ? await window.teckelPortalShow("upload", r.url) : false;
+    if (ok) { try { window.teckelScreenForm(me.iid, me.name, "upload"); } catch(e) {} }
+    else note("The upload page could not be shown here.");
+  }
+
+  /* ══ A LOG: the NEW entry, save_log_entry; its saved entries listed read-only below. NO walk_step. ═════════════════ */
+  function renderLog(me, r){
+    me.voiceless = true; ui.voice.hidden = true;
+    me.baseMsg = SAYS_LOG; txt(ui.msg, SAYS_LOG);
+    txt(ui.step, "New entry");
+    ui.body.textContent = "";
+    ui.body.appendChild(el("h3", "pp-lf-h3", "New entry"));
+    const list = el("div", "pp-lf-list");
+    const boxes = [];
+    r.columns.forEach(function (c) {
+      if (!c || typeof c !== "object" || !shown(c.key)) return;
+      const id = "pp-lf-b-" + (++uid);
+      const row = el("div", "pp-lf-row"); row.setAttribute("data-key", String(c.key));
+      const lab = el("label", "pp-lf-label", String(c.label || c.key)); lab.htmlFor = id;
+      const cell = el("div", "pp-lf-cell");
+      row.appendChild(lab); row.appendChild(cell); list.appendChild(row);
+      if (c.personal === true) { const p = el("p", "pp-lf-locked", LOCKED_LINE); p.id = id; cell.appendChild(p); return; }
+      const b = makeBox(String(c.kind || "text"), c.options, id, "", c.unit);
+      cell.appendChild(b.ctl); if (b.hint) cell.appendChild(b.hint);
+      const x = { key: String(c.key), ctl: b.ctl, st: statusLine(cell), el: row };
+      boxes.push(x);
+      b.ctl.addEventListener("focus", function () { entryCursor(me, x); });
+      if (b.ctl.tagName !== "SELECT") {
+        b.ctl.addEventListener("keydown", function (e) {
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          const k = boxes.indexOf(x);
+          if (k < boxes.length - 1) focusIn(boxes[k + 1].ctl); else saveEntry(me, false);   /* the last box: Save entry */
+        });
+      }
+    });
+    ui.body.appendChild(list);
+    const acts = el("div", "pp-actions");
+    const saveB = button("Save entry", "primary", function () { saveEntry(me, false); }); saveB.id = "pp-lf-entry-save";
+    const blankB = button("Save with them blank", "", function () { saveEntry(me, true); }); blankB.id = "pp-lf-entry-blank";
+    blankB.hidden = true;
+    acts.appendChild(saveB); acts.appendChild(blankB);
+    ui.body.appendChild(acts);
+    const res = el("p", "pp-result"); res.id = "pp-lf-entry-result"; res.setAttribute("role", "status"); res.setAttribute("aria-live", "polite");
+    ui.body.appendChild(res);
+    ui.body.appendChild(el("h3", "pp-lf-h3", "Saved entries"));
+    const count = el("p", "pp-hint"); count.id = "pp-lf-entry-count";
+    const ol = el("ol", "pp-lf-entries"); ol.id = "pp-lf-entries";
+    ui.body.appendChild(count); ui.body.appendChild(ol);
+    me.entry = { boxes: boxes, saveB: saveB, blankB: blankB, res: res, count: count, ol: ol, cols: null, n: Number(r.entry_count) || 0,
+                 busy: false, cur: null };
+    txt(count, entriesLine(me.entry.n));
+    me.mode = "q";
+    if (boxes.length) entryCursor(me, boxes[0], true);
+    loadEntries(me);
+  }
+  function entriesLine(n){ return n === 1 ? "1 saved entry." : (n + " saved entries."); }
+  function entryCursor(me, x, focus){
+    const en = me.entry;
+    if (!en || lf !== me) return;
+    en.boxes.forEach(function (b) { b.el.classList.remove("pp-lf-cur"); b.el.removeAttribute("aria-current"); b.ctl.removeAttribute("aria-current"); });
+    en.cur = x;
+    x.el.classList.add("pp-lf-cur"); x.el.setAttribute("aria-current", "step"); x.ctl.setAttribute("aria-current", "step");
+    keepInView(x.el);
+    if (focus === true) focusIn(x.ctl);
+  }
+  function cellOf(vals, col){
+    if (Object.prototype.hasOwnProperty.call(vals, col.key)) return vals[col.key];
+    if (shown(col.label) && Object.prototype.hasOwnProperty.call(vals, col.label)) return vals[col.label];
+    return "";
+  }
+  function entryItem(me, vals, n){
+    const li = el("li");
+    const dl = el("dl");
+    (me.entry.cols || []).forEach(function (col) {
+      const v = cellOf(vals || {}, col);
+      dl.appendChild(el("dt", "", String(col.label || col.key)));
+      // a personal field is never shown, only whether it was given
+      dl.appendChild(el("dd", "", col.personal ? (shown(v) ? "Provided" : "Blank") : (shown(v) ? String(v) : "Blank")));
+    });
+    li.appendChild(el("div", "pp-lf-label", "Entry " + n));
+    li.appendChild(dl);
+    return li;
+  }
+  async function loadEntries(me){
+    const en = me.entry;
+    const r = await P.action("log_entries", { instance_id: me.iid });
+    if (lf !== me || lapsed(r)) return;
+    if (!r || r.success !== true || !Array.isArray(r.entries)) { txt(en.count, msgOf(r, "The saved entries can't be listed here just now.")); return; }
+    en.cols = (Array.isArray(r.columns) ? r.columns : []).filter(function (c) { return c && shown(c.key); })
+      .map(function (c) { return { key: String(c.key), label: String(c.label || c.key), personal: c.is_pii === true || c.personal === true }; });
+    en.ol.textContent = "";
+    r.entries.forEach(function (e, i) { if (e && typeof e === "object") en.ol.appendChild(entryItem(me, e.values, i + 1)); });
+    en.n = r.entries.length;
+    txt(en.count, entriesLine(en.n));
+  }
+  async function saveEntry(me, blank){
+    const en = me.entry;
+    if (lf !== me || !en || en.busy) return;
+    en.busy = true; en.blankB.hidden = true;
+    en.boxes.forEach(function (x) { say(x.st, ""); });
+    const values = {};
+    en.boxes.forEach(function (x) { values[x.key] = String(x.ctl.value || ""); });
+    const args = { instance_id: me.iid, values: values };
+    if (blank === true) args.save_blank = true;
+    txt(en.res, "Saving…");
+    let r;
+    try { r = await P.action("save_log_entry", args); }
+    finally { en.busy = false; }
+    if (lf !== me) return;
+    if (TYPING_OFF.indexOf(codeOf(r)) !== -1) { liveOff = true; offKey = me.key; closeLive("off"); note(SAYS_SOON); return; }
+    if (lapsed(r)) return;
+    if (r && r.success === true) {
+      en.n = (typeof r.entry_count === "number" && isFinite(r.entry_count)) ? r.entry_count : en.n + 1;
+      if (en.cols) en.ol.appendChild(entryItem(me, (r.saved && typeof r.saved === "object") ? r.saved : values, en.ol.children.length + 1));
+      txt(en.count, entriesLine(en.n));
+      txt(en.res, "Saved — the log now has " + en.n + (en.n === 1 ? " entry." : " entries."));
+      en.boxes.forEach(function (x) { x.ctl.value = ""; });
+      tellChanged(me, null);
+      me.viewDirty = true;
+      if (en.boxes.length) entryCursor(me, en.boxes[0], true);
+      return;
+    }
+    const code = codeOf(r);
+    if (code === "ENTRY_REFUSED" && Array.isArray(r.refused)) {
+      const loose = [];
+      r.refused.forEach(function (f) {
+        if (!f || typeof f !== "object") return;
+        const x = en.boxes.find(function (b) { return b.key === String(f.key); });
+        if (x) say(x.st, msgOf(f, "This value was not accepted."), false);
+        else loose.push((shown(f.label) ? String(f.label) + ": " : "") + msgOf(f, "not accepted"));
+      });
+      txt(en.res, msgOf(r, "Nothing was saved.") + (loose.length ? " " + loose.join(" ") : ""));
+      return;
+    }
+    if (code === "BLANK_FIELDS") { txt(en.res, msgOf(r, "Some fields are blank. Save the entry with them blank?")); en.blankB.hidden = false; return; }
+    txt(en.res, msgOf(r, "The entry was not saved."));
+  }
+
+  /* ══ kev → the live form: walk_result and walk_control ═══════════════════════════════════════════════════════════════ */
+  function sameNumber(me, m){ const row = curRow(me); return !!row && String(m.number === undefined ? "" : m.number) === row.num; }
+  function onResult(m){
+    const me = lf, row = curRow(me);
+    if (!me || me.kind !== "qa" || !row) { ignore("no question at the cursor", m); return; }
+    // (kev 1.113.0) it names the copy: another copy's result is never shown here; no instance_id: the rule before it
+    const said = (m.instance_id === undefined || m.instance_id === null) ? "" : String(m.instance_id).trim();
+    if (said && said !== me.iid) { ignore("not the copy on screen", m); return; }
+    if (!sameNumber(me, m)) { ignore("not the question at the cursor", m); return; }
+    if (!stepIsCurrent(me)) { ignore("its question was not sent in this conversation", m); return; }
+    if (m.ok === true) {
+      setSaved(me, row, shown(m.value_saved) ? String(m.value_saved) : "", null);
+      row.tried = null; row.asTyped = false;
+      say(row.st, "✓ Saved", true);
+      const t = $("pp-lf-typed"); if (t) t.hidden = true;
+      me.viewDirty = true;
+      afterInputs(me, row.num, null);
+      const at = me.seq;
+      clearTimeout(me.timer);
+      me.timer = setTimeout(function () { if (lf === me && me.seq === at) next(me); }, VOICE_ADVANCE_MS);
+      return;
+    }
+    const f = String(m.floor || "");
+    refusedRow(me, row, shown(m.reason) ? String(m.reason) : "That answer was not saved.", f, f !== "kev_type_precheck");
+  }
+  function onControl(m){
+    const op = String(m.op || "");
+    if (LIVE_OPS.indexOf(op) === -1) { ignore("not an op a conversation may drive", m); return; }
+    if (op === "quiet" || op === "speak") { setVoice(op === "speak", false); return; }
+    if (op === "edit" || op === "walk") { voiceOpen(op, m); return; }
+    const me = lf;
+    if (!me || me.mode === "load" || me.mode === "done") { ignore("no live form", m); return; }
+    if (op === "stop") { closeLive("kev"); return; }       /* kev's own stop: echoed too (see closeLive) */
+    if (me.kind !== "qa") { ignore("a log is not walked yet", m); return; }
+    if (op === "again") {
+      if (me.mode === "q" && !sameNumber(me, m)) { ignore("not the question at the cursor", m); return; }
+      if (!lastEnv || !stepIsCurrent(me)) { ignore("nothing was asked in this conversation", m); return; }
+      emit(me, lastEnv, true);                              /* the SAME envelope, speak:true, once; the mode unchanged */
+      return;
+    }
+    if (op === "skip" || op === "back") {
+      if (me.mode !== "q" || !sameNumber(me, m)) { ignore("not the question at the cursor", m); return; }
+      if (!usable($(op === "skip" ? "pp-lf-skip" : "pp-lf-back"))) { ignore("its button is not usable", m); return; }
+      if (op === "skip") next(me, "skip"); else stepBack(me);
+      return;
+    }
+    const btn = $(op === "submit" ? "pp-lf-submit" : op === "sign" ? "pp-lf-sign" : "pp-lf-upload");
+    if (me.mode !== "act" || !usable(btn) || me.busy || me.countdown) { ignore("its button is not shown and usable", m); return; }
+    if (op === "sign") { doSign(me, true); return; }
+    if (op === "upload") { doUpload(me); return; }
+    if (op !== "submit") { ignore("not an action a conversation may take", m); return; }   /* never a fall-through */
+    if (me.pv && me.pv.can === true) { countdown(me); return; }   /* GREEN by voice: 3 seconds to cancel */
+    preview(me, true);                                      /* RED: check again; still blocked, the fresh step spoken once */
+  }
+  // kev's "edit" / "walk": the live form on the form on screen (open it if Stop closed it); "walk" also turns Voice on
+  function voiceOpen(op, m){
+    const c = editableCopy();
+    if (!c) { ignore("no editable form on screen", m); return; }
+    if (knownWhyNot(c)) { ignore("this form can't be typed into here", m); return; }
+    if (lf && lf.iid === String(c.instance_id)) {
+      if (op === "walk" && lf.kind === "qa" && (!speak || lf.held)) {
+        const wasHeld = !!lf.held;
+        setVoice(true, false);                              /* a held walk starts here: its step goes */
+        if (!wasHeld) { if (lastEnv && stepIsCurrent(lf)) emit(lf, lastEnv, true); else stepOut(lf); }
+        return;
+      }
+      ignore("already open", m); return;
+    }
+    if (op === "walk") setVoice(true, false);
+    if (!openByPress(op === "walk")) ignore("it can't be opened now", m);
+  }
+  function frame(m){
+    if (!m || typeof m !== "object" || !liveOn()) return false;   /* off: the walk script's, as 2.2.420 */
+    if (m.kind === "walk_result") onResult(m);
+    else if (m.kind === "walk_control") onControl(m);
+    return true;
+  }
+
+  /* ══ READ-ONLY VIEW, STOP, CLOSING ══════════════════════════════════════════════════════════════════════════════════ */
+  function dirtyCount(me){
+    if (!me) return 0;
+    if (me.entry) return me.entry.boxes.filter(function (x) { return shown(x.ctl.value); }).length;
+    return me.rows.filter(dirty).length;
+  }
+  function setRo(on){
+    const me = lf;
+    ui.shell.classList.toggle("pp-live-ro", !!on);
+    ui.ro.setAttribute("aria-pressed", on ? "true" : "false");
+    txt(ui.ro, on ? "Back to typing" : "Read-only view");
+    if (!me) return;
+    if (on) {
+      const n = dirtyCount(me);
+      txt(ui.msg, n ? ("What you typed in " + n + (n === 1 ? " box is" : " boxes are") + " kept, not saved yet — press Back to typing to save it.")
+                    : "This is the form as it prints. Press Back to typing to carry on.");
+      if (me.viewDirty) refreshView(me);
+      return;
+    }
+    txt(ui.msg, me.baseMsg);
+    const row = curRow(me);
+    if (row) { keepInView(row.el); focusIn(row.ctl); }
+    else if (me.entry && me.entry.cur) focusIn(me.entry.cur.ctl);
+  }
+  async function refreshView(me){
+    me.viewDirty = false;
+    let how = "gone";
+    try { how = window.teckelPortalViewer ? window.teckelPortalViewer.redraw() : "gone"; } catch(e) { how = "gone"; }
+    if (how === "redrawn") return;
+    if (how === "stale") {
+      const r = await P.action("view_link", { instance_id: me.iid });
+      if (lapsed(r) || !r || r.success !== true || !r.url) return;
+      const c = editableCopy();
+      if (c && String(c.instance_id) === me.iid && typeof window.teckelPortalShow === "function") await window.teckelPortalShow("form", r.url, r.expires_at);
+      return;
+    }
+    try { if (window.teckelPortalViewer && typeof window.teckelPortalViewer.refresh === "function") window.teckelPortalViewer.refresh(); } catch(e) {}
+  }
+  function onStop(){
+    const me = lf;
+    if (!me) return;
+    const n = dirtyCount(me);
+    if (n && !me.stopArmed && me.mode !== "done") {
+      me.stopArmed = true;
+      txt(ui.msg, (n === 1 ? "1 typed answer isn't saved" : n + " typed answers aren't saved")
+                  + " — press Stop again to leave without it, or press Enter in the box to save it.");
+      return;
+    }
+    closeLive("user");                                      /* closed for this display: the strip's Edit brings it back */
+    setTimeout(function () { if (ui.edit && !ui.edit.hidden) { try { ui.edit.focus(); } catch(e) {} } }, 20);
+  }
+  // ⭐ (24 Oct 2026, live evidence conv_aGtCnAXR…, 14:28:06Z; agreed with Yusuf CC) WHENEVER the live form ends after a
+  //   step went out, {kind:"walk_control", op:"stop"} is sent — whatever ended it: Stop, kev's own stop, the form leaving
+  //   the screen, a lapse or a sign-out. 2.2.419/420's walk skipped the echo for kev's stop and kev held the field until
+  //   the socket closed. kev's clear is idempotent and kev never re-sends a stop on receiving one, so no loop.
+  // why: "user" (Stop) | "kev" (kev's stop) | "left" (the form left the viewer) | "lapse" | "off" | "fail" |
+  //      "not" (the server says it cannot be typed into) | "sent" (submitted, or the upload page replaced it)
+  function closeLive(why){
+    const me = lf;
+    if (me) {
+      clearTimeout(me.timer); clearTimeout(me.calcTimer); stopCountdown(me);
+      if (me.sentAny && me.mode !== "done") control("stop");   /* after a step went out — kev's stop included */
+      if (me.viewDirty && (why === "user" || why === "kev")) refreshView(me);    /* the read-only view shows what was saved */
+    }
+    if (opening === me) opening = null;
+    lf = null; lastEnv = null; pressing = null;
+    paintVoice();
+    ui.body.textContent = ""; txt(ui.name, ""); txt(ui.step, ""); txt(ui.msg, "");
+    ui.sec.hidden = true;
+    ui.shell.classList.remove("pp-live-on", "pp-live-ro");
+    ui.ro.setAttribute("aria-pressed", "false"); txt(ui.ro, "Read-only view");
+    tellStrip();
+  }
+  // the strip's Edit (its script asks): the live form is on, not showing, and the copy on screen can be typed into
+  function offersEdit(){
+    if (!liveOn() || lf || opening || !P.held()) return false;
+    const c = editableCopy();
+    if (!c || knownWhyNot(c)) return false;
+    return kept.key !== keyOf(c);
+  }
+  // the strip's Edit, or kev's edit / walk: open it now for the copy on screen; true when it is (or was) open
+  function openByPress(asked){
+    if (!liveOn() || !P.held()) return false;
+    const c = editableCopy();
+    if (!c || knownWhyNot(c)) return false;
+    if (lf && lf.iid === String(c.instance_id)) return true;
+    if (opening) return true;                               /* already loading: "Loading the questions…" is on screen */
+    if (lf) closeLive("left");
+    handled = keyOf(c);
+    note("");
+    openLive(c, asked === true ? "kev" : "press");
+    return true;
+  }
+
+  Object.defineProperty(window, "teckelLiveForm", { configurable: false, enumerable: false, writable: false,
+    value: Object.freeze({
+      on: function () { return liveOn(); },
+      offersEdit: function () { return offersEdit(); },
+      open: function () { return openByPress(false); },
+      frame: function (m) { try { return frame(m); } catch(e) { log("walk frame failed"); return true; } },
+      active: function () { return !!lf; }
+    }) });
+
+  /* ══ EVENTS ══════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+  ui.voice.addEventListener("click", function () { setVoice(!voiceOnNow(), true); });
+  ui.ro.addEventListener("click", function () { if (lf) setRo(!ui.shell.classList.contains("pp-live-ro")); });
+  ui.stop.addEventListener("click", onStop);
+  [ui.voice, ui.ro, ui.stop].forEach(function (x) { x.addEventListener("pointerdown", function () { press(x.id); }); });
+  document.addEventListener("pointerup", function () { setTimeout(function () { pressing = null; }, 0); }, true);
+  document.addEventListener("pointercancel", function () { pressing = null; }, true);
+  window.addEventListener("teckel-viewer", sync);
+  window.addEventListener("teckel-hello", function () {     /* a conversation heard the page's opening run */
+    conv++;
+    if (lf && lf.mode !== "load") stepOut(lf);              /* the cursor's step, once, for THIS conversation */
+  });
+  const frameEl = $("form-viewer");
+  if (frameEl && typeof MutationObserver === "function") {
+    new MutationObserver(sync).observe(frameEl, { attributes: true, attributeFilter: ["src", "srcdoc"] });
+  }
+  P.on("signin", sync);
+  P.on("lapse", function () { closeLive("lapse"); handled = ""; kept = { key: "", text: "" }; note(""); });
+  P.on("mode", sync);
+  setVoice(true, false);
+  sync();
 })();
 </script>
 </body>
