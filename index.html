@@ -658,6 +658,29 @@
             .pp-edit-label, .pp-edit-locked { padding-top: 0; }
             .pp-edit-body { max-height: none; overflow: visible; }
         }
+        /* ── WALK THE DOG (24 Oct 2026; server 2.2.419): the viewer strip's Walk button and the walk panel above the viewer.
+           One question at a time, the box its column's full width; the action steps' Submit button GREEN only when the
+           server's preview says the form can be submitted, RED otherwise, the reason beside it. Every row of buttons
+           wraps, so 360px never scrolls sideways. ── */
+        #pp-walk[hidden], .pp-walk [hidden], .pp-walk-btn[hidden] { display: none !important; }
+        .form-refresh-btn.pp-walk-btn { opacity: 1; color: var(--text, #111827); font-weight: 600; margin-right: 6px; }
+        .pp-walk { margin: 0 0 10px 0; }
+        .pp-walk-step { color: var(--steel); font-size: 12.5px; margin-top: 6px; }
+        .pp-walk-step:empty { display: none; }
+        .pp-walk-q { color: var(--white); font-size: 15px; margin: 8px 0 6px; overflow-wrap: anywhere; }
+        .pp-walk-body { margin-top: 6px; min-width: 0; }
+        .pp-walk-body .pp-edit-input { margin-top: 2px; }
+        .pp-walk-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; min-width: 0; }
+        .pp-walk-row .lv-btn { flex: 0 1 auto; }
+        .pp-walk-saved { color: #9be7a8; font-size: 13.5px; margin-top: 6px; overflow-wrap: anywhere; }
+        .pp-walk-saved:empty { display: none; }
+        .pp-walk-why { font-size: 13px; margin-top: 6px; color: #ffe9b0; overflow-wrap: anywhere; }
+        .pp-walk-why:empty { display: none; }
+        .lv-btn.pp-go { background: #2e8b57; border-color: #2e8b57; color: #ffffff; font-weight: 600; }
+        .lv-btn.pp-stop { background: #b3261e; border-color: #b3261e; color: #ffffff; font-weight: 600; }
+        .lv-btn.pp-walk-hl { outline: 3px solid var(--gold); outline-offset: 2px; }
+        .pp-walk-count { color: var(--white); font-size: 14px; margin-top: 8px; overflow-wrap: anywhere; }
+        .pp-walk-count:empty { display: none; }
         /* Stacked layout: My forms grows with the page instead of scrolling inside itself (a box that
            scrolls inside a scrolling page hides its last rows on a phone). */
         @media (max-width: 900px) {
@@ -1369,6 +1392,8 @@
                 </button>
                 <button type="button" id="pp-edit-btn" class="form-refresh-btn pp-edit-btn" hidden
                         aria-expanded="false" aria-controls="pp-edit" title="Type your answers into this form">Edit</button>
+                <button type="button" id="pp-walk-btn" class="form-refresh-btn pp-walk-btn" hidden
+                        aria-expanded="false" aria-controls="pp-walk" title="Walk through the form, one question at a time">Walk</button>
                 <!-- v2.2.232 — refresh on demand. The page redraws itself when the form
                      actually changes; this is for the moment a user wants to be sure. -->
                 <button type="button" id="form-refresh-btn" class="form-refresh-btn"
@@ -1402,6 +1427,28 @@
                 <p class="pp-edit-title" id="pp-edit-title"></p>
                 <p class="pp-forms-msg" id="pp-edit-msg" role="status" aria-live="polite"></p>
                 <div class="pp-edit-body" id="pp-edit-body"></div>
+            </section>
+            <!-- LOCAL V2 (24 Oct 2026; Yusuf: "YES PLEASE BUILD WALK THE DOG"; server 2.2.419, R419_WALK) — WALK THE FORM.
+                 Opened by the viewer strip's Walk button, for a question form on screen (one the page's own buttons put
+                 there, or one Benedict opened by voice that the server says is the practice's own and editable). One
+                 question at a time: "Question n of m", the question, a box; answer by voice (Benedict asks it, or stays
+                 silent) or by typing; Skip, Back, Stop, and Voice on / off at any time. Then the action steps: Sign, if the
+                 form still needs signatures, and Submit — GREEN only when the server says it can be submitted, RED with
+                 the reason otherwise. Built by the walk script at the end of the page.
+                 ⚠ Server strings are written as TEXT. Greyed with everything else while the page is signed out, and
+                 closed and emptied when the page pauses or signs out. -->
+            <section class="pp-card pp-walk" id="pp-walk" aria-labelledby="pp-walk-h" hidden>
+                <div class="pp-card-head">
+                    <h2 class="pp-h" id="pp-walk-h">Walk through the form</h2>
+                    <span class="pp-card-tools">
+                        <button type="button" id="pp-walk-voice" class="lv-btn pp-small" aria-pressed="true">Voice on</button>
+                        <button type="button" id="pp-walk-stop" class="lv-btn pp-small">Stop</button>
+                    </span>
+                </div>
+                <p class="pp-edit-title" id="pp-walk-title"></p>
+                <p class="pp-walk-step" id="pp-walk-step" role="status" aria-live="polite"></p>
+                <div class="pp-walk-body" id="pp-walk-body"></div>
+                <p class="pp-forms-msg" id="pp-walk-msg" role="status" aria-live="polite"></p>
             </section>
             <div class="form-viewer-shell">
                 <iframe id="form-viewer" name="form-viewer"
@@ -3427,8 +3474,15 @@
                 try { window.dispatchEvent(new Event('teckel-viewer')); } catch (e) {}
             }, 0);
         }
+        // (24 Oct 2026; server 2.2.419, the walk) formShown(): a FORM is in the viewer now — a form view with its URL and no
+        // card written over it — whoever put it there. The transport asks it before offering a copy Benedict opened by voice
+        // (window.teckelVoiceCopy), which every other display, a new conversation and a sign-out forget.
         window.teckelPortalViewer = Object.freeze({
             held: function () { return viewerHeldByPage(); },
+            formShown: function () {
+                var iframe = document.getElementById('form-viewer');
+                return !!(currentFormView && currentFormView.url && iframe && !iframe.hasAttribute('srcdoc'));
+            },
             redraw: function () {
                 var iframe = document.getElementById('form-viewer');
                 if (!iframe || !viewerHeldByPage()) return 'gone';
@@ -3704,6 +3758,10 @@
          with {kind:"client_ready"} then {kind:"review_panel"} before the screen_form re-send, so
          kev holds its greeting until the page can hear and speak, and mentions the back-office
          review panel only when it is on screen. See « THE PAGE TELLS KEV IT IS READY ».
+       · (24 Oct 2026, Yusuf: "YES PLEASE BUILD WALK THE DOG"; server 2.2.419) WALKING THE FORM: a form Benedict opens
+         by voice is named by the server (resolve_view) so it can be typed into and walked; the walk's messages to kev
+         ({kind:"walk_step"}, one envelope for every step, and {kind:"walk_control"}) and kev's two to the page
+         ({kind:"walk_result"}, {kind:"walk_control"}). See « WALKING THE FORM ».
      ===================================================================== -->
 <script>
 "use strict";
@@ -4081,6 +4139,8 @@
     const act = String(action || "");
     if (SCREEN_ACTIONS.indexOf(act) === -1) { log("screen_form refused: unknown action"); return false; }
     if (act === "view") clearList();       /* a form opening in the viewer answers the list on screen (§7) */
+    // (2.2.419) a page button that REPLACES the viewer (View, an upload page, a directory or passage) ends the voice copy
+    if (act === "view" || act === "upload" || instanceId === null || instanceId === undefined || instanceId === "") forgetVoiceCopy();
     if (instanceId === null || instanceId === undefined || instanceId === "") {
       screenForm = null;                   /* nothing of the page's is on screen now */
       viewerIid = null;
@@ -4110,6 +4170,7 @@
     const had = !!screenForm;
     screenForm = null; screenIds.clear();
     viewerIid = null;
+    forgetVoiceCopy();                     /* (2.2.419) the voice copy goes with the ids */
     if (why) sendScreen(screenFormMsg({ instance_id: null, form_name: null, action: why, at: new Date().toISOString() }));
     viewerEvent();
     return had;
@@ -4156,6 +4217,100 @@
         return ok;
       } catch(e) { log("form_changed failed: " + e.message); return false; }
     } });
+
+  /* ══ WALKING THE FORM (24 Oct 2026; Yusuf: "YES PLEASE BUILD WALK THE DOG"; server 2.2.419, R419_WALK) — the transport's
+     part; the walk itself is the walk script at the end of the page. Control comes out of the model and into a known field:
+     the PAGE says which question is current, kev speaks it (or not) and writes a spoken answer for THAT field only.
+     · A FORM BENEDICT OPENED BY VOICE reaches this page only as display_form's view_session_id. Once his display_form has
+       COMPLETED, the page asks the server which copy that is (portal_action resolve_view, through the door, with the pass:
+       the server answers for the pass's practice only). The answer is THE VOICE COPY — {instance_id, form_name, editable,
+       form_kind} — and its id is one the server gave this page (learnScreenIds). window.teckelVoiceCopy() returns it while
+       the viewer still shows a form (teckelPortalViewer.formShown()), else null; any later display of his, or of the
+       page's (View, an upload page, a directory or guidance passage), a new conversation and a sign-out forget it. An
+       answer that arrives after another display is dropped (voiceSeq). Nothing is ever sent to kev about it: he opened it.
+     · window.teckelWalkSend(msg) sends the walk's two kinds, REBUILT here to their exact shapes (nothing else rides):
+         {kind:"walk_step", step:"field", instance_id, speak, say, payload:{number, label, field_type, options, lane:"qa"}}
+         {kind:"walk_step", step:"action", instance_id, speak, say, payload:{action:"sign"|"submit", ready}}
+         {kind:"walk_control", op:"quiet"|"speak"|"stop"}
+       ONE envelope for every step (agreed DA CC + Yusuf CC, 24 Oct 2026): speak, say and the copy are the envelope's, so
+       Silent, "again" and the rest are handled once, whatever the step. A step this page does not know — "row" (a cursor
+       over a list) is reserved and NOT built — is refused here and never sent. The copy's id only one the server gave this
+       page; no conversation, nothing sent (sendJSON refuses a closed socket).
+     · kev's {kind:"walk_result", number, ok, value_saved | reason, floor} and {kind:"walk_control", op, number} reach the
+       ONE listener the walk script registers (window.teckelWalkListen), as plain copies of those fields only. The walk
+       script decides what an op may do (its allowlist); nothing here acts on one. */
+  let voiceCopy = null, voiceSeq = 0;
+  function forgetVoiceCopy(){ if (voiceCopy) { voiceCopy = null; viewerEvent(); } voiceSeq++; }
+  async function resolveVoiceCopy(vsid){
+    const seq = ++voiceSeq;
+    const id = String(vsid || "").trim();
+    if (!/^[A-Za-z0-9_-]{8,32}$/.test(id)) return;
+    let r;
+    try { r = await portalAction("resolve_view", { view_session_id: id }); }
+    catch(e) { log("resolve_view failed: " + e.message); return; }
+    if (seq !== voiceSeq) { log("resolve_view answered after the screen changed; dropped"); return; }
+    const iid = r && r.success === true ? String(r.instance_id || "").trim() : "";
+    if (!walkIid(iid)) { log("resolve_view: not a copy of this practice's to type into"); return; }
+    voiceCopy = Object.freeze({ instance_id: iid,
+                                form_name: String(r.form_title || "").replace(/\s+/g, " ").trim().slice(0, 300) || null,
+                                editable: r.editable === true, form_kind: String(r.form_kind || "") });
+    log("resolve_view: the form Benedict opened is " + (voiceCopy.editable ? "editable" : "not editable") + " here");
+    viewerEvent();
+  }
+  Object.defineProperty(window, "teckelVoiceCopy", { configurable: false, enumerable: false, writable: false,
+    value: function () {
+      if (!voiceCopy || !screenIds.has(voiceCopy.instance_id)) return null;
+      let on = false;
+      try { on = !!(window.teckelPortalViewer && window.teckelPortalViewer.formShown()); } catch(e) { on = false; }
+      return on ? voiceCopy : null;
+    } });
+  const WALK_STEPS = Object.freeze(["field", "action"]);   /* "row" is reserved (a cursor over a list): not in this build */
+  const WALK_ACTIONS = Object.freeze(["sign", "submit"]);
+  const WALK_PAGE_OPS = Object.freeze(["quiet", "speak", "stop"]);
+  function capText(v, n){ return String(v === undefined || v === null ? "" : v).slice(0, n); }
+  function walkIid(v){ const iid = String(v || "").trim(); return (SCREEN_ID_OK.test(iid) && screenIds.has(iid)) ? iid : null; }
+  function walkMessage(m){
+    if (!m || typeof m !== "object") return null;
+    if (m.kind === "walk_step") {
+      const iid = walkIid(m.instance_id), p = (m.payload && typeof m.payload === "object") ? m.payload : {};
+      if (!iid || WALK_STEPS.indexOf(m.step) === -1) return null;
+      const env = { kind: "walk_step", step: m.step, instance_id: iid, speak: m.speak === true, say: capText(m.say, 900) };
+      if (m.step === "field") {
+        const num = String(p.number === undefined || p.number === null ? "" : p.number).trim();
+        if (!FORM_CHANGED_QN.test(num)) return null;
+        env.payload = { number: num, label: capText(p.label, 600), field_type: capText(p.field_type, 20),
+                        options: Array.isArray(p.options) ? p.options.slice(0, 40).map(function (o) { return capText(o, 200); }) : [],
+                        lane: "qa" };
+        return env;
+      }
+      if (WALK_ACTIONS.indexOf(p.action) === -1) return null;
+      env.payload = { action: p.action, ready: p.ready === true };
+      return env;
+    }
+    if (m.kind === "walk_control" && WALK_PAGE_OPS.indexOf(m.op) !== -1) return { kind: "walk_control", op: m.op };
+    return null;
+  }
+  Object.defineProperty(window, "teckelWalkSend", { configurable: false, enumerable: false, writable: false,
+    value: function (m) {
+      try {
+        const msg = walkMessage(m);
+        if (!msg) { log("walk message refused: not one the walk sends, or not a copy this page was given"); return false; }
+        const ok = sendJSON(msg);
+        log(msg.kind + (msg.step ? " " + msg.step : "") + (msg.op ? " " + msg.op : "") + (ok ? " sent" : " (no conversation)"));
+        return ok;
+      } catch(e) { log("walk message failed: " + e.message); return false; }
+    } });
+  let walkListener = null;
+  Object.defineProperty(window, "teckelWalkListen", { configurable: false, enumerable: false, writable: false,
+    value: function (fn) { if (typeof fn !== "function" || walkListener) return false; walkListener = fn; return true; } });
+  function walkFrame(m){
+    if (!walkListener) { log("walk frame ignored: no walk on this page"); return; }
+    const out = { kind: m.kind };
+    ["number", "ok", "value_saved", "reason", "floor", "op"].forEach(function (k) {
+      if (m[k] !== undefined && m[k] !== null && typeof m[k] !== "object") out[k] = m[k];
+    });
+    try { walkListener(Object.freeze(out)); } catch(e) { log("walk frame failed: " + e.message); }
+  }
 
   /* ══ A NUMBERED LIST ON SCREEN (contract §7; Yusuf, 21 Oct 2026: "Where are the 65? I don't see them") ══════════
      kev (1.67.0) sends {kind:"display_numbered_list", title, list_token, items} when it reads a numbered list:
@@ -4445,11 +4600,17 @@
     // (contract §6, §7) Benedict changed the screen himself: kev knows, so NOTHING is sent back (no echo), and the
     // page forgets the form ITS buttons showed, so a later conversation is not told about a replaced form. A form he
     // opened also answers the numbered list on screen.
+    if (DISPLAY_TOOLS.indexOf(name) !== -1) forgetVoiceCopy();   /* (2.2.419) any display of his: a new screen */
     if (DISPLAY_TOOLS.indexOf(name) !== -1 && result.indexOf(name + " completed") === 0) {
       viewerIid = null;                    /* his display replaced the page's form: the next Start clears it */
       screenForm = null;
       if (name === "display_form") clearList();
       viewerEvent();                       /* (2.2.417) no copy of the page's on screen now: no Edit */
+      // (2.2.419) which copy is it? Asked AFTER the result goes back, so the tool's answer never waits for it.
+      if (name === "display_form" && args && args.view_session_id) {
+        const vsid = String(args.view_session_id);
+        setTimeout(function () { resolveVoiceCopy(vsid); }, 0);
+      }
     }
     if (!sendJSON({ kind: "client_tool_result", name: name, id: m.id || null, result: result }))
       log("could not return the tool result (no socket)");
@@ -5201,6 +5362,7 @@
     try { if (typeof window.teckelNewConversation === "function") window.teckelNewConversation({ keepPageForm: keep }); }
     catch(e) { log("panel reset failed: " + e.message); }
     if (keep) log("the form the user opened stays on screen");
+    forgetVoiceCopy();                     /* (2.2.419) the reset cleared Benedict's form from the viewer */
     clearTranscript(); showStatus({ text: "" }); hideNotice(); showMsg(""); clearList();
     lastRecorded = null; frames = 0;
     Object.keys(callIdByKey).forEach(function (k) { delete callIdByKey[k]; });
@@ -5265,6 +5427,7 @@
         else if (m.kind === "recorded") { activity(); onRecorded(m); }
         else if (m.kind === "client_tool") runClientTool(m);
         else if (m.kind === "display_numbered_list") { activity(); showNumberedList(m); }   /* contract §7 */
+        else if (m.kind === "walk_result" || m.kind === "walk_control") { activity(); walkFrame(m); }   /* (2.2.419) */
         else log("message ignored: " + String(m.kind).slice(0, 40));
       } catch(e) { log("message handling failed: " + e.message); }
     };
@@ -6972,7 +7135,9 @@
          page's own buttons put there (My forms → View, a copy opened from the review panel or the Practice tools):
          window.teckelScreenCopy (the transport: the copy View showed, an id the server gave this page) AND
          window.teckelPortalViewer.held() (the viewer: still that very view). A form Benedict showed has no copy id on
-         this page, so it has no Edit. Greyed until the access code is accepted, like every control but the guide
+         this page, so it has no Edit — unless (24 Oct 2026, server 2.2.419, R419_WALK) the server names it as this
+         practice's own editable copy (window.teckelVoiceCopy: resolve_view on his display_form's id, through the door).
+         Greyed until the access code is accepted, like every control but the guide
          links: it is a <button> the door locks, and nothing here acts without the pass.
        · OPEN: form_fields {instance_id}. A question form: one box per question — a list for a choice question, a
          text box with a "dd/mm/yyyy or 'today'" hint for a date (slashes: the date engine reads "23/10/2026"
@@ -7032,13 +7197,31 @@
   }
 
   /* ══ WHICH COPY IS ON SCREEN ════════════════════════════════════════════════════════════ */
-  // The copy THIS page's own buttons put in the viewer, while the viewer still shows that very view; else null.
+  // (24 Oct 2026; server 2.2.419) A form BENEDICT opened by voice, once the server has named it as this practice's own
+  // copy and editable (window.teckelVoiceCopy, in the transport: resolve_view through the door), while a form is still in
+  // the viewer. With the server's walk switch off it is never named, and his forms have no Edit, as before.
+  function voiceOnScreen(){
+    let v = null;
+    try { v = (typeof window.teckelVoiceCopy === "function") ? window.teckelVoiceCopy() : null; } catch(e) { v = null; }
+    return (v && v.editable === true && shown(v.instance_id)) ? v : null;
+  }
+  // The copy THIS page's own buttons put in the viewer, while the viewer still shows that very view; else (2.2.419) the
+  // copy Benedict opened by voice, named by the server; else null.
   function copyOnScreen(){
     let c = null, held = false;
     try { c = (typeof window.teckelScreenCopy === "function") ? window.teckelScreenCopy() : null; } catch(e) { c = null; }
     try { held = !!(window.teckelPortalViewer && window.teckelPortalViewer.held()); } catch(e) { held = false; }
+    const vc = (c && held) ? null : voiceOnScreen();
+    if (vc) return vc;
     return (c && held && shown(c.instance_id)) ? c : null;
   }
+  // (2.2.419) the walk script (after this one) offers its Walk button for the SAME copy Edit is offered for.
+  Object.defineProperty(window, "teckelEditableCopy", { configurable: false, enumerable: false, writable: false,
+    value: function () {
+      const c = copyOnScreen();
+      return c ? Object.freeze({ instance_id: String(c.instance_id), form_name: c.form_name || null,
+                                 form_kind: c.form_kind ? String(c.form_kind) : "" }) : null;
+    } });
   function syncBtn(){
     const c = copyOnScreen();
     ed.btn.hidden = !c;
@@ -7302,6 +7485,542 @@
   P.on("lapse", function () { closePanel(); syncBtn(); });
   P.on("mode", function (m) { if (m === "legacy") setOff(); syncBtn(); });
   if (P.mode() === "legacy") setOff();
+  syncBtn();
+})();
+</script>
+<!-- =====================================================================
+     WALK THE DOG, V2 (24 Oct 2026). Yusuf, 23 Oct: "YES PLEASE BUILD WALK THE DOG" (the contract: TASKS_AND_DECISIONS.md,
+     top entry, agreed DA CC + Yusuf CC); 24 Oct: "It can also walk to the Submit button and make it green *only* if form
+     ready to be submitted, red otherwise (with voice advice!) Saying "Submit" (or "Go") etc, then runs the submit method,
+     as before. Same with other buttons, as appropriate." Server 2.2.419 (teckel__r419_walk_v1_0.py, R419_WALK).
+     Control comes out of the model and into a known field: THIS PAGE says which question is current.
+       · THE WALK BUTTON sits in the viewer strip beside Edit and shows for the SAME copy Edit is offered for
+         (window.teckelEditableCopy: a copy this page's own buttons put in the viewer, or one Benedict opened by voice that
+         the server named as the practice's own, editable). Question forms only: a log, a grid, a survey or a consent form
+         gets the server's note (logs are the walk's second pass). Greyed until the access code is accepted.
+       · THE QUESTIONS: form_fields; the unanswered, non-personal questions in order, one at a time — "Question n of m",
+         the question, a box (2.2.417's kinds: a list for a choice, a text box with its hint), Save, Skip, Back; Stop and
+         Voice on / off in the panel's head, usable mid-walk. Each question is sent to the conversation as ONE envelope,
+           {kind:"walk_step", step:"field", instance_id, speak, say, payload:{number, label, field_type, options, lane:"qa"}}
+         say = the server's canonical spoken question, verbatim; speak false in Silent (Voice off).
+       · A SPOKEN ANSWER is kev's to write (for THAT field only); its {kind:"walk_result", number, ok, value_saved | reason,
+         floor} is shown: saved — the value, then the next question; refused — the reason and which check refused, the
+         box kept ready, and for a FORMAT check (date, time, identifier, number_box — the server's names) "Save as typed"
+         (save_answer with override:true, an explicit click only). A policy lock (personal, submitted, …) and kev's own
+         pre-check ("kev_type_precheck") offer no override.
+       · A TYPED ANSWER: save_answer; on success the conversation is told {kind:"form_changed", instance_id,
+         question_number} (kev drops the field and stops speaking it), then the next question. A refusal: the server's
+         line and its check; "Save as typed" only when the server says overridable.
+       · THE ACTION STEPS, once the questions run out: submit_preview. Sign first, ONLY while the preview says signatures
+         are outstanding (the Sign button highlighted; it opens sign_link exactly as My forms' Sign does: a new tab, or a
+         link if the browser blocks it); then Submit — GREEN only when the preview says can_submit, RED otherwise, with the
+         server's own `say` beside it — and Upload. Each step is sent as
+           {kind:"walk_step", step:"action", instance_id, speak, say: <the preview's say>, payload:{action, ready}}
+         A click on GREEN is the confirmation: submit with the preview's confirm_token (previewed again first if the token
+         has run out). A click on RED checks again and sends nothing. After "Sent", the walk ends.
+       · ⭐ ONE ENVELOPE, ITS PROPERTIES HANDLED ONCE (agreed DA CC + Yusuf CC, 24 Oct): send() is the only place a step
+         leaves — Silent is speak:false, "again" re-sends THE SAME envelope with speak:true ONCE and leaves the mode as it
+         is, a typed answer sends form_changed, and nothing is ever written at a step that is not a field. Step "row" (a
+         cursor over a list) is reserved and NOT built: the transport refuses any step it does not know.
+       · kev's {kind:"walk_control", op, number}: ⛔ ONLY the ops in VOICE_OPS — submit, sign, upload, skip, back, stop,
+         again, quiet, speak — and each ONLY when its button is shown and usable for this copy now (skip / back / stop /
+         again for the question on screen); anything else is ignored, logged to the console. NEVER by voice: discard,
+         remove, a document's removal or detaching, a log entry's removal, a custom question's removal, a resend, the
+         status report — destructive and outward actions other than this copy's Submit stay click-only, by construction.
+         A VOICE submit on GREEN shows "Sending to <address>…" with Cancel for 3 seconds first (Cancel sends nothing); on
+         RED it checks again and, still blocked, sends the fresh step with speak:true once — nothing is submitted.
+       · Voice on / off sends {kind:"walk_control", op:"speak" | "quiet"}; Stop (and a walk that ends) sends
+         {kind:"walk_control", op:"stop"} so the conversation drops the field.
+       · WALK_TIDY_HOOK — ⬜ NOT IN THIS BUILD: the surface-only tidy-up of a long free-text answer, SHOWN before it saves,
+         is kev's (Yusuf's contract, local model first). Until it lands the page shows what kev saved, in the box, editable.
+     ⚠ Every request goes through window.teckelPortal.action, which adds the pass; this script never holds it and makes no
+       request of its own. Every server string is written as TEXT; nothing is stored in the browser. The panel closes, and
+       empties, on a lapse, a sign-out and when the form leaves the viewer.
+     ===================================================================== -->
+<script>
+"use strict";
+(function () {
+  const P = window.teckelPortal;
+  const $ = (id) => document.getElementById(id);
+  const w = { btn: $("pp-walk-btn"), panel: $("pp-walk"), title: $("pp-walk-title"), step: $("pp-walk-step"),
+              body: $("pp-walk-body"), msg: $("pp-walk-msg"), voice: $("pp-walk-voice"), stop: $("pp-walk-stop") };
+  if (!P || !w.btn || !w.panel || !w.body) return;   /* no door on this page */
+  const LAPSE = P.lapseCodes;
+  const WALK_OFF = ["UNKNOWN_ACTION", "PORTAL_OFF"];
+  const WALK_SOON = "Walking the form — coming soon";
+  const WALK_HINT = { date: "dd/mm/yyyy or 'today'", time: "hh:mm", datetime: "dd/mm/yyyy hh:mm" };
+  const MAX_VALUE = 2000;
+  // the server's FORMAT floors (teckel__r419_walk_v1_0.py FORMAT_FLOORS): only these may be saved as typed
+  const FORMAT_FLOORS = Object.freeze(["date", "time", "identifier", "number_box"]);
+  // which check refused, said beside the reason (a policy lock's own line already says why, so it gets no suffix)
+  const FLOOR_SAID = Object.freeze({ date: "the date check", time: "the time check", identifier: "the specific-answer check",
+    number_box: "the number check", option: "the list of answers", blank_words: "the blank-answer rule",
+    kev_type_precheck: "Benedict's own check", unclassified: "a check" });
+  // ⛔ THE VOICE ALLOWLIST — the ONLY ops a conversation may drive on this page. Destructive and outward actions (discard,
+  //    remove, evidence_remove / detach, log_entry_remove, a custom question's removal, resend, the status report) are
+  //    NOT here and never will be by voice: they stay click-only.
+  const VOICE_OPS = Object.freeze(["submit", "sign", "upload", "skip", "back", "stop", "again", "quiet", "speak"]);
+  const ADVANCE_MS = 900;          /* a saved value stays on screen this long before the next question */
+  const COUNTDOWN_MS = 3000;       /* a VOICE submit can be cancelled for this long */
+  const SIGN_PAGE = /^https:\/\/teckel-io\.github\.io\/[^?#\s]*sign\.html\?\S+$/;
+  let off = false;
+  let speak = true;                /* Voice on / off: the mode; "again" never changes it */
+  let walk = null;                 /* the walk: { iid, name, list, i, mode: "q" | "act" | "done", seq, … } — new each time */
+  let last = null;                 /* the last envelope sent: { step, payload, say } (speak is the mode's, or true once) */
+  let opening = false;
+
+  function codeOf(r){ return String((r && r.error_code) || "").trim().toUpperCase(); }
+  function lapsed(r){ const c = codeOf(r); return LAPSE.indexOf(c) !== -1 || c === "NO_PASS"; }
+  function msgOf(r, fallback){ const m = (r && typeof r.message === "string") ? r.message.trim() : ""; return m || fallback; }
+  function txt(el, s){ if (el) el.textContent = (s === undefined || s === null) ? "" : String(s); }
+  function shown(v){ return v !== undefined && v !== null && String(v).trim() !== ""; }
+  function el(tag, cls, text){
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = String(text);
+    return e;
+  }
+  function button(label, cls, fn){
+    const b = el("button", "lv-btn" + (cls ? " " + cls : ""), label);
+    b.type = "button";
+    b.addEventListener("click", fn);
+    return b;
+  }
+  function usable(b){ return !!(b && b.isConnected && !b.hidden && !b.disabled && !b.hasAttribute("data-pp-lock")); }
+
+  /* ══ WHICH COPY IS ON SCREEN — the same one Edit is offered for ══════════════════════════════════════════════════ */
+  function copyOnScreen(){
+    try { return (typeof window.teckelEditableCopy === "function") ? window.teckelEditableCopy() : null; }
+    catch(e) { return null; }
+  }
+  function syncBtn(){
+    const c = copyOnScreen();
+    w.btn.hidden = !c || (shown(c.form_kind) && c.form_kind !== "qa");
+    if (walk && walk.mode !== "done" && (!c || String(c.instance_id) !== walk.iid)) endWalk("left", true);
+    w.btn.setAttribute("aria-expanded", walk ? "true" : "false");
+  }
+  function setOff(){
+    off = true;
+    endWalk("off", true);
+    w.btn.disabled = true; w.btn.title = WALK_SOON;
+    w.btn.setAttribute("aria-label", WALK_SOON);
+    if (w.btn.hasAttribute("data-pp-lock")) w.btn.setAttribute("data-pp-was", "1");
+  }
+
+  /* ══ THE ONE ENVELOPE — every step leaves through send(); its properties are handled here, once ════════════════════ */
+  function send(step, payload, say, forceSpeak){
+    if (!walk) return false;
+    last = { step: step, payload: payload, say: say }; walk.sentAny = true;
+    return sendLast(forceSpeak === true);
+  }
+  function sendLast(forceSpeak){
+    if (!walk || !last || typeof window.teckelWalkSend !== "function") return false;
+    return window.teckelWalkSend({ kind: "walk_step", step: last.step, instance_id: walk.iid,
+                                   speak: forceSpeak === true ? true : speak, say: last.say, payload: last.payload });
+  }
+  function control(op){
+    try { return (typeof window.teckelWalkSend === "function") ? window.teckelWalkSend({ kind: "walk_control", op: op }) : false; }
+    catch(e) { return false; }
+  }
+  function setVoice(on, tell){
+    speak = !!on;
+    txt(w.voice, speak ? "Voice on" : "Voice off");
+    w.voice.setAttribute("aria-pressed", speak ? "true" : "false");
+    if (tell) control(speak ? "speak" : "quiet");
+  }
+
+  /* ══ OPEN: form_fields ═════════════════════════════════════════════════════════════════════════════════════════ */
+  async function openWalk(){
+    if (off || opening || !P.held()) return;
+    const c = copyOnScreen();
+    if (!c) { syncBtn(); return; }
+    endWalk("restart", false);
+    const mine = { iid: String(c.instance_id), name: shown(c.form_name) ? String(c.form_name) : "", list: [], i: 0,
+                   mode: "q", seq: 0, pv: null, step: "", timer: null, countdown: null, busy: false };
+    walk = mine;
+    w.body.textContent = ""; txt(w.title, mine.name); txt(w.step, ""); txt(w.msg, "Loading the questions…");
+    w.panel.hidden = false; w.btn.setAttribute("aria-expanded", "true");
+    opening = true;
+    let r;
+    try { r = await P.action("form_fields", { instance_id: mine.iid }); }
+    finally { opening = false; }
+    if (walk !== mine) return;
+    if (WALK_OFF.indexOf(codeOf(r)) !== -1) { setOff(); return; }
+    if (lapsed(r)) { endWalk("lapse", true); return; }
+    if (!r || r.success !== true) { txt(w.msg, msgOf(r, "This form could not be opened for the walk just now.")); return; }
+    if (shown(r.title)) { mine.name = String(r.title); txt(w.title, r.title); }
+    if (r.editable !== true) { txt(w.msg, msgOf(r, "This form can't be walked here.")); mine.mode = "done"; return; }
+    if (r.form_kind !== "qa" || !Array.isArray(r.questions)) {
+      txt(w.msg, r.form_kind === "log" ? "Walking a log is coming soon — use Edit to type a new entry."
+                                       : "This kind of form can't be walked yet.");
+      mine.mode = "done"; return;
+    }
+    if (r.questions.length && !r.questions.every(function (q) { return q && typeof q.say === "string"; })) {
+      setOff(); return;                                   /* the server has no walk: it gives no spoken questions */
+    }
+    mine.list = r.questions.filter(function (q) {
+      return q && typeof q === "object" && shown(q.number) && q.personal !== true && !shown(q.answer);
+    });
+    txt(w.msg, "");
+    if (!mine.list.length) { actions(true); return; }
+    showQ(0);
+  }
+
+  /* ══ ONE QUESTION ══════════════════════════════════════════════════════════════════════════════════════════════════ */
+  function pickOption(options, value){
+    const v = String(value || "").trim().toLowerCase();
+    const hit = options.find(function (o) { return String(o).trim().toLowerCase() === v; });
+    return hit === undefined ? "" : String(hit);
+  }
+  function box(q, value){
+    let ctl, h = "";
+    const kind = String(q.field_type || q.kind || "text");
+    if (kind === "option" && Array.isArray(q.options) && q.options.length) {
+      ctl = document.createElement("select");
+      ctl.appendChild(el("option", "", "—")); ctl.options[0].value = "";
+      q.options.forEach(function (o) { const op = el("option", "", o); op.value = String(o); ctl.appendChild(op); });
+      ctl.value = pickOption(q.options, value);
+    } else {
+      ctl = document.createElement("input");
+      ctl.type = "text"; ctl.maxLength = MAX_VALUE; ctl.autocomplete = "off";
+      ctl.value = shown(value) ? String(value) : "";
+      h = WALK_HINT[kind] || "";
+      if (h) ctl.placeholder = h;
+    }
+    ctl.id = "pp-walk-box"; ctl.className = "lv-input pp-edit-input";
+    ctl.setAttribute("aria-labelledby", "pp-walk-q");
+    return { ctl: ctl, hint: h ? el("p", "pp-hint pp-edit-hint", h) : null };
+  }
+  function current(){ return (walk && walk.mode === "q") ? walk.list[walk.i] : null; }
+  function showQ(i){
+    if (!walk) return;
+    const mine = walk;
+    clearTimeout(mine.timer); mine.timer = null;
+    mine.mode = "q"; mine.i = Math.max(0, Math.min(i, mine.list.length - 1)); mine.seq++;
+    const q = mine.list[mine.i];
+    w.body.textContent = "";
+    txt(w.step, "Question " + (mine.i + 1) + " of " + mine.list.length);
+    const qp = el("p", "pp-walk-q", String(q.number) + ". " + String(q.label || "")); qp.id = "pp-walk-q";
+    w.body.appendChild(qp);
+    const b = box(q, q.saved);
+    w.body.appendChild(b.ctl); if (b.hint) w.body.appendChild(b.hint);
+    const saved = el("p", "pp-walk-saved"); saved.id = "pp-walk-saved"; saved.setAttribute("role", "status");
+    const why = el("p", "pp-walk-why"); why.id = "pp-walk-why"; why.setAttribute("role", "status");
+    w.body.appendChild(saved); w.body.appendChild(why);
+    const row = el("div", "pp-walk-row");
+    const save = button("Save", "primary", function () { typed(false); }); save.id = "pp-walk-save";
+    const asTyped = button("Save as typed", "", function () { typed(true); }); asTyped.id = "pp-walk-typed"; asTyped.hidden = true;
+    const skip = button("Skip", "", function () { next(); }); skip.id = "pp-walk-skip";
+    const back = button("Back", "", function () { showQ(walk ? walk.i - 1 : 0); }); back.id = "pp-walk-back";
+    back.disabled = mine.i === 0;
+    [save, asTyped, skip, back].forEach(function (x) { row.appendChild(x); });
+    w.body.appendChild(row);
+    if (b.ctl.tagName === "SELECT") b.ctl.addEventListener("change", function () { typed(false); });
+    else b.ctl.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); typed(false); } });
+    send("field", { number: String(q.number), label: String(q.label || ""), field_type: String(q.field_type || q.kind || "text"),
+                    options: Array.isArray(q.options) ? q.options.map(String) : [], lane: "qa" }, String(q.say || ""));
+  }
+  function next(){
+    if (!walk) return;
+    if (walk.mode !== "q") return;
+    if (walk.i + 1 >= walk.list.length) { actions(false); return; }
+    showQ(walk.i + 1);
+  }
+  function refused(text, floor, overridable){
+    const why = $("pp-walk-why"), asTyped = $("pp-walk-typed");
+    const said = FLOOR_SAID[String(floor || "")];
+    txt(why, String(text || "That answer was not saved.") + (said ? " (" + said + ")" : ""));
+    if (asTyped) asTyped.hidden = !overridable;
+    txt($("pp-walk-saved"), "");
+  }
+  function savedThen(mine, value){
+    const q = mine.list[mine.i];
+    q.saved = value;
+    txt($("pp-walk-why"), "");
+    const t = $("pp-walk-typed"); if (t) t.hidden = true;
+    txt($("pp-walk-saved"), "✓ Saved: " + String(value));
+    const ctl = $("pp-walk-box");
+    if (ctl && ctl.tagName !== "SELECT") ctl.value = String(value);   /* the saved value stays editable (Back, Edit) */
+    const seq = mine.seq;
+    clearTimeout(mine.timer);
+    mine.timer = setTimeout(function () { if (walk === mine && mine.seq === seq) next(); }, ADVANCE_MS);
+  }
+  // A TYPED answer (Enter, Save, a choice picked) — or, on an explicit click only, the same value "as typed"
+  async function typed(override){
+    const mine = walk, q = current();
+    if (!mine || !q || mine.busy || off) return;
+    const ctl = $("pp-walk-box");
+    const v = String(ctl ? ctl.value : "");
+    if (!v.trim()) { refused(override ? "Type the answer in the box first." : "Type an answer, or press Skip.", null, false); return; }
+    const args = { instance_id: mine.iid, question_number: String(q.number), value: v };
+    if (override === true) args.override = true;
+    mine.busy = true;
+    txt($("pp-walk-saved"), "Saving…");
+    let r;
+    try { r = await P.action("save_answer", args); }
+    finally { mine.busy = false; }
+    if (walk !== mine || current() !== q) return;
+    if (WALK_OFF.indexOf(codeOf(r)) !== -1) { setOff(); return; }
+    if (lapsed(r)) return;                                  /* the door closes the walk with the page */
+    if (r && r.success === true) {
+      try { if (typeof window.teckelFormChanged === "function") window.teckelFormChanged(mine.iid, String(q.number)); } catch(e) {}
+      savedThen(mine, typeof r.value_saved === "string" ? r.value_saved : v);
+      return;
+    }
+    refused(msgOf(r, "That answer was not saved."), r && r.floor, !!(r && r.overridable === true));
+  }
+
+  /* ══ THE ACTION STEPS: Sign (only while signatures are outstanding), Submit GREEN or RED, Upload ════════════════ */
+  function actions(nothingLeft){
+    if (!walk) return;
+    const mine = walk;
+    clearTimeout(mine.timer); mine.timer = null;
+    mine.mode = "act"; mine.seq++;
+    txt(w.step, nothingLeft ? "Every question has an answer" : "That was the last question");
+    preview(false);
+  }
+  function blockedSay(r){
+    return shown(r && r.say) ? String(r.say) : msgOf(r, (r && r.can_submit === true) ? "Ready to submit." : "It can't be submitted yet.");
+  }
+  async function preview(fromVoice){
+    const mine = walk;
+    if (!mine || mine.mode !== "act") return null;
+    mine.busy = true;
+    txt(w.msg, "Checking the form…");
+    let r;
+    try { r = await P.action("submit_preview", { instance_id: mine.iid }); }
+    finally { mine.busy = false; }
+    if (walk !== mine || mine.mode !== "act") return null;
+    if (lapsed(r)) return null;
+    if (!r || r.success !== true) { txt(w.msg, msgOf(r, "This form could not be checked just now.")); renderActions(); return null; }
+    txt(w.msg, "");
+    mine.pv = { can: r.can_submit === true, token: (r.can_submit === true && typeof r.confirm_token === "string") ? r.confirm_token : null,
+                exp: Date.parse(String(r.confirm_expires_at || "")) || 0, to: String(r.to_address || "").trim(),
+                say: blockedSay(r), sign: Array.isArray(r.blocked_by) && r.blocked_by.indexOf("SIGNATURES_OUTSTANDING") !== -1 };
+    mine.step = mine.pv.sign ? "sign" : "submit";
+    renderActions();
+    send("action", { action: mine.step, ready: mine.pv.can }, mine.pv.say, fromVoice === true);
+    return mine.pv;
+  }
+  function renderActions(){
+    const mine = walk;
+    if (!mine) return;
+    w.body.textContent = "";
+    const pv = mine.pv;
+    const row = el("div", "pp-walk-row");
+    if (pv && pv.sign) {
+      const sign = button("Sign", "pp-walk-hl", function () { doSign(false); }); sign.id = "pp-walk-sign";
+      row.appendChild(sign);
+    }
+    const sub = button("Submit", pv && pv.can ? "pp-go" : "pp-stop", function () { onSubmitClick(); });
+    sub.id = "pp-walk-submit";
+    sub.setAttribute("aria-describedby", "pp-walk-reason");
+    if (!pv) sub.disabled = true;
+    if (pv && !pv.sign) sub.classList.add("pp-walk-hl");
+    row.appendChild(sub);
+    const again = button("Check again", "", function () { preview(false); }); again.id = "pp-walk-again";
+    const up = button("Upload a document", "", function () { doUpload(); }); up.id = "pp-walk-upload";
+    row.appendChild(again); row.appendChild(up);
+    w.body.appendChild(row);
+    const reason = el("p", "pp-walk-why", pv ? pv.say : ""); reason.id = "pp-walk-reason"; reason.setAttribute("role", "status");
+    w.body.appendChild(reason);
+    const res = el("p", "pp-walk-count"); res.id = "pp-walk-result"; res.setAttribute("role", "status");
+    res.setAttribute("aria-live", "polite");
+    w.body.appendChild(res);
+  }
+  function actionsBusy(on){
+    ["pp-walk-sign", "pp-walk-submit", "pp-walk-again", "pp-walk-upload"].forEach(function (id) {
+      const b = $(id); if (b) b.disabled = on;
+    });
+  }
+  function onSubmitClick(){
+    const mine = walk;
+    if (!mine || mine.mode !== "act" || mine.busy || mine.countdown) return;
+    if (!mine.pv || !mine.pv.can) { preview(false); return; }       /* RED: check again; nothing is sent */
+    doSubmit();                                                      /* GREEN: the click IS the confirmation */
+  }
+  async function doSubmit(){
+    const mine = walk;
+    if (!mine || mine.mode !== "act" || mine.busy) return;
+    let pv = mine.pv;
+    if (!pv || !pv.can) return;
+    if (!pv.token || (pv.exp && Date.now() > pv.exp - 5000)) {       /* the confirmation ran out: preview first */
+      pv = await preview(false);
+      if (walk !== mine || !pv || !pv.can || !pv.token) return;
+    }
+    const held = pv.token;                                           /* the preview's confirmation */
+    pv.token = null;                                                 /* single use */
+    mine.busy = true; actionsBusy(true);
+    txt($("pp-walk-result"), "Sending…");
+    let r;
+    try { r = await P.action("submit", { instance_id: mine.iid, confirm_token: held }); }
+    finally { mine.busy = false; }
+    if (walk !== mine) return;
+    if (lapsed(r)) return;
+    if (r && r.success === true && r.sent === true) {
+      const to = String(r.to_address || pv.to || "").trim();
+      try { if (typeof window.teckelScreenForm === "function") window.teckelScreenForm(mine.iid, mine.name, "submitted"); } catch(e) {}
+      try { if (window.teckelPortalForms) window.teckelPortalForms.reload(); } catch(e) {}
+      finishWalk(to ? ("Sent to " + to + ".") : "Sent.");
+      return;
+    }
+    actionsBusy(false);
+    txt($("pp-walk-result"), msgOf(r, "It was not sent."));
+  }
+  function finishWalk(text){
+    const mine = walk;
+    if (!mine) return;
+    clearTimeout(mine.timer); mine.timer = null;
+    mine.mode = "done"; last = null;
+    control("stop");
+    w.body.textContent = "";
+    txt(w.step, "");
+    txt(w.msg, text);
+    txt(w.stop, "Close");
+  }
+  // A VOICE submit on GREEN: "Sending to <address>…" with Cancel for 3 seconds; Cancel sends nothing.
+  function countdown(){
+    const mine = walk;
+    if (!mine || mine.countdown) return;
+    actionsBusy(true);
+    const res = $("pp-walk-result");
+    txt(res, "Sending to " + (mine.pv.to || "the practice's address") + "… ");
+    const cancel = button("Cancel", "", function () {
+      clearTimeout(mine.countdown); mine.countdown = null;
+      cancel.remove(); txt(res, "Not sent."); actionsBusy(false);
+      try { console.info("[teckel-walk] voice submit cancelled; nothing was sent"); } catch(e) {}
+    });
+    cancel.id = "pp-walk-cancel";
+    if (res) res.appendChild(cancel);
+    mine.countdown = setTimeout(function () {
+      mine.countdown = null;
+      if (walk !== mine || mine.mode !== "act") return;
+      cancel.remove();
+      doSubmit();
+    }, COUNTDOWN_MS);
+  }
+  async function doSign(fromVoice){
+    const mine = walk;
+    if (!mine || mine.mode !== "act" || mine.busy) return;
+    let tab = null;
+    if (!fromVoice) {                                       /* opened inside the click — the only moment a browser allows it */
+      try { tab = window.open("", "_blank"); } catch(e) { tab = null; }
+      if (tab) { try { tab.opener = null; } catch(e) {} try { tab.document.title = "Opening…"; } catch(e) {} }
+    }
+    const res = $("pp-walk-result");
+    txt(res, "Opening the signing page…");
+    mine.busy = true;
+    let r;
+    try { r = await P.action("sign_link", { instance_id: mine.iid }); }
+    finally { mine.busy = false; }
+    const ok = !!(r && r.success && typeof r.url === "string" && SIGN_PAGE.test(r.url));
+    if (!ok) {
+      if (tab) { try { tab.close(); } catch(e) {} }
+      if (!lapsed(r) && walk === mine) txt(res, (r && r.success) ? "The signing page could not be opened."
+                                                                 : msgOf(r, "The signing page could not be opened just now."));
+      return;
+    }
+    try { if (typeof window.teckelScreenForm === "function") window.teckelScreenForm(mine.iid, mine.name, "sign"); } catch(e) {}
+    if (tab && !tab.closed) {
+      try { tab.location.replace(r.url); txt(res, "The signing page is open in a new tab. Then press Check again."); return; }
+      catch(e) { /* fall through to the link */ }
+    }
+    const a = document.createElement("a");
+    a.href = r.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open the signing page";
+    if (res) { res.textContent = "Open the signing page in a new tab, then press Check again. "; res.appendChild(a); }
+  }
+  async function doUpload(){
+    const mine = walk;
+    if (!mine || mine.mode !== "act" || mine.busy) return;
+    mine.busy = true;
+    let r;
+    try { r = await P.action("upload_link", { instance_id: mine.iid }); }
+    finally { mine.busy = false; }
+    if (walk !== mine || lapsed(r)) return;
+    if (!r || !r.success || !r.url) { txt($("pp-walk-result"), msgOf(r, "The upload page could not be opened just now.")); return; }
+    finishWalk("The upload page is in the form viewer. Open the form again to carry on.");
+    const ok = (typeof window.teckelPortalShow === "function") ? await window.teckelPortalShow("upload", r.url) : false;
+    if (ok) { try { window.teckelScreenForm(mine.iid, mine.name, "upload"); } catch(e) {} }
+    else txt(w.msg, "The upload page could not be shown here.");
+  }
+
+  /* ══ kev → the page: walk_result and walk_control ═══════════════════════════════════════════════════════════════ */
+  function ignore(why, m){ try { console.info("[teckel-walk] ignored " + String(m && m.kind) + " " + String(m && m.op || "") + ": " + why); } catch(e) {} }
+  function sameNumber(m){ const q = current(); return !!q && String(m.number === undefined ? "" : m.number) === String(q.number); }
+  function onResult(m){
+    const mine = walk, q = current();
+    if (!mine || !q) { ignore("no question on screen", m); return; }   /* nothing is ever written at a non-field step */
+    if (!sameNumber(m)) { ignore("not the question on screen", m); return; }
+    if (m.ok === true) { savedThen(mine, shown(m.value_saved) ? String(m.value_saved) : ""); return; }
+    const floor = String(m.floor || "");
+    refused(shown(m.reason) ? String(m.reason) : "That answer was not saved.", floor,
+            floor !== "kev_type_precheck" && FORMAT_FLOORS.indexOf(floor) !== -1);
+  }
+  function onControl(m){
+    const op = String(m.op || "");
+    if (VOICE_OPS.indexOf(op) === -1) { ignore("not an op a conversation may drive", m); return; }
+    if (op === "quiet" || op === "speak") { setVoice(op === "speak", false); return; }
+    const mine = walk;
+    if (!mine || mine.mode === "done") { ignore("no walk", m); return; }
+    if (op === "stop") { endWalk("kev", true); return; }
+    if (op === "again") {
+      if (mine.mode === "q" && !sameNumber(m)) { ignore("not the question on screen", m); return; }
+      sendLast(true);                                       /* the SAME envelope, speak:true, once; the mode unchanged */
+      return;
+    }
+    if (op === "skip" || op === "back") {
+      if (mine.mode !== "q" || !sameNumber(m)) { ignore("not the question on screen", m); return; }
+      const b = $(op === "skip" ? "pp-walk-skip" : "pp-walk-back");
+      if (!usable(b)) { ignore("its button is not usable", m); return; }
+      if (op === "skip") next(); else showQ(mine.i - 1);
+      return;
+    }
+    // the action steps: the op acts ONLY through a button that is on screen and usable for this copy now
+    const btn = $(op === "submit" ? "pp-walk-submit" : op === "sign" ? "pp-walk-sign" : "pp-walk-upload");
+    if (mine.mode !== "act" || !usable(btn) || mine.busy || mine.countdown) { ignore("its button is not shown and usable", m); return; }
+    if (op === "sign") { doSign(true); return; }
+    if (op === "upload") { doUpload(); return; }
+    if (mine.pv && mine.pv.can) { countdown(); return; }   /* GREEN by voice: 3 seconds to cancel */
+    preview(true);                                          /* RED: check again; still blocked, the fresh step spoken once */
+  }
+  if (typeof window.teckelWalkListen === "function") {
+    window.teckelWalkListen(function (m) {
+      if (!m || typeof m !== "object") return;
+      if (m.kind === "walk_result") onResult(m);
+      else if (m.kind === "walk_control") onControl(m);
+    });
+  }
+
+  /* ══ ENDING ════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+  // why: "user" (Stop) | "kev" (kev's stop: no echo) | "left" (the form left the viewer) | "lapse" | "off" | "restart"
+  function endWalk(why, closePanel){
+    const mine = walk;
+    if (mine) {
+      clearTimeout(mine.timer); clearTimeout(mine.countdown); mine.countdown = null;
+      if (mine.sentAny && why !== "kev" && why !== "restart" && mine.mode !== "done") control("stop");   /* only after a step went out */
+    }
+    walk = null; last = null;
+    if (closePanel) {
+      w.body.textContent = ""; txt(w.title, ""); txt(w.step, ""); txt(w.msg, "");
+      w.panel.hidden = true; txt(w.stop, "Stop");
+    }
+    w.btn.setAttribute("aria-expanded", "false");
+  }
+
+  /* ══ EVENTS ═════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+  w.btn.addEventListener("click", function () { if (walk) endWalk("user", true); else openWalk(); });
+  w.stop.addEventListener("click", function () { endWalk("user", true); try { w.btn.focus(); } catch(e) {} });
+  w.voice.addEventListener("click", function () { setVoice(!speak, true); });
+  window.addEventListener("teckel-viewer", syncBtn);
+  const frame = $("form-viewer");
+  if (frame && typeof MutationObserver === "function") {
+    new MutationObserver(syncBtn).observe(frame, { attributes: true, attributeFilter: ["src", "srcdoc"] });
+  }
+  P.on("signin", syncBtn);
+  P.on("lapse", function () { endWalk("lapse", true); syncBtn(); });
+  P.on("mode", function (m) { if (m === "legacy") setOff(); syncBtn(); });
+  if (P.mode() === "legacy") setOff();
+  setVoice(true, false);
   syncBtn();
 })();
 </script>
