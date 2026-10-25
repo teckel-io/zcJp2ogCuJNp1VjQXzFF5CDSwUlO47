@@ -7,14 +7,14 @@
   allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
   any file carrying it.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/canary/portal.fd05535a3ef4.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/canary/portal.991360ea48f9.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/canary/portal.fd05535a3ef4.js
+      https://teckel-io.github.io/practice_portal_core/canary/portal.991360ea48f9.js
   (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -52,7 +52,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="fd05535a3ef4">/* =====================================================================================================================
+<script data-teckel-core="991360ea48f9">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -615,6 +615,12 @@ window.teckelShell = (function () {
         .pp-result:empty { display: none; }
         .pp-result .lv-btn { margin-top: 8px; }
         .pp-done { margin-top: 14px; color: var(--white); }
+        /* (25 Oct 2026, phase 5: "ADD MUTE TO THE PANEL") the review panel's copies of the conversation's controls */
+        .pp-rv-conv { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--card-border); }
+        .pp-rv-conv-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+        .pp-rv-conv .lv-muted { margin-top: 8px; }
+        .pp-rv-conv .lv-type { margin-top: 10px; }
+        .pp-rv-conv .pp-hint:empty { display: none; }
         .pp-label { color: var(--steel); font-size: 13px; margin-top: 14px; }
         .pp-address { font-size: 16px; font-weight: 600; color: var(--white); margin-top: 2px; word-break: break-all; }
         .pp-other { margin-top: 14px; }
@@ -807,6 +813,20 @@ window.teckelShell = (function () {
         .pp-lf-entries dl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 2px 10px; margin: 2px 0 0; }
         .pp-lf-entries dt { color: var(--steel); }
         .pp-lf-entries dd { margin: 0; overflow-wrap: anywhere; }
+        /* (Phase 4, 2.2.427) every lane: a value Benedict wrote, a set-aside box, the task grid's week (scrolls inside itself) */
+        .pp-lf-said { margin: 3px 0 0; color: var(--steel); font-size: 12px; font-style: italic; }
+        .pp-lf-gridwrap { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
+        .pp-lf-grid { border-collapse: collapse; min-width: 100%; font-size: 13px; color: var(--white); }
+        .pp-lf-grid th, .pp-lf-grid td { border: 1px solid var(--card-border); padding: 4px 6px; vertical-align: top; text-align: left; }
+        .pp-lf-grid th[scope="row"] { min-width: 9em; max-width: 16em; font-weight: 500; overflow-wrap: anywhere; }
+        .pp-lf-grid td { min-width: 7.5em; }
+        .pp-lf-grid .pp-lf-gsel, .pp-lf-grid .pp-lf-input { min-width: 6.5em; }
+        .pp-lf-grid .pp-lf-future { opacity: 0.45; }
+        .pp-lf-grid .pp-lf-walkcol { background: rgba(240, 208, 96, 0.05); }
+        .pp-lf-grid td.pp-lf-cur { outline: 2px solid var(--gold); outline-offset: -2px; background: rgba(240, 208, 96, 0.10); }
+        .pp-lf-grid td.pp-lf-elsewhere .pp-lf-status { color: var(--steel); }
+        .pp-lf-gridtools:empty { display: none; }
+        .pp-lf-gridtools { margin-top: 6px; }
         @media (max-width: 600px) {
             .pp-lf-row { grid-template-columns: minmax(0, 1fr); padding-left: 6px; padding-right: 4px; }
             .pp-lf-label, .pp-lf-locked, .pp-lf-calc { padding-top: 0; }
@@ -1676,6 +1696,26 @@ window.teckelShell = (function () {
     \x3cscript>
     (function () {
         'use strict';
+
+        // -----------------------------------------------------------------
+        // Which origins this page trusts (25 Oct 2026, F-HA; Yusuf: "build the fix and republish the 17 pages")
+        // -----------------------------------------------------------------
+        // The practice pages moved from teckel-io.github.io to benedict.teckel.io, and a frame opened from an
+        // old-host link follows the redirect and ENDS on the new host, so a check pinned to one host refused it
+        // (a click in the traffic-light list never reached Benedict). Every origin and link check below accepts
+        // this page's own origin and both teckel hosts — never one host alone (a page on a practice's own domain
+        // is its location.origin).
+        var OK_ORIGINS = [location.origin, 'https://teckel-io.github.io', 'https://benedict.teckel.io'];
+        function isOkOrigin(o) { return OK_ORIGINS.indexOf(o) !== -1; }
+        // A teckel page link: one of OK_ORIGINS, then a path + query that pathRe matches (pathRe starts at the "/").
+        function isTeckelPageUrl(url, pathRe) {
+            if (!url || typeof url !== 'string') return false;
+            for (var i = 0; i \x3c OK_ORIGINS.length; i++) {
+                var o = OK_ORIGINS[i];
+                if (url.indexOf(o + '/') === 0 && pathRe.test(url.slice(o.length))) return true;
+            }
+            return false;
+        }
 
         // -----------------------------------------------------------------
         // tc → GBP conversion
@@ -2693,7 +2733,7 @@ window.teckelShell = (function () {
             try {
                 var frame = document.getElementById('form-viewer');
                 if (!frame || e.source !== frame.contentWindow) return;
-                if (!/^https:\\/\\/teckel-io\\.github\\.io$/.test(e.origin)) return;
+                if (!isOkOrigin(e.origin)) return;
                 var d = e.data || {};
                 if (d.type !== 'teckel-fill-form') return;
                 // LOCAL V2 (25 Oct 2026, phase 2, V24): a directory row says so, with its key as a hint
@@ -3065,7 +3105,7 @@ window.teckelShell = (function () {
         var UPLOAD_LINK_DEBOUNCE_MS = 30 * 1000;
         function isValidUploadUrl(url) {
             if (!url || typeof url !== 'string') return false;
-            return /^https:\\/\\/teckel-io\\.github\\.io\\/[^?#]*upload\\.html\\?token=[^\\s]+$/.test(url);
+            return isTeckelPageUrl(url, /^\\/[^?#]*upload\\.html\\?token=[^\\s]+$/);
         }
         // 2.2.335 (I-31, 5 Oct 2026): the agent dropped four characters of a 295-char signed
         // upload URL on its way here, twice, and this page said the link was no longer
@@ -3153,7 +3193,7 @@ window.teckelShell = (function () {
             // 7 Oct 2026 (I-109) — signatures.html is accepted too. Since server 2.2.337 the link
             // for "who signs THIS form" points at signatures.html (same token, same origin, opened
             // with &storage_key=). It was refused here, so that page could only ever be e-mailed.
-            return /^https:\\/\\/teckel-io\\.github\\.io\\/[^?#]*(?:settings|signatures)\\.html\\?token=[^\\s]+$/.test(url);
+            return isTeckelPageUrl(url, /^\\/[^?#]*(?:settings|signatures)\\.html\\?token=[^\\s]+$/);
         }
         function showSettingsInIframe(url, sourceNote) {
             var iframe      = document.getElementById('form-viewer');
@@ -3240,7 +3280,7 @@ window.teckelShell = (function () {
         var DIRECTORY_DEBOUNCE_MS = 30 * 1000;
         function isValidDirectoryUrl(url) {
             if (!url || typeof url !== 'string') return false;
-            return /^https:\\/\\/teckel-io\\.github\\.io\\/[^?#]*directory\\.html\\?token=[^\\s]+$/.test(url);
+            return isTeckelPageUrl(url, /^\\/[^?#]*directory\\.html\\?token=[^\\s]+$/);
         }
         function showDirectoryInIframe(url) {
             var iframe      = document.getElementById('form-viewer');
@@ -3322,7 +3362,7 @@ window.teckelShell = (function () {
         var GUIDANCE_DEBOUNCE_MS = 30 * 1000;
         function isValidGuidanceUrl(url) {
             if (!url || typeof url !== 'string') return false;
-            return /^https:\\/\\/teckel-io\\.github\\.io\\/[^?#]*guidance\\.html\\?token=[^\\s]+$/.test(url);
+            return isTeckelPageUrl(url, /^\\/[^?#]*guidance\\.html\\?token=[^\\s]+$/);
         }
         function showGuidanceInIframe(url) {
             var iframe      = document.getElementById('form-viewer');
@@ -3422,7 +3462,7 @@ window.teckelShell = (function () {
         var SELF_FILL_LINK_DEBOUNCE_MS = 30 * 1000;
         function isValidSelfFillUrl(url) {
             if (!url || typeof url !== 'string') return false;
-            return /^https:\\/\\/teckel-io\\.github\\.io\\/[^?#]*(survey|log)\\.html\\?token=[^\\s]+$/.test(url);
+            return isTeckelPageUrl(url, /^\\/[^?#]*(survey|log)\\.html\\?token=[^\\s]+$/);
         }
         function selfFillKind(url) {
             return /log\\.html\\?/.test(url || '') ? 'log' : 'survey';
@@ -3994,6 +4034,22 @@ window.teckelShell = (function () {
          stop goes with it — the viewer's clear closes it); kev's {kind:"session_end", reason} waits for the
          closing words (5 s at most), offers "Keep talking" for 3 s ({kind:"session_end_cancelled"}), then ends the session
          exactly as End does (« END THE CONVERSATION »).
+       · (25 Oct 2026, PHASE 4 — every form type walkable; Yusuf: "we must get these 5 phases built and deployed", "YES GO
+         WITH ALL"; brief agent_docs/campaign_2026-09-25/round4/PHASE4_BUILD_BRIEF_2026-10-25.md §3, server 2.2.427) a
+         survey, a task grid and a consent form are each a LANE the live form asks about (form_fields decides; the lane's
+         switch off, the server still says "other"); the fields the server gave each copy are learned, and a walk_step or a
+         form_changed for a new lane names only one of them; the walk's "row" step (a log entry's or a survey respondent's
+         commit); ⛔ a consent form's steps are never spoken (speak forced false here as well as on the page); kev's
+         {kind:"conversation", conversation_id} is kept IN THIS CLOSURE ONLY, like the pass — the live form holds a handle,
+         and the id rides only in the args of the doors that take it (« THE CONVERSATION »).
+       · (25 Oct 2026, PHASE 5 — the back-office review walk; Yusuf: "we must get these 5 phases built and deployed", "YES GO
+         WITH ALL"; brief agent_docs/campaign_2026-09-25/round4/PHASE5_BUILD_BRIEF_2026-10-25.md §2, §4 and §9, server
+         2.2.428) the review panel walks its items by voice: {kind:"walk_step", step:"review", instance_id:null, …} rebuilt
+         here from an allowlist (never an item's id, values, evidence or the server's shown stamp); kev's walk_control ops —
+         close_form included — go to the review walk while it runs (window.teckelReviewWalkListen), each naming the
+         step_id it answers; review_panel says walks:true while the page walks the panel (« THE REVIEW WALK »). Inert until
+         a review_next reply carries \`walk\`. (Yusuf, 25 Oct: "ADD MUTE TO THE PANEL") the panel — a modal dialog — carries
+         copies of the conversation's own Mute, typing box and End, the same controls (« THE PANEL'S CONVERSATION CONTROLS »).
      ===================================================================== -->
 \x3cscript>
 "use strict";
@@ -4209,6 +4265,7 @@ window.teckelShell = (function () {
     $("lv-disconnect").disabled = !open || endingByUser;
     $("lv-type").disabled = !open || !gate; $("lv-send").disabled = !open || !gate;
     $("lv-type").placeholder = open ? "Type to Benedict…" : "Start a conversation to type";
+    syncConvCopies(open, gate);          /* (2.2.428) « THE PANEL'S CONVERSATION CONTROLS » */
   }
 
   /* ── status line (kev-flow 1.61.0) ── one-way, nothing awaited. ⛔ Shown verbatim and never
@@ -4384,6 +4441,7 @@ window.teckelShell = (function () {
       if (Array.isArray(b[k])) b[k].forEach(function (x) { if (x && typeof x === "object") add(x.instance_id); });
     });
     learnCopyKinds(b);                     /* (2.2.421) « THE LIVE FORM »: what kind of copy each one is */
+    learnFields(b);                        /* (Phase 4) and, for a new lane, the fields the server gave it */
   }
   /* ══ THE LIVE FORM — WHAT KIND OF COPY IT IS (24 Oct 2026, page 2.2.421; fixes F-FP: the Walk button showed on a consent
      form opened with View, because the copy on screen carried no kind). Learned from the server's own successful replies,
@@ -4393,13 +4451,17 @@ window.teckelShell = (function () {
      template_type is empty (the server could not read the template) leaves the kind unknown (""): the server decides when
      it is asked. Kept in memory with the ids, forgotten with them. The server stays the authority: form_fields says
      whether a copy can be typed into; this only stops the page offering typing on a kind the server never takes. */
-  const copyKinds = new Map();             /* instance_id -> { form_kind: "qa" | "log" | "other" | "", status } */
+  const copyKinds = new Map();             /* instance_id -> { form_kind: "qa" | "log" | "other" | "survey" | "grid" | "consent" | "", status } */
   const NOT_TYPED_TYPES = Object.freeze(["scheduled_grid_log", "survey_log", "consent_form"]);
-  const COPY_KINDS = Object.freeze(["qa", "log", "other"]);
+  // (Phase 4, 2.2.427) the three kinds 2.2.417 never typed into are each a LANE now, named so the live form ASKS the server
+  //   (form_fields decides): while that lane's switch is off the server still answers form_kind "other", and that is learned
+  //   below and wins, exactly as before. The walk panel (2.2.420's) and the Edit panel stay question forms / logs only.
+  const LANE_OF_TYPE = Object.freeze({ scheduled_grid_log: "grid", survey_log: "survey", consent_form: "consent" });
+  const COPY_KINDS = Object.freeze(["qa", "log", "other", "survey", "grid", "consent"]);
   function kindOfTemplateType(tt){
     const t = String(tt === undefined || tt === null ? "" : tt).trim().toLowerCase();
     if (!t) return "";
-    if (NOT_TYPED_TYPES.indexOf(t) !== -1) return "other";
+    if (NOT_TYPED_TYPES.indexOf(t) !== -1) return LANE_OF_TYPE[t] || "other";
     return (t === "log" || /_log$/.test(t)) ? "log" : "qa";
   }
   function learnCopyKinds(b){
@@ -4413,6 +4475,37 @@ window.teckelShell = (function () {
     if (SCREEN_ID_OK.test(one) && COPY_KINDS.indexOf(b.form_kind) !== -1) {
       copyKinds.set(one, Object.freeze({ form_kind: b.form_kind, status: String(b.status || "") }));
     }
+  }
+  /* (Phase 4, 2.2.427) THE FIELDS THE SERVER GAVE — per copy, from form_fields' own reply when it names a LANE (lane equal to
+     form_kind): a log's column keys, a survey's and a consent form's question numbers, a task grid's cells (and its columns,
+     for the walk's "initials|\x3ccolumn>" and "date|\x3ccolumn>" steps). A walk_step or a form_changed for a new lane names ONLY
+     one of these (teckelWalkSend and teckelFormChanged refuse anything else), so neither a forged lane nor an invented field
+     reaches kev. Kept in memory with the ids, forgotten with them. */
+  const NEW_LANES = Object.freeze(["log", "survey", "grid", "consent"]);
+  const FIELD_MAX = 200;
+  const copyFields = new Map();            /* instance_id -> { lane, fields: Set, cols: Set } */
+  function learnFields(b){
+    const iid = String(b.instance_id || "").trim(), lane = (typeof b.lane === "string") ? b.lane : "";
+    if (!SCREEN_ID_OK.test(iid) || NEW_LANES.indexOf(lane) === -1 || b.form_kind !== lane) return;
+    const fields = new Set(), cols = new Set();
+    const add = function (set, v) {
+      const s = (typeof v === "string" || typeof v === "number") ? String(v) : "";
+      if (s.trim() && s.length \x3c= FIELD_MAX) set.add(s);
+    };
+    const each = function (a, fn) { if (Array.isArray(a)) a.forEach(function (x) { if (x && typeof x === "object") fn(x); }); };
+    if (lane === "log") each(b.columns, function (c) { add(fields, c.field !== undefined ? c.field : c.key); });
+    if (lane === "survey" || lane === "consent") each(b.questions, function (q) { add(fields, q.field !== undefined ? q.field : q.number); });
+    if (lane === "grid") { each(b.cells, function (c) { add(fields, c.field); }); each(b.columns, function (c) { add(cols, c.key); }); }
+    copyFields.set(iid, Object.freeze({ lane: lane, fields: fields, cols: cols }));
+  }
+  // the field a step or a change names, when it is one the server gave this copy in this lane; else null
+  function serverField(iid, lane, v){
+    const f = copyFields.get(iid);
+    const s = (typeof v === "string" || typeof v === "number") ? String(v) : "";
+    if (!f || f.lane !== lane || !s || s.length > FIELD_MAX) return null;
+    if (f.fields.has(s)) return s;
+    const m = lane === "grid" ? /^(initials|date)\\|(.+)$/.exec(s) : null;   /* a grid column's initials or its date */
+    return (m && f.cols.has(m[2])) ? s : null;
   }
   let displaySeq = 0;                      /* one number per display of a copy (a View, a form Benedict opened) */
   let viewDisplay = "";                    /* the display the page's own View last made ("p\x3cn>") */
@@ -4452,6 +4545,7 @@ window.teckelShell = (function () {
     const had = !!screenForm;
     screenForm = null; screenIds.clear();
     copyKinds.clear();                     /* (2.2.421) the kinds go with the ids */
+    copyFields.clear();                    /* (Phase 4) and the fields the server gave */
     viewerIid = null;
     forgetVoiceCopy();                     /* (2.2.419) the voice copy goes with the ids */
     if (why) sendScreen(screenFormMsg({ instance_id: null, form_name: null, action: why, at: new Date().toISOString() }));
@@ -4488,12 +4582,33 @@ window.teckelShell = (function () {
       return Object.freeze({ instance_id: viewerIid, form_name: name, form_kind: k ? k.form_kind : "",
                              status: k ? k.status : "", display: viewDisplay });
     } });
+  // (Phase 4, 2.2.427) a NEW LANE's change: {kind:"form_changed", instance_id, field, lane} — draft:true for a typed value
+  //   held in the conversation's open entry, so kev drops that field and its offers (the brief's risk R5) — or {…, entry:true,
+  //   lane} for a whole entry saved; a consent form's {…, question_number, lane:"consent"}. The field only one the server
+  //   gave this copy (serverField), the lane only this copy's own (copyKinds). A question form's change is as before.
+  function laneChanged(m, iid, more){
+    const lane = (typeof more.lane === "string") ? more.lane : "", k = copyKinds.get(iid);
+    if (NEW_LANES.indexOf(lane) === -1 || !k || k.form_kind !== lane) { log("form_changed refused: not this copy's lane"); return false; }
+    const fv = more.field;
+    if (fv === null || fv === undefined || fv === "") m.entry = true;
+    else {
+      const f = serverField(iid, lane, fv);
+      if (!f) { log("form_changed refused: not a field the server gave"); return false; }
+      if (lane === "consent") m.question_number = f; else m.field = f;
+      if (more.draft === true && (lane === "log" || lane === "survey")) m.draft = true;
+    }
+    m.lane = lane;
+    const ok = sendJSON(m);
+    log("form_changed " + lane + (ok ? " sent" : " (no conversation)"));
+    return ok;
+  }
   Object.defineProperty(window, "teckelFormChanged", { configurable: false, enumerable: false, writable: false,
-    value: function (instanceId, questionNumber) {
+    value: function (instanceId, questionNumber, more) {
       try {
         const iid = String(instanceId || "").trim();
         if (!(SCREEN_ID_OK.test(iid) && screenIds.has(iid))) { log("form_changed refused: not a copy this page was given"); return false; }
         const m = { kind: "form_changed", instance_id: iid };
+        if (more && typeof more === "object" && more.lane !== undefined) return laneChanged(m, iid, more);   /* (Phase 4) */
         if (questionNumber === null || questionNumber === undefined || questionNumber === "") m.entry = true;
         else {
           const q = String(questionNumber).trim();
@@ -4582,27 +4697,168 @@ window.teckelShell = (function () {
       try { on = !!(window.teckelPortalViewer && window.teckelPortalViewer.formShown()); } catch(e) { on = false; }
       return on ? voiceNote : null;
     } });
-  const WALK_STEPS = Object.freeze(["field", "action"]);   /* "row" is reserved (a cursor over a list): not in this build */
+  const WALK_STEPS = Object.freeze(["field", "action", "row"]);   /* (Phase 4) "row": a log entry's / a survey respondent's commit */
   const WALK_ACTIONS = Object.freeze(["sign", "submit"]);
   const WALK_PAGE_OPS = Object.freeze(["quiet", "speak", "stop"]);
   function capText(v, n){ return String(v === undefined || v === null ? "" : v).slice(0, n); }
+  /* ── (2.2.428, phase 5) « THE REVIEW WALK »: THE REVIEW STEP, rebuilt here from an allowlist (brief §2, §4):
+         {kind:"walk_step", step:"review", instance_id:null, speak, say,
+          payload:{step_id, kind, n, of, needs_revision, lines:{bulk, stale, explicit, back, replace, done},
+                   outcome?:{decision, status, recorded, unchanged, skipped}}}
+         the walk's last step:  payload:{step_id, lines, outcome?, done:true}
+       · instance_id is ALWAYS null, whatever the page gave: kev can never write to a copy from a review step.
+       · step_id is the page's own "rv-\x3cbase36>" (one per showing, never reused); anything else and nothing is sent.
+       · lines are the server's fixed sentences (no values), each at most 300 characters, every one of the six keys there
+         ("" when the server gave none); outcome's lists describe the RECORD — at most RV_LIST_MAX items each, every item
+         exactly {field, label, value, reason?}. Nothing else rides: never an item's id, its values outside the outcome,
+         its evidence, or the server's shown stamp (the page keeps that in memory and gives it only to review_resolve). */
+  const RV_STEP_OK = /^rv-[0-9a-z]{1,12}$/;
+  const RV_KINDS = Object.freeze(["missing", "fix", "clear", "missed_action"]);
+  const RV_LINES = Object.freeze(["bulk", "stale", "explicit", "back", "replace", "done"]);
+  const RV_DECISIONS = Object.freeze(["accept", "reject", "later"]);
+  const RV_LIST_MAX = 5;
+  function rvList(v){
+    if (!Array.isArray(v)) return [];
+    const out = [];
+    v.forEach(function (x) {
+      if (out.length >= RV_LIST_MAX || !x || typeof x !== "object" || Array.isArray(x)) return;
+      const it = { field: capText(x.field, 200), label: capText(x.label, 300), value: capText(x.value, 600) };
+      if (typeof x.reason === "string" && x.reason) it.reason = capText(x.reason, 60);
+      out.push(it);
+    });
+    return out;
+  }
+  function rvOutcome(o){
+    if (!o || typeof o !== "object" || Array.isArray(o) || RV_DECISIONS.indexOf(o.decision) === -1) return null;
+    const st = (typeof o.status === "string" && /^[a-z_]{1,20}$/.test(o.status)) ? o.status : "";
+    return { decision: o.decision, status: st, recorded: rvList(o.recorded), unchanged: rvList(o.unchanged),
+             skipped: rvList(o.skipped) };
+  }
+  function reviewStepMsg(m){
+    const p = (m.payload && typeof m.payload === "object" && !Array.isArray(m.payload)) ? m.payload : {};
+    const id = typeof p.step_id === "string" ? p.step_id : "";
+    if (!RV_STEP_OK.test(id)) return null;
+    const src = (p.lines && typeof p.lines === "object" && !Array.isArray(p.lines)) ? p.lines : {};
+    const lines = {};
+    RV_LINES.forEach(function (k) { lines[k] = typeof src[k] === "string" ? capText(src[k], 300) : ""; });
+    const env = { kind: "walk_step", step: "review", instance_id: null, speak: m.speak === true, say: capText(m.say, 900) };
+    const done = p.done === true;
+    let payload;
+    if (done) {
+      payload = { step_id: id, lines: lines };
+    } else {
+      const n = count(p.n), of = count(p.of);
+      if (RV_KINDS.indexOf(p.kind) === -1 || !n || of === null) return null;
+      payload = { step_id: id, kind: p.kind, n: n, of: Math.max(of, n), needs_revision: p.needs_revision === true, lines: lines };
+    }
+    const oc = rvOutcome(p.outcome); if (oc) payload.outcome = oc;
+    if (done) payload.done = true;
+    env.payload = payload;
+    return env;
+  }
   function walkIid(v){ const iid = String(v || "").trim(); return (SCREEN_ID_OK.test(iid) && screenIds.has(iid)) ? iid : null; }
+  /* ── (Phase 4, 2.2.427) EVERY LANE'S ENVELOPE, rebuilt here from an allowlist of keys per lane (brief §1, §3):
+       field  qa       {number, label, field_type, options, lane:"qa", values?}            (values: §7, the stored answers)
+              consent  {number, label, field_type, options, lane:"consent", values?}       ⛔ speak always false
+              log      {lane, field, label, field_type, options, unit?, entry_number, draft_values?}
+              survey   {lane, number, field, label, field_type, options, respondent, draft_values?}
+              grid     {lane, field, row_key, column_key, date, label, field_type, options, draft_values?}
+       row    log / survey  {lane, action:"save_entry", entry_number | respondent, ready, blank, draft_values?}
+       action {action, ready, (slot, label, signed), lane?, values?} — lane and values only when the page gave them
+     A step names its LANE: none = "qa" (the 2.2.420 walk panel's steps, unchanged); a new lane only for a copy the server
+     itself named so (copyKinds and copyFields, from form_fields' own reply), and its field only one the server gave; a qa
+     step never for a copy the server named a new lane. So a forged lane cannot take a consent form out of speak:false, and
+     a field kev was never given cannot be sent. values / draft_values: flat maps of text, capped; the page never builds
+     draft_values (it is the server's, from the last reply). */
+  const LANES = Object.freeze(["qa", "log", "survey", "grid", "consent"]);
+  function stepLane(iid, p){
+    const lane = (p.lane === undefined || p.lane === null) ? "qa" : p.lane;
+    if (typeof lane !== "string" || LANES.indexOf(lane) === -1) return null;
+    const k = copyKinds.get(iid), kind = k ? k.form_kind : "";
+    if (lane === "qa") return NEW_LANES.indexOf(kind) === -1 ? "qa" : null;
+    const f = copyFields.get(iid);
+    return (kind === lane && f && f.lane === lane) ? lane : null;
+  }
+  function capMap(v, keyOk){
+    if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+    const out = {};
+    let n = 0;
+    Object.keys(v).forEach(function (k) {
+      const x = v[k];
+      if (n >= 200 || (typeof x !== "string" && typeof x !== "number")) return;
+      if (!k || k.length > FIELD_MAX || (keyOk && !keyOk.test(k))) return;
+      out[k] = capText(x, 2000); n++;
+    });
+    return out;
+  }
+  function count(v){ return (typeof v === "number" && isFinite(v) && v >= 0) ? Math.floor(v) : null; }
+  function stepBase(p){
+    return { label: capText(p.label, 600), field_type: capText(p.field_type, 20),
+             options: Array.isArray(p.options) ? p.options.slice(0, 40).map(function (o) { return capText(o, 200); }) : [] };
+  }
+  function laneFieldStep(env, iid, lane, p){
+    const field = serverField(iid, lane, lane === "consent" ? p.number : p.field);
+    if (!field) return null;
+    const base = stepBase(p);
+    if (lane === "consent") {
+      env.payload = { number: field, label: base.label, field_type: base.field_type, options: base.options, lane: lane };
+      const vs = capMap(p.values, FORM_CHANGED_QN); if (vs) env.payload.values = vs;
+      return env;
+    }
+    if (lane === "log") {
+      env.payload = { lane: lane, field: field, label: base.label, field_type: base.field_type, options: base.options };
+      if (typeof p.unit === "string" && p.unit) env.payload.unit = capText(p.unit, 20);
+      if (count(p.entry_number) !== null) env.payload.entry_number = count(p.entry_number);
+    } else if (lane === "survey") {
+      if (String(p.number) !== field) return null;          /* a survey's field IS its question number */
+      env.payload = { lane: lane, number: field, field: field, label: base.label, field_type: base.field_type, options: base.options };
+      if (count(p.respondent) !== null) env.payload.respondent = count(p.respondent);
+    } else {
+      const col = field.slice(field.indexOf("|") + 1);       /* a grid cell names its own column */
+      if (String(p.column_key) !== col) return null;
+      env.payload = { lane: lane, field: field, row_key: capText(p.row_key, FIELD_MAX), column_key: col, date: capText(p.date, 40),
+                      label: base.label, field_type: base.field_type, options: base.options };
+    }
+    const dv = capMap(p.draft_values, null); if (dv) env.payload.draft_values = dv;
+    return env;
+  }
+  function rowStepMsg(env, lane, p){
+    if ((lane !== "log" && lane !== "survey") || p.action !== "save_entry") return null;
+    const key = lane === "log" ? "entry_number" : "respondent";
+    env.payload = { lane: lane, action: "save_entry" };
+    if (count(p[key]) !== null) env.payload[key] = count(p[key]);
+    env.payload.ready = p.ready === true;
+    env.payload.blank = Array.isArray(p.blank) ? p.blank.slice(0, 60).map(function (b) { return capText(b, 300); }) : [];
+    const dv = capMap(p.draft_values, null); if (dv) env.payload.draft_values = dv;
+    return env;
+  }
   function walkMessage(m){
     if (!m || typeof m !== "object") return null;
     if (m.kind === "walk_step") {
+      if (m.step === "review") return reviewStepMsg(m);   /* (2.2.428) « THE REVIEW WALK »: no copy, ever (instance_id null) */
       const iid = walkIid(m.instance_id), p = (m.payload && typeof m.payload === "object") ? m.payload : {};
       if (!iid || WALK_STEPS.indexOf(m.step) === -1) return null;
+      const lane = stepLane(iid, p);                        /* (Phase 4) the copy's own lane, or nothing is sent */
+      if (!lane) return null;
       const env = { kind: "walk_step", step: m.step, instance_id: iid, speak: m.speak === true, say: capText(m.say, 900) };
+      // ⛔ (Phase 4) A CONSENT FORM IS NEVER FILLED IN BY VOICE: speak is false whatever the step said — Voice on and "again"
+      //   included. Forced here as well as on the page.
+      if (lane === "consent") env.speak = false;
       // (2.2.426, phase 3) the step's own help line (say_help: what works on THIS step, the server's words) — only when the
       // page has one — and, on the page's reply to an op it refused at a signature box, which op ("next" | "skip")
       if (typeof m.say_help === "string" && m.say_help.trim()) env.say_help = capText(m.say_help, 600);
       if (m.refused === "next" || m.refused === "skip") env.refused = m.refused;
+      // (Phase 4) the page's reply to a spoken "save this entry" it could not carry out (the row step again, its line)
+      if (m.refused === "save_entry" && m.step === "row") env.refused = m.refused;
+      if (m.step === "row") return rowStepMsg(env, lane, p);
+      if (m.step === "field" && lane !== "qa") return laneFieldStep(env, iid, lane, p);
       if (m.step === "field") {
         const num = String(p.number === undefined || p.number === null ? "" : p.number).trim();
         if (!FORM_CHANGED_QN.test(num)) return null;
         env.payload = { number: num, label: capText(p.label, 600), field_type: capText(p.field_type, 20),
                         options: Array.isArray(p.options) ? p.options.slice(0, 40).map(function (o) { return capText(o, 200); }) : [],
                         lane: "qa" };
+        const vs = capMap(p.values, FORM_CHANGED_QN); if (vs) env.payload.values = vs;   /* (Phase 4, §7) */
         return env;
       }
       if (WALK_ACTIONS.indexOf(p.action) === -1) return null;
@@ -4611,6 +4867,10 @@ window.teckelShell = (function () {
       if (p.action === "sign" && typeof p.slot === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(p.slot)) {
         env.payload.slot = p.slot; env.payload.label = capText(p.label, 300); env.payload.signed = p.signed === true;
       }
+      // (Phase 4) the action step names its lane — only when the page gave one (the walk panel's steps are unchanged) — and a
+      //   question form's or a consent form's carries its stored answers (§7)
+      if (p.lane !== undefined) env.payload.lane = lane;
+      if (lane === "qa" || lane === "consent") { const vs = capMap(p.values, FORM_CHANGED_QN); if (vs) env.payload.values = vs; }
       return env;
     }
     if (m.kind === "walk_control" && WALK_PAGE_OPS.indexOf(m.op) !== -1) return { kind: "walk_control", op: m.op };
@@ -4629,14 +4889,118 @@ window.teckelShell = (function () {
   let walkListener = null;
   Object.defineProperty(window, "teckelWalkListen", { configurable: false, enumerable: false, writable: false,
     value: function (fn) { if (typeof fn !== "function" || walkListener) return false; walkListener = fn; return true; } });
+  /* (2.2.428, phase 5) « THE REVIEW WALK »: a SECOND listener slot, the review panel's — registered once, with the panel's
+     own "is the walk running" test. While it runs it takes EVERY walk_control frame first (close_form included: it closes
+     the PANEL then, never the form); kev's walk_result frames are never the review's (kev never writes during a review
+     step) and go to the walk listener as always. window.teckelReviewWalking() is that test, for the live form, which
+     holds its own steps while the review walk runs. */
+  let reviewListener = null, reviewActive = null;
+  Object.defineProperty(window, "teckelReviewWalkListen", { configurable: false, enumerable: false, writable: false,
+    value: function (fn, isActive) {
+      if (typeof fn !== "function" || typeof isActive !== "function" || reviewListener) return false;
+      reviewListener = fn; reviewActive = isActive; return true;
+    } });
+  function reviewOn(){ if (!reviewActive) return false; try { return reviewActive() === true; } catch(e) { return false; } }
+  Object.defineProperty(window, "teckelReviewWalking", { configurable: false, enumerable: false, writable: false,
+    value: function () { return reviewOn(); } });
+  function reviewTakes(m){
+    if (!reviewListener || !reviewOn()) return false;
+    try { reviewListener(Object.freeze(walkCopy(m))); } catch(e) { log("review walk frame failed: " + e.message); }
+    return true;
+  }
   function walkFrame(m){
     if (!walkListener) { log("walk frame ignored: no walk on this page"); return; }
+    const out = walkCopy(m);
+    try { walkListener(Object.freeze(out)); } catch(e) { log("walk frame failed: " + e.message); }
+  }
+  // kev's frame as the page's listeners get it: plain copies of the named fields only
+  function walkCopy(m){
     const out = { kind: m.kind };
     ["number", "ok", "value_saved", "reason", "floor", "op", "instance_id"].forEach(function (k) {
       if (m[k] !== undefined && m[k] !== null && typeof m[k] !== "object") out[k] = m[k];
     });
-    try { walkListener(Object.freeze(out)); } catch(e) { log("walk frame failed: " + e.message); }
+    // (Phase 4) a new lane's result names its field and lane, exactly as its step gave them; row / entry_count when kev touched
+    //   the entry as a whole (the page then re-reads the server — never the number); (D9, kev 1.133.0) set_aside: the
+    //   server set THAT question aside after repeated refusals (the live form checks it is the step at the cursor)
+    ["field", "lane", "row", "entry_count", "set_aside"].forEach(function (k) {
+      if (m[k] !== undefined && m[k] !== null && typeof m[k] !== "object") out[k] = typeof m[k] === "string" ? m[k].slice(0, FIELD_MAX) : m[k];
+    });
+    // (2.2.428, phase 5) « THE REVIEW WALK »: the review step an op answers — the page's own id shape only, else none (the
+    //   review walk then treats the op as stale: nothing goes to the server)
+    if (typeof m.step_id === "string" && RV_STEP_OK.test(m.step_id)) out.step_id = m.step_id;
+    return out;
   }
+
+  /* ══ THE CONVERSATION (Phase 4, 2.2.427; agreed with Yusuf CC, 25 Oct 2026 — the brief's §2 and §7) ════════════════════
+     kev registers the conversation \x3c-> browser link at socket accept (off the SIGNED voice token's browser session), then
+     sends {kind:"conversation", conversation_id} — ONLY when a browser session was verified. With it, a value typed into a
+     log entry or a survey respondent goes into the SAME open entry (the conversation's draft) the spoken values use, through
+     the server's doors that take it (CONV_DOORS), each verifying it against that link on every call.
+     ⛔ THE CONVERSATION ID IS WRITE ACCESS, together with the browser session — so it is kept as the pass is: IN THIS CLOSURE
+       AND NOWHERE ELSE. Never a URL, the browser's storage (local or session), a log line (the console or the debug drawer), the DOM,
+       window, or any message but the args of those doors (as conversation_id, which portalAction adds). The live form holds
+       only a HANDLE ("k1", "k2", …): window.teckelConversation — now(): the open conversation's handle, or null; bind(h):
+       keep that conversation's id for an entry begun in it (§2: "An entry stays bound to the cid it started with, even
+       after the socket closes: the link persists, so the page can still finish and commit it"); release(h): let it go (the
+       entry saved, or the live form put away); known(h): can h still be sent.
+     · FORGOTTEN: the open one when its socket closes and when a new conversation starts; every one, kept or not, at sign-out.
+     · NO FRAME (kev without a verified browser session, or a kev before 1.126.0): no handle, and the live form keeps today's
+       typing — the boxes, and Save entry saves the whole entry (§2 "No conversation"). Never an error.
+     · ONE PER SOCKET: a second, different id on the same socket is refused (logged without it). */
+  const CONV_ID_OK = /^conv_[A-Za-z0-9]{8,64}$/;   /* the server's own shape (_CONV_ID_RE) */
+  const CONV_DOORS = Object.freeze(["form_fields", "entry_draft", "save_log_draft", "save_survey_answers", "save_grid_cells",
+                                    "commit_entry"]);
+  const CONV_KEEP_MAX = 4;
+  let convNow = null, convSeq = 0;
+  const convKept = new Map();              /* handle -> id, for an entry bound to it */
+  function convEvent(){ try { window.dispatchEvent(new Event("teckel-conversation")); } catch(e) {} }
+  function onConversation(m){
+    const cid = (typeof m.conversation_id === "string") ? m.conversation_id.trim() : "";
+    if (!isOpen() || !CONV_ID_OK.test(cid)) { log("conversation frame refused: not a conversation id"); return; }
+    if (convNow && convNow.sock === sock) {
+      if (convNow.cid !== cid) log("conversation frame refused: this conversation already has one");
+      return;
+    }
+    convNow = { h: "k" + (++convSeq), cid: cid, sock: sock };
+    log("conversation: joined (typed entries can go into it)");
+    convEvent();
+  }
+  function forgetConversation(all){
+    const had = !!convNow || (all === true && convKept.size > 0);
+    convNow = null;
+    if (all === true) convKept.clear();
+    if (had) convEvent();
+  }
+  function convOpen(){ return !!(convNow && convNow.sock === sock && isOpen()); }
+  function convCid(h){
+    if (typeof h !== "string" || !h) return null;
+    if (convOpen() && convNow.h === h) return convNow.cid;
+    return convKept.has(h) ? convKept.get(h) : null;
+  }
+  // portalAction's args: the id added — from the handle — to the doors that take it; every other action carries none. null:
+  // the handle's conversation is gone, so nothing is sent.
+  function convArgs(a, args){
+    const out = {};
+    Object.keys(args).forEach(function (k) { if (k !== "conversation" && k !== "conversation_id") out[k] = args[k]; });
+    if (args.conversation === undefined || CONV_DOORS.indexOf(a) === -1) return out;
+    const cid = convCid(args.conversation);
+    if (!cid) return null;
+    out.conversation_id = cid;
+    return out;
+  }
+  const CONVERSATION_API = Object.freeze({
+    now: function () { return convOpen() ? convNow.h : null; },
+    bind: function (h) {
+      if (!convOpen() || convNow.h !== h) return false;
+      convKept.delete(h); convKept.set(h, convNow.cid);
+      while (convKept.size > CONV_KEEP_MAX) convKept.delete(convKept.keys().next().value);
+      return true;
+    },
+    release: function (h) { return convKept.delete(h); },
+    known: function (h) { return !!convCid(h); }
+  });
+  Object.defineProperty(window, "teckelConversation", { configurable: false, enumerable: false, writable: false,
+    value: CONVERSATION_API });
 
   /* ══ A NUMBERED LIST ON SCREEN (contract §7; Yusuf, 21 Oct 2026: "Where are the 65? I don't see them") ══════════
      kev (1.67.0) sends {kind:"display_numbered_list", title, list_token, items} when it reads a numbered list:
@@ -4709,10 +5073,23 @@ window.teckelShell = (function () {
      · Benedict changed the screen: as for his display tools, nothing is echoed to kev and the page forgets its own form.
      · Inert until kev sends it. Nothing in storage. */
   const DIR_BANDS = Object.freeze(["red", "yellow", "pink", "amber", "green", "grey"]);
-  const DIR_ORIGIN = "https://teckel-io.github.io";
-  const DIR_URL = /^https:\\/\\/teckel-io\\.github\\.io\\/[^?#]*directory\\.html\\?token=[^\\s]+$/;
+  /* 25 Oct 2026 (F-HA; Yusuf: "build the fix and republish the 17 pages"): which origins this page trusts. The pages moved from
+     teckel-io.github.io to benedict.teckel.io, and a frame opened from an old-host link follows the redirect and ENDS on the new
+     host, so a check pinned to one host refused it (the directory never said it was ready; a traffic-light click never reached
+     Benedict). Every origin and link check accepts this page's own origin and both teckel hosts — never one host alone. Shared
+     with the other blocks as window.teckelPageLink, which they call when a link arrives (never while loading). */
+  const OK_ORIGINS = Object.freeze([location.origin, "https://teckel-io.github.io", "https://benedict.teckel.io"]);
+  function okOrigin(o){ return OK_ORIGINS.indexOf(o) !== -1; }
+  /* a teckel page link: one of OK_ORIGINS, then a path + query that pathRe matches (pathRe starts at the "/") */
+  function teckelPageLink(url, pathRe){
+    if (typeof url !== "string" || !url) return false;
+    return OK_ORIGINS.some((o) => url.indexOf(o + "/") === 0 && pathRe.test(url.slice(o.length)));
+  }
+  window.teckelPageLink = teckelPageLink;
+  const DIR_URL = { test: (u) => teckelPageLink(u, /^\\/[^?#]*directory\\.html\\?token=[^\\s]+$/) };
   const DIR_READY_MS = 5000;
   let dirReadyDoc = null;                /* the directory document that last said it is ready */
+  let dirReadyOrigin = null;             /* the origin it said so from: messages to it go there and nowhere else */
   let dirWait = null;                    /* {band, timer}: a band asked for while the directory was still loading */
   let dirSeq = 0;                        /* a later show_band (or a sign-out) supersedes a fresh open still on its way */
   function dirFrame(){ const f = $("form-viewer"); return (f && !f.hasAttribute("srcdoc")) ? f : null; }
@@ -4720,18 +5097,19 @@ window.teckelShell = (function () {
   function dirDoc(){ try { const f = dirFrame(); return f ? f.contentDocument : null; } catch(e) { return null; } }
   function dirReady(){ const d = dirDoc(); return dirOnScreen() && !!d && d === dirReadyDoc; }
   function tellDirectory(band){
-    try { const f = dirFrame(); f.contentWindow.postMessage({ type: "teckel-show-band", band: band }, DIR_ORIGIN); return true; }
+    try { const f = dirFrame(); f.contentWindow.postMessage({ type: "teckel-show-band", band: band }, dirReadyOrigin || location.origin); return true; }
     catch(e) { log("show_band could not reach the directory: " + e.message); return false; }
   }
   function dirWaitClear(){ if (dirWait) { clearTimeout(dirWait.timer); dirWait = null; } }
-  function dirForget(){ dirWaitClear(); dirSeq++; dirReadyDoc = null; }   /* a new conversation, a sign-out */
+  function dirForget(){ dirWaitClear(); dirSeq++; dirReadyDoc = null; dirReadyOrigin = null; }   /* a new conversation, a sign-out */
   window.addEventListener("message", function (e) {
     try {
       const f = dirFrame();
-      if (!f || e.source !== f.contentWindow || e.origin !== DIR_ORIGIN) return;
+      if (!f || e.source !== f.contentWindow || !okOrigin(e.origin)) return;
       const d = e.data || {};
       if (!d || d.type !== "teckel-directory-ready") return;
       dirReadyDoc = (d.ok === true) ? dirDoc() : null;
+      dirReadyOrigin = dirReadyDoc ? e.origin : null;
       if (dirWait) {
         const band = dirWait.band; dirWaitClear();
         if (dirReadyDoc) tellDirectory(band);
@@ -4778,6 +5156,9 @@ window.teckelShell = (function () {
           at:"\x3cISO UTC>"} — ONCE per conversation;
        2 {kind:"review_panel", shown:\x3cbool>, open_items:\x3cint>} — shown:true ONLY while the review panel is open on
           screen with N > 0 open items, N being the count the panel itself shows; otherwise shown:false, open_items:0;
+          (2.2.428, phase 5) plus walks:true while the page walks the panel by voice (« THE REVIEW WALK »; absent
+          otherwise). A panel that opens itself at sign-in counts its first item as part of its first load, so the
+          opening run already says walks:true when the server's reply carried \`walk\`;
        3 the remembered screen_form, if any (« THE FORM ON SCREEN »), unchanged.
        4 (25 Oct 2026, « MUTE ») {kind:"mic_state", muted:\x3cbool>} — the Mute state as it is at that moment (false unless
           the user tapped Mute before this run), so kev never takes the page as unmuted when it is not.
@@ -4798,7 +5179,7 @@ window.teckelShell = (function () {
   let hello = null;                      /* the conversation still waiting to say client_ready: {sock, t0, mic, timer} */
   let helloSent = false;                 /* client_ready has gone out in the conversation now open */
   let reviewSentKey = null;              /* what the last review_panel said in this conversation */
-  const review = { settled: true, shown: false, open_items: 0 };   /* what the panel reports; nothing of an item */
+  const review = { settled: true, shown: false, open_items: 0, walks: false };   /* what the panel reports; nothing of an item */
   function audioOutRunning(){ return !!(outCtx && outCtx.state === "running"); }
   // (phase 1, tcc's run 42) capturing = a stream, its worklet AND a context that runs: a suspended context hears nothing
   function micCapturing(){ return !!(micStream && micNode && micCtx && micCtx.state === "running"); }
@@ -4830,16 +5211,21 @@ window.teckelShell = (function () {
     try { const c = window.teckelCore, b = c && typeof c.build === "string" ? c.build : ""; return /^[0-9a-f]{12}$/.test(b) ? b : ""; }
     catch(e) { return ""; }
   }
+  // (2.2.428, phase 5) « THE REVIEW WALK »: walks:true ONLY while the page walks the panel by voice (kev's greeting then
+  //   does not describe the items: kev owns the one lead line, the page's review steps the rest); absent otherwise, so a
+  //   page whose server sends no \`walk\` says exactly what it said before
   function reviewPanelMsg(){
     const on = review.shown && review.open_items > 0;
-    return { kind: "review_panel", shown: on, open_items: on ? review.open_items : 0 };
+    const m = { kind: "review_panel", shown: on, open_items: on ? review.open_items : 0 };
+    if (on && review.walks) m.walks = true;
+    return m;
   }
   function sendReviewPanel(always){
     if (!helloSent || !isOpen()) return false;
-    const m = reviewPanelMsg(), key = m.shown + ":" + m.open_items;
+    const m = reviewPanelMsg(), key = m.shown + ":" + m.open_items + ":" + (m.walks === true);
     if (!always && key === reviewSentKey) return false;
     const ok = sendJSON(m);
-    if (ok) { reviewSentKey = key; log("review_panel " + (m.shown ? "shown, " + m.open_items + " open" : "not shown")); }
+    if (ok) { reviewSentKey = key; log("review_panel " + (m.shown ? "shown, " + m.open_items + " open" + (m.walks ? ", walked" : "") : "not shown")); }
     return ok;
   }
   function stopHello(){ if (hello) { clearInterval(hello.timer); hello = null; } }
@@ -4886,20 +5272,71 @@ window.teckelShell = (function () {
         review.settled = s.pending !== true;
         review.shown = s.shown === true && n > 0;
         review.open_items = review.shown ? n : 0;
+        review.walks = review.shown && s.walks === true;   /* (2.2.428) the page walks the panel */
         if (hello) tryHello(); else sendReviewPanel(false);
       } catch(e) { log("review_panel failed: " + e.message); }
     } });
 
-  function sendTyped(){
-    const box = $("lv-type");
+  function sendTyped(){ sendTypedFrom($("lv-type"), showMsg); }
+  // (2.2.428) THE one typed send — the voice panel's box and the review panel's copy alike: the same {kind:"user_text"}, the
+  //   same transcript line; say writes the box's own line (the refusal, or nothing)
+  function sendTypedFrom(box, say){
     const text = String(box.value || "").replace(/\\s+/g, " ").trim().slice(0, TYPED_MAX);
     if (!text) return;
     if (!sendJSON({ kind: "user_text", text: text })) {
-      showMsg("That message was not sent — the conversation is not connected. Start a conversation first.");
+      say("That message was not sent — the conversation is not connected. Start a conversation first.");
       return;
     }
-    box.value = ""; showMsg(""); addTyped(text); activity();
+    box.value = ""; say(""); addTyped(text); activity();
   }
+
+  /* ══ THE PANEL'S CONVERSATION CONTROLS (25 Oct 2026, phase 5; Yusuf: "ADD MUTE TO THE PANEL") ════════════════════════
+     The review panel is a MODAL dialog: while it is up the voice panel is out of reach. So it carries COPIES of the
+     conversation's own controls, and they are the SAME controls, never a second state:
+       · Mute — [data-lv-mute]: toggleMute, the one state; one {kind:"mic_state"} per change; it reads Mute / Unmute with
+         aria-pressed as every copy does, and the panel's own copy of the muted line ([data-lv-muted]) shows with the voice
+         panel's;
+       · a typing box — form[data-lv-type-form] with its [data-lv-type] box: the one typed send, {kind:"user_text", text}
+         exactly as the voice panel's box sends it, the box cleared, the line in the transcript. ⛔ The page decides NOTHING
+         from the text: a typed "yes please" binds where it ARRIVES (kev's side; the brief's §9);
+       · End — [data-lv-end]: endConversation, the End button's own function.
+     All three only while a conversation is open (the row [data-lv-conv-row] is hidden otherwise), greyed as the voice
+     panel's are. The panel's markup comes after this script, so its script asks for them to be wired once its markup is
+     in: window.teckelWireConversationControls(root) — each element once, however often it is asked. */
+  const convWired = new WeakSet();
+  function syncConvCopies(open, gate){
+    try {
+      document.querySelectorAll("[data-lv-conv-row]").forEach(function (r) { r.hidden = !open; });
+      document.querySelectorAll("[data-lv-type], [data-lv-type-ctl]").forEach(function (e) { e.disabled = !open || !gate; });
+      document.querySelectorAll("[data-lv-end]").forEach(function (e) { e.disabled = !open || endingByUser; });
+    } catch(e) {}
+  }
+  Object.defineProperty(window, "teckelWireConversationControls", { configurable: false, enumerable: false, writable: false,
+    value: function (root) {
+      try {
+        if (!root || root.nodeType !== 1) return false;
+        root.querySelectorAll("[data-lv-mute]").forEach(function (b) {
+          if (b.id === "lv-mute" || convWired.has(b)) return;
+          convWired.add(b); b.addEventListener("click", toggleMute);
+        });
+        root.querySelectorAll("form[data-lv-type-form]").forEach(function (f) {
+          const box = f.querySelector("[data-lv-type]");
+          if (!box || convWired.has(f)) return;
+          const note = f.parentNode ? f.parentNode.querySelector("[data-lv-type-msg]") : null;
+          convWired.add(f);
+          f.addEventListener("submit", function (e) {
+            e.preventDefault();
+            sendTypedFrom(box, function (t) { if (note) note.textContent = t || ""; });
+          });
+        });
+        root.querySelectorAll("[data-lv-end]").forEach(function (b) {
+          if (convWired.has(b)) return;
+          convWired.add(b); b.addEventListener("click", endConversation);
+        });
+        setButtons(); syncMuteControls();
+        return true;
+      } catch(e) { log("the panel's conversation controls were not wired: " + e.message); return false; }
+    } });
 
   /* ── audio out ───────────────────────────────────────────────────────────────────────── */
   function ensureOut(){
@@ -5162,6 +5599,9 @@ window.teckelShell = (function () {
     });
     const line = $("lv-muted");
     if (line) { line.textContent = MUTE_SAYS; line.hidden = !(muted && open); }
+    // (2.2.428) the review panel's copy of the line: the panel is modal, so the voice panel's is out of sight behind it
+    try { document.querySelectorAll("[data-lv-muted]").forEach(function (l) { l.textContent = MUTE_SAYS; l.hidden = !(muted && open); }); }
+    catch(e) {}
   }
   function sendMicState(always){
     if (!helloSent || !isOpen()) return false;    /* before client_ready: the opening run carries it */
@@ -5795,6 +6235,13 @@ window.teckelShell = (function () {
                message: "Please enter your access code first." };
     }
     const sent = pass, epoch = signOutEpoch;
+    // (Phase 4) « THE CONVERSATION »: the live form's handle becomes conversation_id in the args of the doors that take it,
+    //   and nowhere else; a handle whose conversation is gone sends nothing
+    const sendArgs = convArgs(a, (args && typeof args === "object" && !Array.isArray(args)) ? args : {});
+    if (sendArgs === null) {
+      return { success: false, action: a, error_code: "NO_CONVERSATION",
+               message: "Typed answers go into the entry once Benedict is connected; until then, Save entry saves the whole entry." };
+    }
     // Signed out while this was on its way: its answer must not reach a signed-out page (« SIGN-OUT »).
     const signedOut = function () {
       return { success: false, action: a, error_code: "NO_PASS", message: "Please enter your access code first." };
@@ -5804,8 +6251,7 @@ window.teckelShell = (function () {
       r = await fetch(MCP + "portal_action", {
         method: "POST", cache: "no-store", credentials: "omit",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pass: sent, action: a,
-                               args: (args && typeof args === "object" && !Array.isArray(args)) ? args : {} })
+        body: JSON.stringify({ pass: sent, action: a, args: sendArgs })
       });
     } catch(e) {
       if (epoch !== signOutEpoch) return signedOut();
@@ -5951,6 +6397,7 @@ window.teckelShell = (function () {
     signedOutNote = SIGNED_OUT_SAY[why] || SIGNED_OUT_SAY.user;
     signOutAfterCall = ""; startAfterSignIn = false;
     forgetScreenForm("signed_out");            /* kev hears it while the socket is still open; the page forgets */
+    forgetConversation(true);                  /* (Phase 4) every conversation id, kept or not */
     if (sock) { droppingFrames = true; endConversation(); }               /* a clean close, as End does */
     dropPass();                                /* the pass leaves memory, with its renewal and expiry timers */
     if (!alreadyReplaced) replaceBsid();       /* this browser is no longer verified; the old id is abandoned */
@@ -6000,6 +6447,7 @@ window.teckelShell = (function () {
         ElevenLabs call event (viewer, polls, Back target, debounce maps, self-fill card) —
         except a form the user opened with the page's own View (« THE FORM ON SCREEN ») ── */
   function newConversation(){
+    forgetConversation(false);             /* (Phase 4) the new conversation sends its own */
     const keep = keepFormAtStart();
     try { if (typeof window.teckelNewConversation === "function") window.teckelNewConversation({ keepPageForm: keep }); }
     catch(e) { log("panel reset failed: " + e.message); }
@@ -6073,6 +6521,8 @@ window.teckelShell = (function () {
         else if (m.kind === "client_tool") runClientTool(m);
         else if (m.kind === "display_numbered_list") { activity(); showNumberedList(m); }   /* contract §7 */
         else if (m.kind === "show_band") { activity(); showBand(m); }   /* (phase 2) « SHOW A BAND » */
+        else if (m.kind === "conversation") { activity(); onConversation(m); }   /* (Phase 4) « THE CONVERSATION » */
+        else if (m.kind === "walk_control" && reviewTakes(m)) activity();   /* (2.2.428) « THE REVIEW WALK » takes every op while it runs */
         else if (m.kind === "walk_control" && m.op === "close_form") { activity(); closeForm(); }   /* « CLOSE THE FORM » */
         else if (m.kind === "walk_result" || m.kind === "walk_control") { activity(); walkFrame(m); }   /* (2.2.419) */
         else if (m.kind === "session_end") { activity(); sessionEnd(m); }   /* « END THE CONVERSATION » */
@@ -6083,6 +6533,7 @@ window.teckelShell = (function () {
       const wasOpen = everOpened, byUser = endingByUser;
       sock = null; connecting = false; endingByUser = false; muted = false;
       stopHello(); helloSent = false; reviewSentKey = null;   /* the next conversation says client_ready afresh */
+      forgetConversation(false);             /* (Phase 4) its id goes with it; an entry bound to it keeps its own */
       endReset();                            /* « END THE CONVERSATION »: a pending end goes with the session */
       clearTimeout(muteTimer); muteTimer = null;
       live(false); stopMic(); flushPlayback(); holdReset(); volumeLine(false); showStatus({ text: "" }); applyMute(); clearList();
@@ -6326,6 +6777,10 @@ window.teckelShell = (function () {
          items (N = the "N open" it shows), and whether its first load after a sign-in has settled, are reported to
          window.teckelReviewPanel (in the voice transport), which tells the conversation {kind:"review_panel"} so
          Benedict's greeting mentions the panel only when it is really on screen. Never an item's content.
+       · (25 Oct 2026, PHASE 5 — Yusuf: "we must get these 5 phases built and deployed", "YES GO WITH ALL"; the brief
+         agent_docs/campaign_2026-09-25/round4/PHASE5_BUILD_BRIEF_2026-10-25.md §2, §4 and §9; server 2.2.428) THE REVIEW
+         WALK: the panel's items walked by voice, one {kind:"walk_step", step:"review"} per showing. See « THE REVIEW WALK ».
+         Inert until a review_next reply carries \`walk\`: without it the panel is exactly what it was.
      ⚠ Every request goes through window.teckelPortal.action, which adds the pass; this script never
        holds it. Every server string is written as TEXT, never as markup.
      ⚠ "Accepted", "Rejected" and "Sent" are said ONLY on the server's own confirmation (success, and
@@ -6335,6 +6790,7 @@ window.teckelShell = (function () {
 \x3cdialog id="pp-review" class="pp-dialog" aria-labelledby="pp-review-h" aria-describedby="pp-review-intro">
   \x3cdiv class="pp-dlg-head">
     \x3ch2 id="pp-review-h" class="pp-dlg-title">Please check these answers\x3c/h2>
+    \x3cbutton type="button" id="pp-rv-voice" class="lv-btn pp-small" aria-pressed="true" hidden>Voice on\x3c/button>
     \x3cbutton type="button" id="pp-review-close" class="lv-btn pp-small">Close\x3c/button>
   \x3c/div>
   \x3cp id="pp-review-intro" class="pp-dlg-sub">After each conversation, teckel double-checks what was
@@ -6360,8 +6816,26 @@ window.teckelShell = (function () {
     \x3cbutton type="button" id="pp-rv-reject" class="lv-btn">Reject\x3c/button>
     \x3cbutton type="button" id="pp-rv-later" class="lv-btn">Later\x3c/button>
   \x3c/div>
+  \x3cp id="pp-rv-hint" class="pp-hint" hidden>Say “yes please”, “no thanks” or “skip this one, please”.\x3c/p>
+  \x3cp id="pp-rv-hint2" class="pp-hint" hidden>You can also say “go back, please” or “say that again, please”.\x3c/p>
   \x3cp id="pp-rv-done" class="pp-done" hidden>\x3c/p>
   \x3cdiv id="pp-rv-result" class="pp-result" role="status" aria-live="polite">\x3c/div>
+  \x3c!-- (25 Oct 2026, Yusuf: "ADD MUTE TO THE PANEL") the panel is modal, so it carries the conversation's own Mute, typing box
+       and End: the SAME controls as the voice panel's (the transport wires them), shown only while a conversation is open -->
+  \x3cdiv id="pp-rv-conv" class="pp-rv-conv" data-lv-conv-row hidden>
+    \x3cdiv class="pp-rv-conv-btns">
+      \x3cbutton type="button" id="pp-rv-mute" class="lv-btn pp-small" data-lv-mute aria-pressed="false" hidden>Mute\x3c/button>
+      \x3cbutton type="button" id="pp-rv-end" class="lv-btn pp-small" data-lv-end disabled>End conversation\x3c/button>
+    \x3c/div>
+    \x3cp class="lv-muted" id="pp-rv-muted" data-lv-muted role="status" aria-live="polite" hidden>Muted — Benedict can't hear you\x3c/p>
+    \x3cform class="lv-type" id="pp-rv-type-form" data-lv-type-form autocomplete="off">
+      \x3clabel for="pp-rv-type" class="sr-only">Type a message to Benedict\x3c/label>
+      \x3cinput type="text" id="pp-rv-type" class="lv-input" data-lv-type maxlength="400" placeholder="Type to Benedict…"
+             enterkeyhint="send" spellcheck="true" disabled>
+      \x3cbutton type="submit" id="pp-rv-send" class="lv-btn pp-small" data-lv-type-ctl disabled>Send\x3c/button>
+    \x3c/form>
+    \x3cp id="pp-rv-type-msg" class="pp-hint" data-lv-type-msg role="status" aria-live="polite">\x3c/p>
+  \x3c/div>
 \x3c/dialog>
 
 \x3cdialog id="pp-submit" class="pp-dialog" aria-labelledby="pp-sub-h">
@@ -6400,7 +6874,7 @@ window.teckelShell = (function () {
   const $ = (id) => document.getElementById(id);
   if (!P || !$("pp-forms") || !$("pp-review") || !$("pp-submit")) return;   /* no door on this page */
   const LAPSE = P.lapseCodes;
-  const SIGN_PAGE = /^https:\\/\\/teckel-io\\.github\\.io\\/[^?#\\s]*sign\\.html\\?\\S+$/;
+  const SIGN_PAGE = { test: (u) => typeof window.teckelPageLink === "function" && window.teckelPageLink(u, /^\\/[^?#\\s]*sign\\.html\\?\\S+$/) };   /* F-HA: any trusted origin */
 
   function codeOf(r){ return String((r && r.error_code) || "").trim().toUpperCase(); }
   // The door has already greyed the page and raised the code row (or gone back to voice only):
@@ -6434,7 +6908,8 @@ window.teckelShell = (function () {
 
   /* ══ THE REVIEW PANEL ══════════════════════════════════════════════════════════════════ */
   const rv = { dlg: $("pp-review"), badge: $("pp-review-badge"), n: $("pp-review-n"), count: $("pp-review-count"),
-               item: $("pp-rv-item"), actions: $("pp-rv-actions"), done: $("pp-rv-done"), result: $("pp-rv-result") };
+               item: $("pp-rv-item"), actions: $("pp-rv-actions"), done: $("pp-rv-done"), result: $("pp-rv-result"),
+               voice: $("pp-rv-voice"), hint: $("pp-rv-hint"), hint2: $("pp-rv-hint2") };
   const KIND = {
     missing: "An answer that may not have been recorded",
     fix: "An answer that may have been recorded wrongly",
@@ -6443,14 +6918,23 @@ window.teckelShell = (function () {
   };
   let current = null, laterIds = new Set(), rvBusy = false, openCount = 0;
   let rvFirstLoad = false;                   /* the first load after a sign-in is still deciding whether the panel opens */
+  // (2.2.428) a panel that opened itself at sign-in counts its FIRST ITEM as part of that first load, so the conversation's
+  //   opening run already knows whether the page walks it (review_panel's walks)
+  let rvFirstItem = false;
+  let prevId = null;                         /* (2.2.428) the item on screen before this one, in this opening ("go back") */
+  /* (2.2.428) « THE REVIEW WALK »'s state — see there. curWalk is the server's \`walk\` for the item on screen, the server's
+     shown stamp in it: ⛔ MEMORY ONLY — never the DOM, the browser's storage, the console or a message to kev; it goes
+     back to the server alone, in review_resolve's args. */
+  let curWalk = null, rw = null, rwSeq = 0, rwConv = 0, rwHeard = false, rwWas = false;
 
   // (22 Oct 2026, Yusuf: "Yes, tell kev") What the panel shows, for the conversation (window.teckelReviewPanel, in the
   // voice transport, which tells kev {kind:"review_panel"}): open on screen or not, and the count it shows ("N open").
   // Only those two facts and whether the first load has settled — never an item. A hint; never throws.
+  // (2.2.428) …and walks: whether the page walks the panel by voice (« THE REVIEW WALK »).
   function reportPanel(){
     try {
       if (typeof window.teckelReviewPanel === "function")
-        window.teckelReviewPanel({ pending: rvFirstLoad, shown: !!rv.dlg.open && openCount > 0,
+        window.teckelReviewPanel({ walks: rwOn(), pending: rvFirstLoad || rvFirstItem, shown: !!rv.dlg.open && openCount > 0,
                                    open_items: rv.dlg.open ? openCount : 0 });
     } catch(e) {}
   }
@@ -6471,6 +6955,7 @@ window.teckelShell = (function () {
     ["pp-rv-accept", "pp-rv-reject", "pp-rv-later"].forEach(function (id) { const b = $(id); if (b) b.disabled = on; });
   }
   function renderItem(s){
+    if (current && String(current.suggestion_id) !== String(s.suggestion_id)) prevId = String(current.suggestion_id);
     current = s;
     rv.done.hidden = true; rv.item.hidden = false; rv.actions.hidden = false;
     const isAction = s.kind === "missed_action";
@@ -6487,41 +6972,54 @@ window.teckelShell = (function () {
     setRvBusy(false);
   }
   function showDone(text){
-    current = null;
+    current = null; curWalk = null;
     rv.item.hidden = true; rv.actions.hidden = true; rv.done.hidden = false;
     txt(rv.done, text);
   }
-  async function nextItem(){
+  // after: (2.2.428) the decision just made, for the walk's next step — {prefix: the server's say, outcome}; sid: show THAT
+  //   item (the server's review_next {suggestion_id}: "go back", and an item that changed since it was shown)
+  async function nextItem(after, sid){
     setRvBusy(true);
-    const r = await P.action("review_next", {});
+    const r = await P.action("review_next", sid ? { suggestion_id: sid } : {});
     if (lapsed(r)) return;
     if (!r || !r.success) {
       setRvBusy(false);
       if (!current) showDone("");
       txt(rv.result, msgOf(r, "The next answer to check could not be loaded just now. Close this and try again from the button at the top of the page."));
+      rwEnd("off");                              /* (2.2.428) no next item from the server: the walk cannot go on */
       return;
     }
-    const s = r.suggestion;
+    const s = r.suggestion, w = walkOf(r);
     if (!s || typeof s !== "object" || !shown(s.suggestion_id)) {
+      rwDone(after, w);
       showDone(laterIds.size ? "That is everything for now. The ones you left for later stay in the list."
                              : "Nothing left to check. Thank you.");
       return;
     }
     // "Later" puts an item after the others; once the list comes round to one again, stop.
     if (laterIds.has(String(s.suggestion_id))) {
+      rwDone(after, null);
       showDone("That is everything for now. The ones you left for later stay in the list.");
       return;
     }
     renderItem(s);
+    curWalk = (w && w.shown) ? w : null;
+    rwItem(after);
   }
-  async function openReview(){
+  // by: "badge" (the "N open" badge in the header); anything else is the panel opening itself at sign-in
+  async function openReview(by){
     if (!P.held()) return;
     if (rv.dlg.open) return;
-    laterIds = new Set(); current = null; txt(rv.result, "");
+    laterIds = new Set(); current = null; curWalk = null; prevId = null; txt(rv.result, "");
+    // (2.2.428, brief Q2) this opening's walk: Voice ON when the panel opens itself at sign-in ("it starts with the
+    //   review"), silent when it is opened from the badge. Inert until a review_next reply carries \`walk\`.
+    rw = { voice: by !== "badge", ended: false, of: openCount, order: new Map(), nextN: 0, step: null, sentConv: 0 };
+    rvFirstItem = by !== "badge";
     rv.item.hidden = true; rv.actions.hidden = true; rv.done.hidden = false; txt(rv.done, "Loading…");
     openDlg(rv.dlg);
     reportPanel();                               /* on screen now, with its "N open" */
-    await nextItem();
+    try { await nextItem(); }
+    finally { if (rvFirstItem) { rvFirstItem = false; reportPanel(); } }
   }
   function readBack(rb){
     if (rb === undefined || rb === null) return "";
@@ -6562,25 +7060,58 @@ window.teckelShell = (function () {
                         : ("Accepted. You will find " + name + " in My forms."));
       return;
     }
+    // (2.2.428) "what is due" (list_due) and the document directory (show_directory) name no form: the DIRECTORY is
+    //   opened — on its traffic light, which is what is due, for list_due — never "ask Benedict to open the form"
+    if (open.action === "list_due" || open.action === "show_directory") {
+      const due = open.action === "list_due";
+      txt(rv.result, "Accepted. Opening the document directory…");
+      const r = await P.action("directory_link", {});
+      if (lapsed(r)) return;
+      const url = (r && r.success === true && typeof r.url === "string") ? r.url : "";
+      const ok = url ? await show("directory", due ? url + "&view=traffic" : url) : false;
+      if (ok) onScreen(null, null, "closed");
+      txt(rv.result, ok ? (due ? "Accepted. What is due is on the traffic light in the document directory, behind this panel."
+                               : "Accepted. The document directory is open in the viewer, behind this panel.")
+                        : "Accepted. The document directory could not be opened just now: open it from Practice tools.");
+      return;
+    }
     const asked = P.live() && shown(s.form_name) && typeof window.teckelLocalPick === "function"
                   && window.teckelLocalPick(String(s.form_name), null, { source: "review" });
     txt(rv.result, asked ? ("Accepted. Benedict has been asked to open " + name + ".")
                          : ("Accepted. Start a conversation and ask Benedict to open " + name + "."));
   }
-  async function resolve(decision){
+  // how: (2.2.428) {via:"voice"} when kev's op made the decision (« THE REVIEW WALK »); a click passes nothing
+  async function resolve(decision, how){
     if (!current || rvBusy) return;
-    const s = current;
+    const s = current, w = curWalk, voice = !!(how && how.via === "voice");
+    if (rwOn() && rw.step) rw.step.spent = true;   /* (2.2.428) the step this answers is used up: naming it again does nothing */
     setRvBusy(true); txt(rv.result, "");
-    const r = await P.action("review_resolve", { suggestion_id: s.suggestion_id, decision: decision });
+    const args = { suggestion_id: s.suggestion_id, decision: decision };
+    // (2.2.428) the server's stamp of the item AS SHOWN goes back with the decision — by voice and by click alike — so an
+    //   item that changed since it was shown is refused (ITEM_CHANGED) and shown again. Only when the server gave one.
+    if (w && w.shown) { args.via = voice ? "voice" : "click"; args.shown = { fp: w.shown.fp, at: w.shown.at }; }
+    const r = await P.action("review_resolve", args);
     if (lapsed(r)) return;
+    // (2.2.428) for the walk's next step: the server's own line and its lists, rebuilt — only while the walk runs on THIS item
+    const after = (rwOn() && current === s) ? { prefix: rwSayOf(r), outcome: rwOutcome(r, decision) } : null;
     if (!r || !r.success) {
+      const code = codeOf(r);
+      if (w && w.shown && code === "ITEM_CHANGED") {   /* (2.2.428) nothing written: read it again and show it afresh */
+        txt(rv.result, msgOf(r, "This one has changed since it was shown, so here it is again."));
+        await nextItem(after, String(s.suggestion_id));
+        return;
+      }
+      if (w && w.shown && code === "ALREADY_RESOLVED") { refreshCount(); await nextItem(after); return; }
       setRvBusy(false);
       txt(rv.result, msgOf(r, "That could not be done just now, so this one stays open."));
       refreshCount();
+      if (after) rwShow(after.prefix, after.outcome);   /* (2.2.428) it stays open and on screen: the same item, a new step */
       return;
     }
     if (decision === "accept") {
       if (r.open && typeof r.open === "object") {
+        // (2.2.428, brief Q6) accepted BY VOICE: the walk ends and the panel closes, then the action is followed
+        if (voice) { rwEnd("followed"); closeDlg(rv.dlg); followMissedAction(s, r.open); refreshCount(); return; }
         followMissedAction(s, r.open);
       } else if (r.applied === true) {
         txt(rv.result, acceptedLine(s, r));
@@ -6590,6 +7121,7 @@ window.teckelShell = (function () {
         setRvBusy(false);
         txt(rv.result, msgOf(r, "This change could not be made, so it stays open."));
         refreshCount();
+        if (after) rwShow(after.prefix, after.outcome);
         return;
       }
     } else if (decision === "reject") {
@@ -6599,11 +7131,234 @@ window.teckelShell = (function () {
       txt(rv.result, "Left for later. It stays in the list.");
     }
     refreshCount();
-    await nextItem();
+    await nextItem(after);
   }
-  if (rv.badge) rv.badge.addEventListener("click", openReview);
+
+  /* ══ THE REVIEW WALK (25 Oct 2026, PHASE 5 — Yusuf: "we must get these 5 phases built and deployed", "YES GO WITH ALL";
+        the brief agent_docs/campaign_2026-09-25/round4/PHASE5_BUILD_BRIEF_2026-10-25.md §2, §4 and §9; server 2.2.428,
+        R428_REVIEW_WALK) ═══════════════════════════════════════════════════════════════════════════════════════════════
+     The panel's items are walked by voice, one at a time. INERT until a review_next reply carries \`walk\` (the server's
+     say, its fixed lines and its shown stamp): without it the panel is exactly what it was, and so are its requests.
+     · ONE STEP PER SHOWING — {kind:"walk_step", step:"review", instance_id:null, speak, say, payload:{step_id, kind, n, of,
+       needs_revision, lines, outcome?}}, rebuilt in the transport from its allowlist — and only into a conversation that
+       has heard the page's opening run ("teckel-hello"). step_id is "rv-\x3cbase36>", minted fresh for every showing (the
+       next item, an item shown again) and NEVER reused while the page lives; "again", Voice on and the stale re-send
+       send the SAME envelope (the same id) with speak:true, once.
+     · say is the server's: the item's line; after a decision, the server's say for it, then the next item's. ⛔ The
+       server's shown stamp, the item's id, its values and its evidence never go to kev (the evidence is on screen only).
+     · Voice: ON when the panel opened itself at sign-in, silent from the badge (brief Q2); the Voice on / off button in the
+       panel's head sends speak / quiet, and Voice on reads the item at once. The hint teaches the long words only —
+       “yes please”, “no thanks”, “skip this one, please”, then “go back, please”, “say that again, please” (Yusuf, 25 Oct:
+       "YES PLEASE TO ALL FOUR PENDING ITEMS" — run 45 lost every command under 0.6 s) — never a bare one-word command, and
+       there is no control for more than one item, anywhere.
+     · kev's ops (walk_control, each naming the step_id it answers; the transport hands the review walk EVERY walk_control
+       while it runs): accept / reject / later → review_resolve for the ONE item on screen, {via:"voice", shown};
+       ⛔ ONLY when step_id is the step now current, in this conversation, and no answer is still being dealt with —
+       otherwise NOTHING goes to the server and the current step is sent again, speak:true, say = lines.stale + the item's
+       line. back → the item before this one, only when it was skipped in this pass and is still open (review_next
+       {suggestion_id}), else lines.back. again → the same envelope. stop → the walk ends; the panel stays; nothing
+       changes. close_form → the PANEL closes (decides nothing), never the form. speak / quiet → Voice.
+     · Clicks send the stamp too ({via:"click", shown}). ITEM_CHANGED → that item read again (review_next {suggestion_id})
+       and shown afresh; ALREADY_RESOLVED → the next. The next step carries outcome — the server's lists, rebuilt — and
+       after the last item a step {done:true}, which ends the walk (kev drops the held item; no stop follows).
+     · A missed action accepted BY VOICE: the walk ends, the panel closes, and the action is followed (brief Q6).
+     · THE LIVE FORM HOLDS while the walk runs (window.teckelReviewWalking): its steps go nowhere; when the walk ends
+       ("teckel-review-walk"), it sends its current step again.
+     · The walk ends, and is forgotten with the stamp, when the panel closes (Close, Escape, close_form), at a lapse or
+       sign-out, and with the server's switch off; it tells kev {kind:"walk_control", op:"stop"} then, if a step went out. */
+  const RW_OPS = Object.freeze(["accept", "reject", "later", "back", "again", "stop", "close_form", "speak", "quiet"]);
+  const RW_DECIDE = Object.freeze(["accept", "reject", "later"]);
+  const RW_LINES = Object.freeze(["bulk", "stale", "explicit", "back", "replace", "done"]);
+  function rwLog(why){ try { console.info("[teckel-review] " + why); } catch(e) {} }   /* never an id, a value or a stamp */
+  function rwJoin(a, b){ return [a, b].map(function (x) { return String(x || "").trim(); }).filter(Boolean).join(" "); }
+  // the server's \`walk\` on a review_next reply: its say, its six fixed lines and its shown stamp (an item's), or done
+  function walkOf(r){
+    const w = (r && r.walk && typeof r.walk === "object" && !Array.isArray(r.walk)) ? r.walk : null;
+    if (!w) return null;
+    const src = (w.lines && typeof w.lines === "object" && !Array.isArray(w.lines)) ? w.lines : {};
+    const lines = {};
+    RW_LINES.forEach(function (k) { lines[k] = typeof src[k] === "string" ? src[k].slice(0, 300) : ""; });
+    const sh = (w.shown && typeof w.shown === "object") ? w.shown : null;
+    const stamp = (sh && typeof sh.fp === "string" && sh.fp && typeof sh.at === "string" && sh.at)
+                  ? Object.freeze({ fp: sh.fp.slice(0, 64), at: sh.at.slice(0, 64) }) : null;
+    return Object.freeze({ say: typeof w.say === "string" ? w.say.trim().slice(0, 900) : "", lines: Object.freeze(lines),
+                           shown: stamp, done: w.done === true });
+  }
+  function rwList(v){
+    if (!Array.isArray(v)) return [];
+    const out = [];
+    v.forEach(function (x) {
+      if (out.length >= 5 || !x || typeof x !== "object" || Array.isArray(x)) return;
+      const it = { field: String(x.field === undefined || x.field === null ? "" : x.field).slice(0, 200),
+                   label: String(x.label === undefined || x.label === null ? "" : x.label).slice(0, 300),
+                   value: String(x.value === undefined || x.value === null ? "" : x.value).slice(0, 600) };
+      if (typeof x.reason === "string" && x.reason) it.reason = x.reason.slice(0, 60);
+      out.push(it);
+    });
+    return out;
+  }
+  // the outcome of a decision, rebuilt from the server's reply: what the RECORD did (the lists), and the item's fate
+  function rwOutcome(r, decision){
+    const x = (r && typeof r === "object") ? r : {};
+    return { decision: RW_DECIDE.indexOf(x.decision) !== -1 ? x.decision : decision,
+             status: typeof x.status === "string" ? x.status.slice(0, 20) : "",
+             recorded: rwList(x.recorded), unchanged: rwList(x.unchanged), skipped: rwList(x.skipped) };
+  }
+  function rwSayOf(r){
+    if (r && typeof r.say === "string" && r.say.trim()) return r.say.trim().slice(0, 600);
+    return (r && r.success === true) ? "" : msgOf(r, "").slice(0, 600);
+  }
+  function rwOn(){ return !!(rw && !rw.ended && curWalk && rv.dlg && rv.dlg.open); }
+  // a conversation that has heard the page's opening run: only then does a review step go
+  function rwReady(){
+    let on = false;
+    try { on = typeof window.teckelConversationReady === "function" && window.teckelConversationReady() === true; }
+    catch(e) { on = false; }
+    if (!on) rwHeard = false;
+    return on && rwHeard;
+  }
+  function rwSend(env){
+    try { return typeof window.teckelWalkSend === "function" && window.teckelWalkSend(env) === true; } catch(e) { return false; }
+  }
+  function rwControl(op){ return rwSend({ kind: "walk_control", op: op }); }
+  function rwId(){ return "rv-" + (++rwSeq).toString(36); }
+  function rwN(sid){ if (!rw.order.has(sid)) rw.order.set(sid, ++rw.nextN); return rw.order.get(sid); }
+  function paintRw(){
+    const on = rwOn(), v = !!(rw && rw.voice);
+    if (rv.voice) {
+      rv.voice.hidden = !on; txt(rv.voice, v ? "Voice on" : "Voice off");
+      rv.voice.setAttribute("aria-pressed", v ? "true" : "false");
+    }
+    if (rv.hint) rv.hint.hidden = !on;
+    if (rv.hint2) rv.hint2.hidden = !on;
+  }
+  // the walk started or ended: the panel's head, review_panel's walks, and (an end) the live form's own step again
+  function rwSync(sent){
+    const now = rwOn();
+    paintRw();
+    if (now !== rwWas) {
+      rwWas = now;
+      try { window.dispatchEvent(new CustomEvent("teckel-review-walk", { detail: { active: now, sent: sent === true } })); }
+      catch(e) {}
+    }
+    reportPanel();
+  }
+  function rwStep(payload, say, line){
+    const env = { kind: "walk_step", step: "review", instance_id: null, speak: rw.voice === true, say: say, payload: payload };
+    rw.step = { id: payload.step_id, conv: rwConv, env: env, line: line || "", spent: false };
+    if (rwSend(env)) rw.sentConv = rwConv;
+  }
+  // a NEW SHOWING of the item on screen: a fresh step id, into a conversation that is ready (else it waits for one)
+  function rwShow(prefix, outcome){
+    if (!rwOn() || !current) return false;
+    if (!rwReady()) { rw.step = null; return false; }
+    const n = rwN(String(current.suggestion_id));
+    const payload = { step_id: rwId(), kind: String(current.kind || ""), n: n, of: Math.max(rw.of, n),
+                      needs_revision: current.needs_revision === true, lines: curWalk.lines };
+    if (outcome) payload.outcome = outcome;
+    rwStep(payload, rwJoin(prefix, curWalk.say), curWalk.say);
+    return true;
+  }
+  // an item now on screen: the walk starts with it, or goes on to it — or, its reply carrying no \`walk\` (the server's
+  //   switch off), ends, and the panel goes on by its buttons
+  function rwItem(after){
+    if (!rw || rw.ended) { paintRw(); return; }
+    if (!curWalk) { rwEnd("off"); return; }
+    rwSync(false);                               /* review_panel says walks:true before the step goes */
+    rwShow(after ? after.prefix : "", after ? after.outcome : null);
+  }
+  // nothing left (or the pass came round to an item left for later): the walk's last step, done:true — then it ends
+  function rwDone(after, w){
+    if (!rwOn()) return;
+    if (rwReady()) {
+      const lines = (w && w.lines) || curWalk.lines;
+      const payload = { step_id: rwId(), lines: lines };
+      if (after && after.outcome) payload.outcome = after.outcome;
+      payload.done = true;
+      rwStep(payload, rwJoin(after ? after.prefix : "", (w && w.done && w.say) ? w.say : lines.done), "");
+    }
+    rwEnd("done");
+  }
+  // why: "closed" (the panel closed, a lapse, sign-out) | "kev" (kev's stop: no echo) | "done" (the done step went: no
+  //   stop) | "followed" (a voice-accepted missed action) | "off" (no \`walk\`, or no next item, from the server)
+  function rwEnd(why){
+    const mine = rw;
+    if (!mine || mine.ended) return;
+    mine.ended = true; mine.step = null;
+    const sent = mine.sentConv > 0 && mine.sentConv === rwConv && rwReady();
+    if (sent && why !== "kev" && why !== "done") rwControl("stop");
+    // a walk that never ran (no \`walk\` in any reply) changes nothing anyone was told: the panel stays exactly as before
+    if (rwWas) { rwLog("the review walk ended (" + why + ")"); rwSync(sent); } else paintRw();
+  }
+  function rwForget(){ rw = null; curWalk = null; if (rwWas) rwSync(false); else paintRw(); }
+  // the current step again, speak:true, with a line first (stale, back); none in this conversation: a new showing
+  function rwResay(line){
+    const st = rw && rw.step;
+    if (st && st.conv === rwConv && !st.spent) rwSend(Object.assign({}, st.env, { speak: true, say: rwJoin(line, st.line) }));
+    else rwShow(line, null);
+  }
+  function rwSetVoice(on, tell){
+    if (!rw || rw.ended) return;
+    const was = rw.voice;
+    rw.voice = !!on; paintRw();
+    if (tell && rwReady()) rwControl(on ? "speak" : "quiet");
+    // pressing Voice on reads the item at once: the SAME envelope again with speak:true, once (kev's own "speak" is not echoed)
+    const st = rw.step;
+    if (tell && on && !was && st && st.conv === rwConv && !st.spent && !rvBusy) rwSend(Object.assign({}, st.env, { speak: true }));
+  }
+  // "go back": the item before this one, only if it was left for later in this pass and is still open
+  async function rwBack(){
+    const pid = prevId;
+    if (!pid || !laterIds.has(pid) || !current) { rwResay(curWalk.lines.back); return; }
+    setRvBusy(true);
+    const r = await P.action("review_next", { suggestion_id: pid });
+    if (lapsed(r)) return;
+    const s = (r && r.success === true) ? r.suggestion : null, w = walkOf(r);
+    if (!rwOn()) { setRvBusy(false); return; }
+    if (!s || typeof s !== "object" || String(s.suggestion_id) !== pid || !w || !w.shown) {
+      setRvBusy(false); rwResay(curWalk.lines.back); return;
+    }
+    laterIds.delete(pid);
+    renderItem(s); curWalk = w;
+    rwShow("", null);
+  }
+  // kev's ops, from the transport, while the walk runs (it hands over every walk_control then)
+  function rwFrame(m){
+    if (!m || m.kind !== "walk_control" || !rwOn()) return;
+    const op = typeof m.op === "string" ? m.op : "";
+    if (RW_OPS.indexOf(op) === -1) { rwLog("ignored an op the review walk does not take"); return; }
+    if (op === "close_form") { rwLog("close_form: the review panel closes; nothing is decided"); closeDlg(rv.dlg); return; }
+    if (op === "stop") { rwEnd("kev"); return; }
+    if (op === "speak" || op === "quiet") { rwSetVoice(op === "speak", false); return; }
+    if (rvBusy) { rwLog("ignored: the last answer is still being dealt with"); return; }
+    const st = rw.step, live = !!(st && st.conv === rwConv && !st.spent);
+    if (op === "again") { if (live) rwSend(Object.assign({}, st.env, { speak: true })); else rwShow("", null); return; }
+    // ⛔ accept, reject, later and back act ONLY on the step now current, named by its id
+    if (!live || m.step_id !== st.id) {
+      rwLog("an answer for a step that is no longer current: nothing was sent");
+      rwResay(curWalk.lines.stale);
+      return;
+    }
+    if (op === "back") { rwBack(); return; }
+    resolve(op, { via: "voice" });
+  }
+  // (Yusuf, 25 Oct: "ADD MUTE TO THE PANEL") the panel's copies of Mute, the typing box and End: wired by the transport, to
+  //   its own controls' functions — one state, one send
+  if (typeof window.teckelWireConversationControls === "function") window.teckelWireConversationControls(rv.dlg);
+  if (typeof window.teckelReviewWalkListen === "function") {
+    window.teckelReviewWalkListen(function (m) { try { rwFrame(m); } catch(e) { rwLog("an op failed"); } }, rwOn);
+  }
+  window.addEventListener("teckel-hello", function () {   /* a conversation heard the page's opening run */
+    rwHeard = true; rwConv++;
+    if (rwOn() && current && !rvBusy) rwShow("", null);   /* the item on screen, once, for THIS conversation */
+  });
+  if (rv.voice) rv.voice.addEventListener("click", function () { if (rw) rwSetVoice(!rw.voice, true); });
+
+  if (rv.badge) rv.badge.addEventListener("click", function () { openReview("badge"); });
   $("pp-review-close").addEventListener("click", function () { closeDlg(rv.dlg); });   /* decides nothing */
   rv.dlg.addEventListener("close", reportPanel);   /* Close, Escape, a lapse, a sign-out: off screen */
+  // (2.2.428) …and the walk ends (stop, when a step went out) and is forgotten, the server's stamp with it
+  rv.dlg.addEventListener("close", function () { rwEnd("closed"); rwForget(); });
   $("pp-rv-accept").addEventListener("click", function () { resolve("accept"); });
   $("pp-rv-reject").addEventListener("click", function () { resolve("reject"); });
   $("pp-rv-later").addEventListener("click", function () { resolve("later"); });
@@ -6883,7 +7638,7 @@ window.teckelShell = (function () {
      the blank tab is closed and the button stays greyed, its tooltip "Settings — coming soon", for the rest of this
      page's life. A lapsed pass is the door's to handle (it greys the page and asks for the code). No answer at all (the
      network): the button stays usable and its tooltip says to try again. */
-  const SETTINGS_PAGE = /^https:\\/\\/teckel-io\\.github\\.io\\/[^?#\\s]*settings\\.html\\?token=[^\\s]+$/;
+  const SETTINGS_PAGE = { test: (u) => typeof window.teckelPageLink === "function" && window.teckelPageLink(u, /^\\/[^?#\\s]*settings\\.html\\?token=[^\\s]+$/) };   /* F-HA */
   const SETTINGS_OFF = ["UNKNOWN_ACTION", "SETTINGS_MENU_OFF", "SETTINGS_PAGE_NOT_CONFIGURED", "PORTAL_OFF", "NO_PASS"];
   const SETTINGS_SOON = "Settings — coming soon";
   const st = { btn: $("pp-settings"), off: false, busy: false };
@@ -6947,6 +7702,9 @@ window.teckelShell = (function () {
   }
   function onLapse(d){
     const code = String((d && d.code) || "");
+    // (2.2.428) « THE REVIEW WALK » ends (stop, when a step went out) and is forgotten — the server's stamp with it — before
+    //   the panel closes (a dialog that cannot close fires no close event)
+    rwEnd("closed"); rwForget(); prevId = null;
     sending = false; sub = null; current = null;
     closeDlg(sb.dlg); closeDlg(rv.dlg);
     rvFirstLoad = false; reportPanel();           /* off screen (also where a dialog has no close event) */
@@ -6959,7 +7717,7 @@ window.teckelShell = (function () {
   }
   function onMode(m){
     // (23 Oct 2026) the portal off: Settings has no door to ask, so it stays greyed, "Settings — coming soon".
-    if (m === "legacy") { fm.card.hidden = true; setBadge(0); closeDlg(rv.dlg); closeDlg(sb.dlg);
+    if (m === "legacy") { rwEnd("closed"); rwForget(); fm.card.hidden = true; setBadge(0); closeDlg(rv.dlg); closeDlg(sb.dlg);
                           rvFirstLoad = false; reportPanel(); settingsOff(); return; }
     if (m === "door") {
       fm.card.hidden = false;
@@ -7945,6 +8703,9 @@ window.teckelShell = (function () {
          (the 2.2.420 switch off) everything here is as 2.2.420 built it.
        · (2.2.421, F-FP) no Edit for a copy the server's replies name as a kind that is never typed into (form_kind
          "other": a task grid, a survey, a consent form) — the transport's teckelScreenCopy now carries it.
+       · (25 Oct 2026, PHASE 4 — server 2.2.427) a survey, a task grid and a consent form are each a lane of the LIVE FORM
+         (form_kind "survey" / "grid" / "consent" from My forms): this panel never opens for one; with the live form on, Edit
+         opens the live form, as for every other copy.
        · AFTER A SAVE THAT WROTE: the conversation, if one is open, is told {kind:"form_changed", instance_id,
          question_number} or {kind:"form_changed", instance_id, entry:true} (window.teckelFormChanged in the
          transport: ids the server gave this page only, never a value), and the form on screen is redrawn — the same
@@ -7968,6 +8729,7 @@ window.teckelShell = (function () {
   const PERSONAL_LINE = "left blank — personal details aren't collected";
   const HINT = { date: "dd/mm/yyyy or 'today'", time: "hh:mm", datetime: "dd/mm/yyyy hh:mm" };
   const MAX_VALUE = 2000;                                 /* the server's own cap on a typed value */
+  const LIVE_ONLY = Object.freeze(["survey", "grid", "consent"]);   /* (Phase 4) kinds only the live form types into */
   let off = false;          /* the server cannot take typed answers: greyed for the rest of this page's life */
   let cur = null;           /* the open panel: { iid, name, kind } — a new object each time it opens */
   let opening = false, redrawTimer = null, rowSeq = 0;
@@ -8024,7 +8786,9 @@ window.teckelShell = (function () {
   function syncBtn(){
     const c = copyOnScreen();
     const L = liveForm();
-    ed.btn.hidden = !c || (shown(c.form_kind) && c.form_kind === "other") || (!!L && L.offersEdit() !== true);
+    // (Phase 4, 2.2.427) a survey, a task grid or a consent form is the LIVE FORM's (its lanes): this panel never takes one
+    ed.btn.hidden = !c || (shown(c.form_kind) && (c.form_kind === "other" || (!L && LIVE_ONLY.indexOf(c.form_kind) !== -1)))
+                    || (!!L && L.offersEdit() !== true);
     if (cur && (!c || String(c.instance_id) !== cur.iid || L)) closePanel();   /* the form left the viewer (or went live) */
     ed.btn.setAttribute("aria-expanded", cur ? "true" : "false");
     autoOpen(c);                                            /* (2.2.420) a form Benedict opened: Edit at once */
@@ -8426,7 +9190,7 @@ window.teckelShell = (function () {
   const VOICE_OPS = Object.freeze(["submit", "sign", "upload", "skip", "back", "stop", "again", "quiet", "speak", "edit", "walk"]);
   const ADVANCE_MS = 900;          /* a saved value stays on screen this long before the next question */
   const COUNTDOWN_MS = 3000;       /* a VOICE submit can be cancelled for this long */
-  const SIGN_PAGE = /^https:\\/\\/teckel-io\\.github\\.io\\/[^?#\\s]*sign\\.html\\?\\S+$/;
+  const SIGN_PAGE = { test: (u) => typeof window.teckelPageLink === "function" && window.teckelPageLink(u, /^\\/[^?#\\s]*sign\\.html\\?\\S+$/) };   /* F-HA: any trusted origin */
   let off = false;
   let speak = true;                /* Voice on / off: the mode; "again" never changes it */
   let walk = null;                 /* the walk: { iid, name, list, i, mode: "q" | "act" | "done", seq, … } — new each time */
@@ -8477,7 +9241,7 @@ window.teckelShell = (function () {
   const SAYS_LEFT = "The form is no longer on screen, so the walk stopped. Open it again to carry on.";
   // (phase 1, 24 Oct 2026; tcc's run 43) the spoken commands that WORK: a bare "skip", "back", "yes" or "stop" never reaches
   // the transcript, while these phrases do — the same line as the live form's
-  const SAYS_SPOKEN = "To move on by voice, say “skip this one”, “go back” or “say that again”.";
+  const SAYS_SPOKEN = "To move on by voice, say “skip this one, please”, “go back, please” or “say that again, please”.";
   // a PRESS of any of the walk's own buttons: the box's blur saves nothing (the button does its own thing)
   // (25 Oct 2026, « MUTE ») the conversation's Mute beside Voice is one of these: muting is not leaving the question
   const NO_BLUR_SAVE = Object.freeze(["pp-walk-save", "pp-walk-typed", "pp-walk-skip", "pp-walk-back", "pp-walk-stop",
@@ -9112,6 +9876,38 @@ window.teckelShell = (function () {
          again (D4); a value kev saved shows as the server stored it — one form_fields read after his ok (D2); My forms
          re-read without the copy on screen asks about that copy once and drops it when the server says it is gone (D7);
          the same step is never sent twice running into one conversation — only "again" and Voice on re-send (D13).
+       · ⭐ (25 Oct 2026, PHASE 4 — server 2.2.427; Yusuf: "we must get these 5 phases built and deployed", "YES GO WITH ALL";
+         brief agent_docs/campaign_2026-09-25/round4/PHASE4_BUILD_BRIEF_2026-10-25.md §3, §7) EVERY FORM TYPE WALKABLE, each
+         only while the server names its LANE (form_fields' \`lane\`; absent — the lane's switch off — this page is 2.2.426's:
+         a survey, a task grid or a consent form keeps the read-only rendering and its one line, a log today's new entry):
+           LOG     the new entry's boxes with the cursor. With a CONVERSATION (kev's {kind:"conversation"} frame, held by the
+                   transport — this script holds only a handle) every typed value goes into the conversation's OWN open entry
+                   (save_log_draft, with expect), shown "✓ In this entry" — never "Saved"; a value Benedict wrote is marked
+                   "said to Benedict"; kev's walk_result re-reads the entry (entry_draft), never trusts the words; Enter on the
+                   last box goes to the entry's commit step (the walk's "row" step), and Save entry, or kev's op save_entry
+                   (the spoken "save this entry" — the ONLY commit phrase the page teaches), commits it (commit_entry). The
+                   entry stays bound to the conversation it began in, even after its socket closes; begun in an earlier one, it
+                   is finished by typing. NO conversation (no frame): the boxes hold the values and Save entry saves the whole
+                   entry (save_log_entry, 2.2.417's), as today — never an error. CONVERSATION_UNKNOWN / CONVERSATION_NOT_YOURS:
+                   the server's own line, and the boxes.
+           SURVEY  the same, a respondent: "Respondent N", personal questions locked, save_survey_answers, Record respondent.
+           GRID    a week table ("Week of …"), one cursor per cell, the walk down ONE day column (today's, or the one clicked
+                   into — kev's sitting moves with it), then an initials step, then Submit; a pick saves at once
+                   (save_grid_cells: "✓ Logged" / "Not done"); a day still to come greyed; a cell logged in another session
+                   marked and never cleared here.
+           CONSENT the question form's rows, signing questions locked, NO Voice — "Type the answers — consent forms aren't
+                   filled in by voice." (save_consent_answer); every step goes speak:false, Voice on and "again" included.
+         Every walk_step changes shape once: each names its lane; a question form's and a consent form's carry \`values\` (the
+         stored answers, personal ones omitted) so kev's read-back never under-reports a form part-filled by hand; a log's
+         and a survey's carry the server's draft_values. A step already current is still never sent again (2.2.426, D13 —
+         "again" and Voice on excepted): the answers it carries are not the step.
+       · (25 Oct 2026, D9's page half — kev 1.133.0, agreed with Yusuf CC) kev's walk_result {ok:false, set_aside:true}: the
+         server set THAT question aside after repeated refusals — the walk moves on like a skip, ONLY for the step at the
+         cursor; the box stays blank, marked "Set aside", and Back returns to it. Never a signature box.
+       · (25 Oct 2026, PHASE 5 — the brief agent_docs/campaign_2026-09-25/round4/PHASE5_BUILD_BRIEF_2026-10-25.md §4; server
+         2.2.428) while the review panel walks its items by voice (window.teckelReviewWalking), the live form HOLDS: no
+         walk_step goes and none is marked sent. When the review walk ends ("teckel-review-walk"), the current step goes
+         again (the Voice-on re-send path) — kev's held step was the review's — or, when none had gone, the cursor's step.
      ⚠ Every request goes through window.teckelPortal.action, which adds the pass; this script never holds it. Every server
        string is written as TEXT; nothing is stored in the browser; the console never carries a value. The live form closes,
        and empties, on a lapse, a sign-out, the user's Stop, kev's close_form and when the form leaves the viewer.
@@ -9148,7 +9944,7 @@ window.teckelShell = (function () {
   const UNPICKED = "-- Select --";
   // the spoken commands that WORK (run 43: a bare "skip", "back", "yes" or "stop" never reaches the transcript — 0 of 10 on
   // the laptop, 0 of 28 single words on the S21 — while these phrases arrive 8-10 of 10); shown while a question form walks
-  const SAYS_SPOKEN = "To move on by voice, say “skip this one”, “go back” or “say that again”.";
+  const SAYS_SPOKEN = "To move on by voice, say “skip this one, please”, “go back, please” or “say that again, please”.";
   // (F-GB) the copy is GONE — discarded, by voice or on this page: the live form drops it and says so, once
   const SAYS_REMOVED = "This form has been removed from your list.";
   // the server's codes for a copy that no longer exists. NOT_YOURS joins them only for a copy this live form had OPEN: the
@@ -9169,6 +9965,47 @@ window.teckelShell = (function () {
   // if allowed (a signature box only once it is signed; a question as Skip; the end's Sign step re-checked)
   const STEP_OPS = Object.freeze(["next"]);
   const SLOT_OK = /^[A-Za-z0-9_-]{1,64}$/;
+  // ── (Phase 4, 2.2.427) EVERY FORM TYPE WALKABLE (the brief's §3). Read only when the server names a lane. ──
+  const NEW_LANES = Object.freeze(["log", "survey", "grid", "consent"]);
+  // a survey, a task grid, a consent form: NOTHING shows (not even "Loading") until form_fields names the lane — its switch
+  // off, the server still says "other", and the copy keeps the read-only rendering and its line, as before
+  const PROBED = Object.freeze(["survey", "grid", "consent"]);
+  // kev's op for a spoken commit, beside the walk's allowlist (LIVE_OPS stays the walk's eleven), as "next" is
+  const ENTRY_OPS = Object.freeze(["save_entry"]);
+  // (§7, Yusuf CC from F-GQ) a question form's walk_steps carry \`values\` (the stored answers) and its action steps their
+  // lane — the ONE change to a question form's envelope in this build. true: as agreed; false: a question form's steps
+  // exactly 2.2.426's (a consent form's always carry their lane and values — the transport refuses them otherwise)
+  const QA_STEP_V2 = true;
+  const SAYS_CONSENT = "Type the answers — consent forms aren't filled in by voice.";
+  const SIGNING_LINE = "signed on the signing page — not typed here";
+  // ⛔ the ONLY spoken commit the page teaches: kev's own phrase, measured on 16,087 real utterances (§7) — never a near-miss
+  const SAYS_ENTRY_SPOKEN = "To move on by voice, say “skip this one, please”, “go back, please” or “say that again, please”; to save the entry, say “save this entry”.";
+  const SAYS_ROW_SAY = "That's every field — say “save this entry” to save it.";
+  const SAYS_ENTRY_TYPED = "Each answer goes into this entry when you press Enter or leave its box.";
+  const SAYS_RESP_TYPED = "Each answer goes in when you press Enter or leave its box.";
+  const SAYS_SURVEY_BOXES = "Type the answers, then press Record respondent.";
+  const SAYS_EARLIER = "This entry was started in an earlier conversation — finish it here, then press ";
+  const SAYS_GRID = "Pick Done or Not Done for each task — each one is logged when you pick it.";
+  const SAYS_IN_ENTRY = "✓ In this entry", SAYS_IN_RESP = "✓ In this respondent";
+  const SAYS_LOGGED = "✓ Logged", SAYS_NOT_DONE = "Not done", SAYS_ELSEWHERE = "✓ Logged in another session";
+  const SAYS_SAID = "said to Benedict";
+  const SAYS_SET_ASIDE = "Set aside";             /* (D9) the server set the question aside: the box stays blank */
+  // the server's two conversation refusals (§7) — its own line is shown; these only when it sends none
+  const SAYS_CONV_UNKNOWN = "Typed answers go into the entry once Benedict is connected; until then, Save entry saves the whole entry.";
+  const SAYS_CONV_NOT_YOURS = "That conversation isn't this page's, so nothing was saved.";
+  const CONV_CODES = Object.freeze(["CONVERSATION_UNKNOWN", "CONVERSATION_NOT_YOURS", "NO_CONVERSATION"]);
+  const GRID_OPTIONS = Object.freeze(["Done", "Not Done"]);
+  const REASON_LINE = Object.freeze({
+    changed_elsewhere: "Benedict changed this one meanwhile — the box shows what the entry holds now.",
+    blank_words: "That reads as a blank — leave the box empty instead.",
+    day_not_yet: "That day hasn't come yet, so it can't be logged.",
+    logged_elsewhere: "Logged in another session — it stays as it is.",
+    no_column_for_day: "There's no column for that day on this sheet.",
+    grid_entry_refused: "That couldn't be logged.", typed_only: SAYS_CONSENT,
+    personal: "Personal details aren't collected, so this one stays blank.",
+    PERSONAL: "Personal details aren't collected, so this one stays blank.",
+    SIGNING_FIELD: "This one is signed on the signing page, not typed.",
+    SUBMITTED: SAYS_SUBMITTED });
   const LOCKED_LINE = "left blank — personal details aren't collected";
   const FOLLOW_UP_LINE = "only needed if not compliant";
   const BOX_HINT = Object.freeze({ date: "dd/mm/yyyy or 'today'", time: "hh:mm", datetime: "dd/mm/yyyy hh:mm" });
@@ -9183,7 +10020,7 @@ window.teckelShell = (function () {
   const LIVE_OPS = Object.freeze(["submit", "sign", "upload", "edit", "walk", "skip", "back", "stop", "again", "quiet", "speak"]);
   const VOICE_ADVANCE_MS = 600;    /* a value kev saved stays at the cursor this long before it moves on */
   const SEND_CANCEL_MS = 3000;     /* a VOICE submit can be cancelled for this long */
-  const SIGN_URL = /^https:\\/\\/teckel-io\\.github\\.io\\/[^?#\\s]*sign\\.html\\?\\S+$/;
+  const SIGN_URL = { test: (u) => typeof window.teckelPageLink === "function" && window.teckelPageLink(u, /^\\/[^?#\\s]*sign\\.html\\?\\S+$/) };   /* F-HA: any trusted origin */
   // a PRESS of these: the box's blur saves nothing (each does its own thing; Skip never saves)
   // (25 Oct 2026, « MUTE ») the conversation's Mute beside Voice is one of these: muting is not leaving the question
   const PRESS_NO_SAVE = Object.freeze(["pp-lf-save", "pp-lf-typed", "pp-lf-skip", "pp-lf-back", "pp-live-stop",
@@ -9247,6 +10084,12 @@ window.teckelShell = (function () {
     const f = features();
     if (!f) return false;                                   /* page_features absent: 2.2.420's page */
     return (typeof f.live_form === "boolean") ? f.live_form : LIVE_FORM_DEFAULT;
+  }
+  // (2.2.428, phase 5) the review panel walks its items by voice (window.teckelReviewWalking, in the transport): the live
+  //   form's steps wait — kev holds ONE step, and while the walk runs it is the review's
+  function reviewHolds(){
+    try { return (typeof window.teckelReviewWalking === "function") ? window.teckelReviewWalking() === true : false; }
+    catch(e) { return false; }
   }
   // a conversation that has heard the page's own opening run (client_ready): only then does a walk_step go
   function ready(){
@@ -9339,6 +10182,8 @@ window.teckelShell = (function () {
                  countdown: null, viewDirty: false, known: {}, voiceless: false, stopArmed: false, baseMsg: "",
                  tools: null, acts: null, calcTimer: null, entry: null, how: "", lastField: null,
                  openedBy: openedBy, held: false, completed: false, noCursor: false };
+    me.lane = "";                                            /* (Phase 4) the lane the server named, else "" */
+    if (PROBED.indexOf(String(c.form_kind || "")) !== -1) { probeLive(me); return; }   /* (Phase 4) the server names it first */
     lf = me;
     speak = openedBy !== "button";                          /* the walk's voice: on when opened by voice, else silent */
     paintVoice();
@@ -9362,6 +10207,7 @@ window.teckelShell = (function () {
     if (r.editable !== true || String(r.status || "") === "submitted") { closeLive("not"); keepNote(me.key, whyNotFromServer(r)); return; }
     me.kind = String(r.form_kind || "");
     me.completed = String(r.status || "").trim().toLowerCase() === "completed";   /* every answer in, not submitted */
+    if (laneOf(r) && dispatchLane(me, r)) return;          /* (Phase 4) a lane the server named: log, survey, grid, consent */
     if (me.kind === "qa" && Array.isArray(r.questions)) { renderQa(me, r.questions, r.signatures); return; }
     if (me.kind === "log" && Array.isArray(r.columns)) { renderLog(me, r); return; }
     closeLive("not"); keepNote(me.key, SAYS_KIND);
@@ -9425,6 +10271,7 @@ window.teckelShell = (function () {
       const row = { q: q, num: num, i: me.rows.length, saved: shown(q.answer) ? String(q.answer) : "", ctl: null, st: null,
                     el: null, cell: null, id: "", personal: q.personal === true, calc: fieldType(q) === "computed",
                     busy: false, tried: null, asTyped: false, offLine: null };
+      if (me.kind === "consent" && q.signing === true) row.signing = true;   /* (Phase 4) a consent form's signing question: locked */
       if (signs && signs.byNum[num]) asSign(row, signs.byNum[num]);   /* (2.2.426) a printed signature line made digital */
       me.known[num] = row.saved;
       me.rows.push(row); me.byNum[num] = row;
@@ -9448,9 +10295,11 @@ window.teckelShell = (function () {
     me.voiceless = !me.rows.every(function (x) { return x.personal || x.calc || !!x.sign || typeof x.q.say === "string"; });
     ui.voice.hidden = me.voiceless;
     sayHint(!me.voiceless);                                 /* (phase 1) the spoken commands that work */
+    if (me.kind === "consent") { ui.voice.hidden = true; sayHint(false); }   /* (Phase 4) a consent form: no Voice, nothing spoken */
     me.held = holdsOnOpen(me);                              /* completed, or Benedict's form without walks_on_open */
     paintVoice();
     me.baseMsg = me.completed ? SAYS_COMPLETED : (me.held ? SAYS_HELD : SAYS_QA);
+    if (me.kind === "consent" && !me.completed) me.baseMsg = SAYS_CONSENT;   /* (Phase 4) typed, never by voice */
     txt(ui.msg, me.baseMsg);
     refreshActive(me);
     agreeWithServer(me);
@@ -9470,7 +10319,7 @@ window.teckelShell = (function () {
   function agreeWithServer(me){
     const v = voiceAny();
     if (!v || String(v.instance_id) !== me.iid || typeof v.walks_on_open !== "boolean") return;
-    const pageWalks = me.kind === "qa" && !me.voiceless && !me.held;
+    const pageWalks = walksNow(me) && me.kind !== "consent" && !me.voiceless && !me.held;   /* (Phase 4) every lane that walks */
     if (v.walks_on_open !== pageWalks) log("walk on open: the page and the server disagree (page " + pageWalks + ")");
   }
   // Held (no walk on open): a COMPLETED copy, always; a form BENEDICT opened, unless the server said walks_on_open === true
@@ -9478,6 +10327,7 @@ window.teckelShell = (function () {
   function holdsOnOpen(me){
     if (me.openedBy === "kev") return false;
     if (me.completed) return true;                          /* every answer in: the user starts the walk */
+    if (me.kind === "consent") return false;                /* (Phase 4) never spoken, so nothing to hold */
     if (me.openedBy !== "voice") return false;
     const v = voiceAny();
     return !(v && String(v.instance_id) === me.iid && v.walks_on_open === true);
@@ -9491,6 +10341,7 @@ window.teckelShell = (function () {
     r.appendChild(lab); r.appendChild(cell);
     row.el = r; row.cell = cell; row.id = id;
     if (row.personal) { const p = el("p", "pp-lf-locked", LOCKED_LINE); p.id = id; cell.appendChild(p); return r; }
+    if (row.signing) { const p = el("p", "pp-lf-locked", SIGNING_LINE); p.id = id; cell.appendChild(p); return r; }   /* (Phase 4) */
     if (row.calc) { buildCalc(me, row); return r; }
     const b = makeBox(fieldType(q), q.options, id, row.saved, q.unit);
     row.ctl = b.ctl;
@@ -9559,6 +10410,7 @@ window.teckelShell = (function () {
   /* ── follow-up boxes (2.2.420): one that does not apply is greyed, never asked ── */
   function activeNow(me, q){
     if (!q) return false;
+    if (me.kind === "grid" && !gridWalks(me, q)) return false;   /* (Phase 4) a task grid walks its one day column */
     if (shown(q.depends_on) && Array.isArray(q.inactive_when)) {
       const v = norm(me.known[String(q.depends_on)]);
       if (!v) return true;                                  /* the item blank: the box applies (fail open) */
@@ -9570,6 +10422,7 @@ window.teckelShell = (function () {
     me.rows.forEach(function (row) {
       if (!row.ctl || row.calc || row.personal) return;
       if (row.sign) return;                                 /* (2.2.426) a signature box always applies */
+      if (row.lane) return;                                 /* (Phase 4) a lane's boxes are painted by their lane */
       const on = activeNow(me, row.q);
       row.el.classList.toggle("pp-lf-off", !on);
       row.ctl.disabled = !on;
@@ -9699,6 +10552,7 @@ window.teckelShell = (function () {
       if (x.ctl) x.ctl.removeAttribute("aria-current");
     });
     if (me.acts) { me.acts.classList.remove("pp-lf-cur"); me.acts.removeAttribute("aria-current"); }
+    if (me.rowArea) { me.rowArea.classList.remove("pp-lf-cur"); me.rowArea.removeAttribute("aria-current"); }   /* (Phase 4) */
     const row = curRow(me);
     const t = toolsFor(me);
     if (row) {
@@ -9715,8 +10569,10 @@ window.teckelShell = (function () {
     }
     if (t.parentNode) t.parentNode.removeChild(t);
     if (me.mode === "act" && me.acts && !me.noCursor) { me.acts.classList.add("pp-lf-cur"); me.acts.setAttribute("aria-current", "step"); }
+    if (me.mode === "row" && me.rowArea) { me.rowArea.classList.add("pp-lf-cur"); me.rowArea.setAttribute("aria-current", "step"); }
   }
   function stepLine(me){
+    if (laneHead(me)) return;                               /* (Phase 4) "Entry 3 — not saved yet", "Respondent 4", "Week of …" */
     const ws = me.rows.filter(function (x) { return walkable(me, x); });
     const row = curRow(me);
     if (row && row.sign) { txt(ui.step, "Signature — step " + (ws.indexOf(row) + 1) + " of " + ws.length); return; }   /* (2.2.426) */
@@ -9755,13 +10611,16 @@ window.teckelShell = (function () {
     stepOut(me);                                            /* the ONE walk_step of this move */
   }
   function onFocusBox(me, row){
+    if (lf === me && me.kind === "grid") gridFocus(me, row);   /* (Phase 4) a click into another day moves the walk there */
     if (lf !== me || isCursor(me, row) || !walkable(me, row)) return;
     moveTo(me, row.i, "focus");
   }
   // via: "saved" (the answer is in: a save, Save & next, kev's saved value) | "skip" (Skip, by press or by voice)
   function next(me, via){
     if (lf !== me || me.mode === "load" || me.mode === "done" || me.mode === "act") return;
+    if (me.mode === "row") return;                          /* (Phase 4) the entry's commit step: nothing after it */
     const j = seekUnanswered(me, me.cur + 1);               /* the next unanswered question that applies */
+    if (j === -1 && me.rowArea) { toRow(me); return; }      /* (Phase 4) a log entry / a respondent: its commit step */
     if (j === -1) { toActions(me, false); return; }
     moveTo(me, j, via === "skip" ? "skip" : "next");
   }
@@ -9782,13 +10641,19 @@ window.teckelShell = (function () {
 
   /* ══ THE ONE ENVELOPE: exactly one walk_step per cursor move, and only into a conversation that is ready ═══════════ */
   function stepOut(me){
-    if (lf !== me || me.kind !== "qa" || me.voiceless || me.held || !ready()) return false;
+    if (lf !== me || !walksNow(me) || me.voiceless || me.held || !ready()) return false;   /* (Phase 4) every lane that walks */
+    // (2.2.428, phase 5) « THE REVIEW WALK » runs: the live form HOLDS — nothing goes, nothing is marked sent; when the walk
+    //   ends its current step goes again (below, "teckel-review-walk")
+    if (reviewHolds()) { log("held: the review walk is running"); return false; }
     if (me.sent && me.sent.seq === me.seq && me.sent.conv === conv) return false;   /* this move's step has gone */
     let env = null;
     // (2.2.426) a signature box at the cursor: its own action step (the server's say and say_help), never a field
     if (me.mode === "q" && curRow(me) && curRow(me).sign) {
       if (!walkable(me, curRow(me))) return false;
       env = signEnv(curRow(me));
+    } else if (me.mode === "q" && laneRows(me)) {           /* (Phase 4) a log, a survey, a task grid: the lane's own step */
+      if (!walkable(me, curRow(me))) return false;
+      env = laneEnv(me, curRow(me));
     } else if (me.mode === "q") {
       const row = curRow(me);
       if (!walkable(me, row)) return false;
@@ -9801,17 +10666,21 @@ window.teckelShell = (function () {
       const short = straight && typeof row.q.say_short === "string" && row.q.say_short.trim() !== "";
       env = { step: "field", say: String(short ? row.q.say_short : (row.q.say || "")),
               payload: { number: row.num, label: String(row.q.label || ""), field_type: fieldType(row.q),
-                         options: Array.isArray(row.q.options) ? row.q.options.map(String) : [], lane: "qa" } };
+                         options: Array.isArray(row.q.options) ? row.q.options.map(String) : [],
+                         lane: me.kind === "consent" ? "consent" : "qa" } };
       if (typeof row.q.say_help === "string" && row.q.say_help.trim()) env.say_help = row.q.say_help;   /* (2.2.426) */
+      if (QA_STEP_V2 || me.kind === "consent") env.payload.values = valuesOut(me);   /* (Phase 4, §7) a read-back never under-reports */
       me.lastField = { num: row.num, seq: me.seq, conv: conv };
     } else if (me.mode === "act" && me.pv) {
       env = actEnv(me);
+    } else if (me.mode === "row" && me.rowArea) {
+      env = rowEnv(me);                                     /* (Phase 4) the entry's commit step */
     }
     if (!env) return false;
     // (2.2.426, F-GR D13; F-GQ: kev received walk_step n=8 TWICE, 6.4 s apart, after a pick on the screen) never the SAME
     // step again into the same conversation when nothing moved between: only "again" and Voice on re-send (each calls
     // emit itself); the step stays current (a result for it is still taken)
-    const outKey = conv + "|" + JSON.stringify(env);
+    const outKey = conv + "|" + stepKey(env);               /* (Phase 4) the step itself — not the answers it carries */
     if (me.lastOut === outKey) {
       me.sent = { seq: me.seq, conv: conv }; lastEnv = env;
       log("not re-sent: that step is already current");
@@ -9825,6 +10694,7 @@ window.teckelShell = (function () {
   function actEnv(me){
     const env = { step: "action", say: me.pv.say, payload: { action: me.step, ready: me.pv.can } };
     if (me.pv.help) env.say_help = me.pv.help;
+    laneAct(me, env.payload);                               /* (Phase 4) its lane, and a question form's stored answers */
     return env;
   }
   // (2.2.426) a signature box's envelope: an action step {action:"sign"} naming its box (never a signer's name)
@@ -9834,18 +10704,25 @@ window.teckelShell = (function () {
                   payload: { action: "sign", ready: s.signed === true, slot: s.slot,
                              label: String(s.label || row.q.label || ""), signed: s.signed === true } };
     if (s.say_help) env.say_help = s.say_help;
+    if (lf) laneAct(lf, env.payload);                       /* (Phase 4) */
     return env;
   }
   function emit(me, env, loud){
     if (typeof window.teckelWalkSend !== "function") return false;
+    if (reviewHolds()) return false;                        /* (2.2.428) the review walk runs: the live form holds */
     // (2.2.426) the step's own help line and, on the reply to an op the page refused, which op — each only when there is one
     return window.teckelWalkSend({ kind: "walk_step", step: env.step, instance_id: me.iid,
-                                   speak: loud === true ? true : speak, say: env.say, payload: env.payload,
+                                   // ⛔ (Phase 4) a consent form is never spoken — Voice on and "again" included
+                                   speak: me.kind === "consent" ? false : (loud === true ? true : speak),
+                                   say: env.say, payload: freshAnswers(me, env.payload),
                                    ...((typeof env.say_help === "string" && env.say_help) ? { say_help: env.say_help } : {}),
                                    ...(env.refused ? { refused: env.refused } : {}) });
   }
   function stepIsCurrent(me){ return !!(me && me.sent && me.sent.seq === me.seq && me.sent.conv === conv); }
   function control(op){
+    // (2.2.428) while the review walk runs, kev's held step is the review's: a stop / speak / quiet of the live form's would
+    //   land on it, so none goes (the live form's own step goes again when the walk ends)
+    if (reviewHolds()) { log("not sent: the review walk is running"); return false; }
     try { return (typeof window.teckelWalkSend === "function") ? window.teckelWalkSend({ kind: "walk_control", op: op }) : false; }
     catch(e) { return false; }
   }
@@ -9873,8 +10750,13 @@ window.teckelShell = (function () {
       emit(me, lastEnv, true);
     }
   }
-  function tellChanged(me, num){
-    try { if (typeof window.teckelFormChanged === "function") window.teckelFormChanged(me.iid, num); } catch(e) {}
+  function tellChanged(me, num, more){
+    try {
+      if (typeof window.teckelFormChanged !== "function") return;
+      // (Phase 4) a lane's change names its field and lane (draft:true for a value held in the conversation's open entry)
+      if (me.lane) window.teckelFormChanged(me.iid, num, Object.assign({ lane: me.lane, field: num }, more || {}));
+      else window.teckelFormChanged(me.iid, num);
+    } catch(e) {}
   }
 
   /* ══ A TYPED ANSWER: save_answer ═══════════════════════════════════════════════════════════════════════════════════ */
@@ -9889,6 +10771,7 @@ window.teckelShell = (function () {
   async function saveRow(me, row, how){
     if (lf !== me || !row.ctl || row.busy || me.mode === "done") return;
     if (row.sign) return;                                   /* (2.2.426) a signature box takes no typed value */
+    if (laneRows(me)) { saveLaneRow(me, row, how); return; }   /* (Phase 4) a log, a survey, a task grid */
     const astyped = how === "astyped";
     const v = String(row.ctl.value || "");
     if (!astyped && v.trim() === String(row.saved || "").trim()) {          /* nothing changed: no request */
@@ -9907,7 +10790,8 @@ window.teckelShell = (function () {
     const args = { instance_id: me.iid, question_number: row.num, value: v };
     if (astyped) args.override = true;
     let r;
-    try { r = await P.action("save_answer", args); }
+    // (Phase 4) a consent form saves through its own door (2.2.417's floors, the policy locks, the three lists)
+    try { r = me.kind === "consent" ? consentReply(await P.action("save_consent_answer", args), row.num) : await P.action("save_answer", args); }
     finally { row.busy = false; }
     if (lf !== me) return;
     if (TYPING_OFF.indexOf(codeOf(r)) !== -1) { liveOff = true; offKey = me.key; closeLive("off"); note(SAYS_SOON); return; }
@@ -9950,6 +10834,7 @@ window.teckelShell = (function () {
     me.mode = "act"; me.cur = -1;
     paintCursor(me);
     txt(ui.step, nothingLeft ? "Every question has an answer" : "That was the last question");
+    if (me.kind === "grid") laneHead(me);                   /* (Phase 4) the sheet's own header */
     me.acts.hidden = false;
     preview(me, false);
   }
@@ -10210,7 +11095,7 @@ window.teckelShell = (function () {
   function entryItem(me, vals, n){
     const li = el("li");
     const dl = el("dl");
-    (me.entry.cols || []).forEach(function (col) {
+    (((me.entry || me.saved) || {}).cols || []).forEach(function (col) {   /* (Phase 4) a lane's saved list too */
       const v = cellOf(vals || {}, col);
       dl.appendChild(el("dt", "", String(col.label || col.key)));
       // a personal field is never shown, only whether it was given
@@ -10275,10 +11160,866 @@ window.teckelShell = (function () {
     txt(en.res, msgOf(r, "The entry was not saved."));
   }
 
+  /* ══ (Phase 4, 2.2.427) EVERY FORM TYPE WALKABLE — the lanes (the brief's §1-§3; a reply's shape read only when present) ══ */
+  function num0(v){ const n = Number(v); return (typeof v === "number" || (typeof v === "string" && v.trim() !== "")) && isFinite(n) && n >= 0 ? Math.floor(n) : 0; }
+  function CV(){ const c = window.teckelConversation; return (c && typeof c.now === "function") ? c : null; }
+  const binds = new Map();     /* copy -> the conversation handle its open entry is bound to (a handle, never an id) */
+  // the lane a form_fields reply names: lane equal to form_kind, one of the four; "" when it names none (today's server)
+  function laneOf(r){
+    const l = (r && typeof r.lane === "string") ? r.lane : "";
+    return (r && r.success === true && NEW_LANES.indexOf(l) !== -1 && r.form_kind === l) ? l : "";
+  }
+  function laneRows(me){ return !!(me && me.lane && me.kind !== "consent"); }   /* the lanes with boxes of their own */
+  // does this form walk here now: a question or consent form, a task grid; a log or a survey only in the conversation
+  // its entry is bound to, while that conversation is the open one (its draft is kev's)
+  function walksNow(me){
+    if (!me) return false;
+    if (me.kind === "qa" || me.kind === "consent") return true;
+    if (me.kind === "grid") return me.lane === "grid";
+    if ((me.kind === "log" || me.kind === "survey") && me.lane) { const C = CV(); return !!(me.cv && C && C.now() === me.cv); }
+    return false;
+  }
+  function gridWalks(me, q){
+    return String(q.column_key) === me.walkCol && q.future !== true && !(q.logged === true && q.mine === false);
+  }
+  // a question form's stored answers (question number -> answer), personal ones, signatures and signing questions omitted
+  function valuesOut(me){
+    const o = {};
+    me.rows.forEach(function (x) { if (!x.personal && !x.sign && !x.signing && shown(x.saved)) o[x.num] = String(x.saved); });
+    return o;
+  }
+  // the server's draft, as the server gave it (never built here), a personal field never in it
+  function draftOut(me){
+    const o = {};
+    Object.keys(me.draft || {}).forEach(function (k) { const row = me.byNum[k]; if (row && !row.personal) o[k] = String(me.draft[k]); });
+    return o;
+  }
+  // every send carries the answers as they stand NOW — "again" and Voice on re-send the same step, but a box filled by hand
+  // since it first went is never under-reported (§7)
+  function freshAnswers(me, p){
+    if (!p || typeof p !== "object") return p;
+    const has = function (k) { return Object.prototype.hasOwnProperty.call(p, k); };
+    if (!has("values") && !has("draft_values")) return p;
+    const out = Object.assign({}, p);
+    if (has("values")) out.values = valuesOut(me);
+    if (has("draft_values")) out.draft_values = me.kind === "grid" ? (me.gridDraft || out.draft_values) : draftOut(me);
+    return out;
+  }
+  function stepKey(env){
+    const p = Object.assign({}, env.payload || {});
+    delete p.values; delete p.draft_values;
+    return JSON.stringify(Object.assign({}, env, { payload: p }));
+  }
+  function laneAct(me, p){
+    if (me.kind === "qa" && !QA_STEP_V2) return;
+    p.lane = me.lane || (me.kind === "qa" ? "qa" : me.kind);
+    if (me.kind === "qa" || me.kind === "consent") p.values = valuesOut(me);
+  }
+  function laneEnv(me, row){
+    const q = row.q, opts = Array.isArray(q.options) ? q.options.map(String) : [];
+    let say = typeof q.say === "string" ? q.say : "", payload;
+    if (me.kind === "log") {
+      payload = { lane: "log", field: row.num, label: String(q.label || ""), field_type: fieldType(q), options: opts };
+      if (shown(q.unit)) payload.unit = String(q.unit);
+      payload.entry_number = me.entryNo;
+      payload.draft_values = draftOut(me);
+    } else if (me.kind === "survey") {
+      payload = { lane: "survey", number: row.num, field: row.num, label: String(q.label || ""), field_type: fieldType(q),
+                  options: opts, respondent: me.entryNo, draft_values: draftOut(me) };
+    } else if (row.initials) {
+      const c = me.colsBy[row.col] || {};
+      payload = { lane: "grid", field: row.num, row_key: "initials", column_key: row.col, date: String(c.date || ""),
+                  label: String(q.label || ""), field_type: "text", options: [] };
+      say = row.say;                                        /* the server gives the initials step no line: the page's own */
+    } else {
+      payload = { lane: "grid", field: row.num, row_key: String(q.row_key === undefined ? "" : q.row_key),
+                  column_key: String(q.column_key), date: String(q.date || ""), label: String(q.label || ""),
+                  field_type: "option", options: opts.length ? opts : GRID_OPTIONS.slice() };
+    }
+    if (me.kind === "grid" && me.gridDraft) payload.draft_values = me.gridDraft;
+    const env = { step: "field", say: String(say || ""), payload: payload };
+    if (typeof q.say_help === "string" && q.say_help.trim()) env.say_help = q.say_help;
+    return env;
+  }
+  function rowEnv(me){
+    const p = { lane: me.lane, action: "save_entry" };
+    p[me.kind === "log" ? "entry_number" : "respondent"] = me.entryNo;
+    p.ready = me.ready === true;
+    p.blank = (me.blank || []).slice(0, 60);
+    p.draft_values = draftOut(me);
+    return { step: "row", say: shown(me.rowSay) ? String(me.rowSay) : SAYS_ROW_SAY, payload: p };
+  }
+  function laneHead(me){
+    if (!me || !me.lane || me.kind === "consent") return false;
+    if (me.kind === "log") txt(ui.step, "Entry " + me.entryNo + " — not saved yet");
+    else if (me.kind === "survey") txt(ui.step, "Respondent " + me.entryNo);
+    else { const c = me.colsBy && me.colsBy[me.walkCol]; txt(ui.step, (me.weekOf ? "Week of " + me.weekOf : "This week") + (c ? " — " + c.label : "")); }
+    return true;
+  }
+  function paintLane(me){
+    if (lf !== me || !laneRows(me)) return;
+    laneHead(me);
+    let msg, hint = "";
+    if (me.kind === "grid") { msg = SAYS_GRID; if (!me.voiceless && !me.held) hint = SAYS_SPOKEN; }
+    else {
+      const C = CV(), now = C ? C.now() : null;
+      if (me.cv && me.cv !== now) msg = SAYS_EARLIER + me.saveWord + ".";
+      else if (me.cv) { msg = me.kind === "log" ? SAYS_ENTRY_TYPED : SAYS_RESP_TYPED; if (!me.voiceless && !me.held) hint = SAYS_ENTRY_SPOKEN; }
+      else msg = me.convLine || (me.kind === "log" ? SAYS_LOG : SAYS_SURVEY_BOXES);
+      paintRowArea(me);
+    }
+    me.baseMsg = me.held && !me.voiceless && walksNow(me) ? SAYS_HELD : msg;
+    if (!ui.shell.classList.contains("pp-live-ro")) txt(ui.msg, me.baseMsg);
+    if (ui.say) { txt(ui.say, hint); ui.say.hidden = !hint; }
+    ui.voice.hidden = me.voiceless || !walksNow(me);
+  }
+
+  /* ── the probe: a survey, a task grid, a consent form — the live form shows only once the server names the lane ── */
+  async function probeLive(me){
+    opening = me;
+    let r = null;
+    try { r = await P.action("form_fields", { instance_id: me.iid }); } catch(e) { r = null; }
+    if (opening !== me) return;                              /* closed, gone or replaced meanwhile */
+    if (goneReply(r, false)) { dropGone(me, codeOf(r)); opening = null; return; }
+    opening = null;
+    const c = editableCopy();
+    if (!c || keyOf(c) !== me.key || !liveOn() || !P.held()) return;   /* the form left the viewer meanwhile */
+    if (TYPING_OFF.indexOf(codeOf(r)) !== -1) { liveOff = true; offKey = me.key; note(SAYS_SOON); return; }
+    if (lapsed(r)) return;
+    const lane = laneOf(r);
+    if (!lane || r.editable !== true || String(r.status || "") === "submitted") {
+      const kind = !!r && (String(r.reason || "").toUpperCase() === "NOT_EDITABLE_YET" || r.form_kind === "other");
+      keepNote(me.key, (kind || (r && r.success === true)) ? whyNotFromServer(r) : msgOf(r, SAYS_FAIL));
+      return;
+    }
+    if (lf) closeLive("left");
+    lf = me;
+    speak = me.openedBy !== "button";
+    paintVoice(); setRo(false);
+    txt(ui.msg, ""); txt(ui.name, me.name); txt(ui.step, ""); ui.body.textContent = ""; sayHint(false);
+    goneNote = ""; note("");
+    ui.voice.hidden = false; txt(ui.stop, "Stop");
+    ui.shell.classList.add("pp-live-on");
+    ui.sec.hidden = false;
+    tellStrip();
+    me.kind = lane;
+    me.completed = String(r.status || "").toLowerCase().trim() === "completed";   /* every answer in, not submitted */
+    if (!dispatchLane(me, r)) { closeLive("not"); keepNote(me.key, SAYS_KIND); }
+  }
+  function dispatchLane(me, r){
+    const lane = laneOf(r);
+    if (!lane) return false;
+    if (lane === "consent" && !Array.isArray(r.questions)) return false;
+    if (lane === "grid" && !Array.isArray(r.cells)) return false;
+    if (lane === "log" && !Array.isArray(r.columns)) return false;
+    if (lane === "survey" && !Array.isArray(r.questions)) return false;
+    me.lane = lane; me.kind = lane;
+    if (shown(r.title)) { me.name = String(r.title); txt(ui.name, me.name); }
+    if (lane === "consent") renderQa(me, r.questions, r.signatures);
+    else if (lane === "grid") renderGrid(me, r);
+    else renderEntry(me, r);
+    return true;
+  }
+
+  /* ── a log entry, a survey respondent: the boxes, bound to the conversation's own open entry when there is one ── */
+  function renderEntry(me, r){
+    const isLog = me.kind === "log";
+    me.saveWord = isLog ? "Save entry" : "Record respondent";
+    me.typed = {}; me.draft = {}; me.ready = false; me.blank = []; me.rowSay = ""; me.cv = null; me.convLine = "";
+    me.entryCount = num0(r.entry_count);
+    me.entryNo = num0(isLog ? r.entry_number : r.respondent) || me.entryCount + 1;
+    const list = el("div", "pp-lf-list");
+    (isLog ? r.columns : r.questions).forEach(function (q) {
+      if (!q || typeof q !== "object") return;
+      const raw = isLog ? (q.field !== undefined ? q.field : q.key) : (q.field !== undefined ? q.field : q.number);
+      const f = (typeof raw === "string" || typeof raw === "number") ? String(raw) : "";
+      if (!shown(f) || me.byNum[f]) return;
+      const row = { q: q, num: f, i: me.rows.length, saved: "", ctl: null, st: null, el: null, cell: null, id: "",
+                    personal: q.personal === true, calc: false, busy: false, tried: null, asTyped: false, offLine: null,
+                    lane: me.lane, spoken: false, mark: null };
+      me.known[f] = "";
+      me.rows.push(row); me.byNum[f] = row;
+      list.appendChild(buildEntryRow(me, row, isLog));
+    });
+    ui.body.textContent = "";
+    ui.body.appendChild(list);
+    ui.body.appendChild(rowArea(me));
+    if (isLog) {
+      ui.body.appendChild(el("h3", "pp-lf-h3", "Saved entries"));
+      const cnt = el("p", "pp-hint"); cnt.id = "pp-lf-entry-count";
+      const ol = el("ol", "pp-lf-entries"); ol.id = "pp-lf-entries";
+      ui.body.appendChild(cnt); ui.body.appendChild(ol);
+      me.saved = { count: cnt, ol: ol, cols: null, n: me.entryCount };
+      txt(cnt, entriesLine(me.entryCount));
+    } else {
+      const cnt = el("p", "pp-hint"); cnt.id = "pp-lf-entry-count";
+      txt(cnt, me.entryCount === 1 ? "1 response recorded." : me.entryCount + " responses recorded.");
+      ui.body.appendChild(cnt);
+      me.saved = { count: cnt, ol: null, cols: null, n: me.entryCount };
+    }
+    me.voiceless = !me.rows.every(function (x) { return x.personal || typeof x.q.say === "string"; });
+    me.held = !!holdsOnOpen(me);
+    paintVoice();
+    agreeWithServer(me);
+    me.mode = "q";
+    paintLane(me);
+    const first = seekUnanswered(me, 0);
+    if (first === -1) toRow(me); else moveTo(me, first, "load");
+    if (isLog) loadSaved(me);
+    bindEntry(me);
+  }
+  function buildEntryRow(me, row, isLog){
+    const q = row.q, id = "pp-lf-b-" + (++uid);
+    const r = el("div", "pp-lf-row"); r.setAttribute("data-n", row.num); if (isLog) r.setAttribute("data-key", row.num);
+    const lab = el("label", "pp-lf-label", isLog ? String(q.label || row.num) : row.num + ". " + String(q.label || ""));
+    lab.htmlFor = id; lab.id = id + "-l";
+    const cell = el("div", "pp-lf-cell");
+    r.appendChild(lab); r.appendChild(cell);
+    row.el = r; row.cell = cell; row.id = id;
+    if (row.personal) { const lk = el("p", "pp-lf-locked", LOCKED_LINE); lk.id = id; cell.appendChild(lk); return r; }
+    const b = makeBox(fieldType(q), q.options, id, "", q.unit);
+    row.ctl = b.ctl;
+    cell.appendChild(b.ctl); if (b.hint) cell.appendChild(b.hint);
+    row.mark = el("p", "pp-lf-said"); row.mark.hidden = true;   /* "said to Benedict": a value Benedict wrote into the entry */
+    cell.appendChild(row.mark);
+    row.st = statusLine(cell);
+    wireBox(me, row);
+    return r;
+  }
+  function rowArea(me){
+    const a = el("div", "pp-lf-acts"); a.id = "pp-lf-row-acts";
+    a.appendChild(el("h3", "pp-lf-h3", me.kind === "log" ? "Save this entry" : "Record this respondent"));
+    const line = el("div", "pp-walk-row");
+    const sv = button(me.saveWord, "primary", function () { commitEntry(me, false, false); }); sv.id = "pp-lf-entry-commit";
+    const bl = button(me.kind === "log" ? "Save with them blank" : "Record with them blank", "",
+                      function () { commitEntry(me, true, false); });
+    bl.id = "pp-lf-commit-blank"; bl.hidden = true;
+    const bk = button("Back to the fields", "", function () { stepBack(me); }); bk.id = "pp-lf-row-back";
+    line.appendChild(sv); line.appendChild(bl); line.appendChild(bk);
+    a.appendChild(line);
+    const why = el("p", "pp-walk-why"); why.id = "pp-lf-row-why"; why.setAttribute("role", "status");
+    const res = el("p", "pp-walk-count"); res.id = "pp-lf-row-result"; res.setAttribute("role", "status"); res.setAttribute("aria-live", "polite");
+    a.appendChild(why); a.appendChild(res);
+    me.rowArea = a;
+    return a;
+  }
+  function paintRowArea(me){
+    const why = $("pp-lf-row-why");
+    if (!why || lf !== me || !me.rowArea) return;
+    let s = "";
+    if (!me.cv) s = "Press " + me.saveWord + " to save what you typed.";
+    else if (me.ready === true) s = "Everything is in — press " + me.saveWord + ".";
+    else if (me.blank && me.blank.length) s = "Still blank: " + me.blank.join(", ") + ".";
+    txt(why, s);
+  }
+  function toRow(me){
+    if (lf !== me || !me.rowArea) return;
+    clearTimeout(me.timer); me.timer = null;
+    me.mode = "row"; me.cur = -1; me.seq++; me.how = "next";
+    paintCursor(me);
+    paintRowArea(me);
+    keepInView(me.rowArea);
+    focusIn($("pp-lf-entry-commit"));
+    stepOut(me);                                            /* the ONE walk_step of this move: the row step */
+  }
+  async function loadSaved(me){
+    const sv = me.saved;
+    if (!sv || !sv.ol) return;
+    const r = await P.action("log_entries", { instance_id: me.iid });
+    if (lf !== me || lapsed(r) || goneIf(me, r)) return;
+    if (!r || r.success !== true || !Array.isArray(r.entries)) { txt(sv.count, msgOf(r, "The saved entries can't be listed here just now.")); return; }
+    sv.cols = (Array.isArray(r.columns) ? r.columns : []).filter(function (c) { return c && shown(c.key); })
+      .map(function (c) { return { key: String(c.key), label: String(c.label || c.key), personal: c.is_pii === true || c.personal === true }; });
+    sv.ol.textContent = "";
+    r.entries.forEach(function (e, i) { if (e && typeof e === "object") sv.ol.appendChild(entryItem(me, e.values, i + 1)); });
+    sv.n = r.entries.length; me.entryCount = sv.n;
+    txt(sv.count, entriesLine(sv.n));
+  }
+
+  /* ── the conversation's own entry (§2): bind, read, write ── */
+  function bindEntry(me){
+    if (lf !== me || !laneRows(me) || me.cv) return Promise.resolve(false);
+    const C = CV();
+    if (!C) return Promise.resolve(false);
+    const held = binds.get(me.iid);
+    if (held && C.known(held)) me.cv = held;                /* begun in a conversation that has since closed: still its own */
+    else {
+      const h = C.now();
+      if (!h || me.refusedConv === h || !C.bind(h)) { paintLane(me); return Promise.resolve(false); }
+      me.cv = h; binds.set(me.iid, h);
+    }
+    me.convLine = "";
+    return joinDraft(me);
+  }
+  async function joinDraft(me){
+    const before = me.rows.filter(function (x) { return dirty(x) && !x.personal; });   /* typed before it connected */
+    const r = await readDraft(me);
+    if (lf !== me || !me.cv) return false;
+    if (me.kind !== "grid" && before.length) {               /* §2: pushed in on connect — only what the entry does not hold */
+      const push = before.filter(function (x) { return dirty(x) && !shown(x.saved); });
+      if (push.length) await pushRows(me, push);
+      if (lf !== me) return false;
+    }
+    paintLane(me);
+    const row = curRow(me);
+    if (me.mode === "q" && row && shown(row.saved) && !dirty(row)) {   /* the cursor's field is in the entry already */
+      const j = seekUnanswered(me, 0);
+      if (j === -1 && me.rowArea) toRow(me); else if (j !== -1) moveTo(me, j, "load"); else stepOut(me);
+      return !!r;
+    }
+    stepOut(me);
+    return !!r;
+  }
+  async function readDraft(me){
+    if (lf !== me || !me.cv) return null;
+    if (me.kind === "grid") return rereadGrid(me);
+    let r = await P.action("entry_draft", { instance_id: me.iid, conversation: me.cv });
+    if (lf !== me || lapsed(r) || goneIf(me, r) || convRefused(me, r)) return null;
+    if (!r || r.success !== true) {                          /* not served for this lane: form_fields carries the same parts */
+      r = await P.action("form_fields", { instance_id: me.iid, conversation: me.cv });
+      if (lf !== me || lapsed(r) || goneIf(me, r) || convRefused(me, r)) return null;
+      if (!r || r.success !== true) return null;
+    }
+    applyDraft(me, r);
+    return r;
+  }
+  // the server's draft as the boxes show it: a box being typed into keeps its typing; a value the page did not write is
+  // Benedict's ("said to Benedict"); a personal field is never held here, whatever arrives
+  function applyDraft(me, r){
+    if (!r || typeof r !== "object" || lf !== me) return;
+    const dv = (r.draft_values && typeof r.draft_values === "object" && !Array.isArray(r.draft_values)) ? r.draft_values : null;
+    if (dv) {
+      me.draft = {};
+      me.rows.forEach(function (row) {
+        if (!row.ctl || row.personal) return;
+        const has = Object.prototype.hasOwnProperty.call(dv, row.num);
+        const raw = has ? dv[row.num] : "";
+        const v = (typeof raw === "string" || typeof raw === "number") ? String(raw) : "";
+        if (has) me.draft[row.num] = v;
+        row.spoken = shown(v) && me.typed[row.num] !== v;
+        if (dirty(row) && String(row.ctl.value || "").trim() !== v.trim()) { row.saved = v; me.known[row.num] = v; }
+        else setSaved(me, row, v, null);
+        if (row.mark) { txt(row.mark, row.spoken ? SAYS_SAID : ""); row.mark.hidden = !row.spoken; }
+      });
+    }
+    if (typeof r.ready === "boolean") me.ready = r.ready;
+    if (Array.isArray(r.blank)) me.blank = r.blank.filter(function (b) { return typeof b === "string"; }).slice(0, 60);
+    if (typeof r.row_say === "string") me.rowSay = r.row_say;
+    const n = num0(me.kind === "log" ? r.entry_number : r.respondent);
+    if (n) me.entryNo = n;
+    paintLane(me);
+  }
+  function lists(r){ return !!r && Array.isArray(r.recorded) && Array.isArray(r.skipped) && Array.isArray(r.unchanged); }
+  function itemOf(r, f){
+    const ks = ["recorded", "unchanged", "skipped"];
+    for (let i = 0; i \x3c ks.length; i++) {
+      const a = Array.isArray(r[ks[i]]) ? r[ks[i]] : [];
+      const it = a.find(function (x) { return !!x && typeof x === "object" && (String(x.field) === String(f) || String(x.question_number) === String(f)); });
+      if (it) return { where: ks[i], item: it };
+    }
+    return { where: "", item: null };
+  }
+  function lineOf(r, f, reason){
+    const ms = (r && r.messages && typeof r.messages === "object") ? r.messages : {};
+    if (typeof ms[f] === "string" && ms[f].trim()) return ms[f].trim();
+    return REASON_LINE[reason] || msgOf(r, "That answer was not saved.");
+  }
+  function floorOf(r, f){
+    const fl = (r && r.floors && typeof r.floors === "object") ? r.floors[f] : null;
+    return (fl && typeof fl === "object") ? { floor: String(fl.floor || ""), overridable: fl.overridable === true } : { floor: "", overridable: false };
+  }
+  // (§7) the server's two refusals of a conversation, and the page's own (its handle gone): the server's line, and the entry
+  // goes back to the boxes and a whole commit — that conversation is not asked again
+  function convRefused(me, r){
+    const c = codeOf(r);
+    if (CONV_CODES.indexOf(c) === -1) return false;
+    const C = CV();
+    if (me.cv) {
+      me.refusedConv = me.cv;
+      if (C) C.release(me.cv);
+      if (binds.get(me.iid) === me.cv) binds.delete(me.iid);
+      me.cv = null;
+    }
+    me.convLine = c === "CONVERSATION_NOT_YOURS" ? msgOf(r, SAYS_CONV_NOT_YOURS) : msgOf(r, SAYS_CONV_UNKNOWN);
+    log("the conversation was refused (" + c + "): typed answers stay in the boxes");
+    paintLane(me);
+    return true;
+  }
+  // a write door's three lists, per box: in the entry (recorded / unchanged), or skipped with the server's line and floor
+  function laneSaved(me, rows, r, sent){
+    if (!r || r.success !== true || !lists(r)) {
+      rows.forEach(function (x) { refusedRow(me, x, msgOf(r, "That answer was not saved."), "", false); });
+      return false;
+    }
+    rows.forEach(function (x) {
+      const it = itemOf(r, x.num);
+      if ((it.where === "recorded" || it.where === "unchanged") && it.item) {
+        me.typed[x.num] = typeof it.item.value === "string" ? it.item.value : String(x.ctl.value || "");
+      }
+    });
+    applyDraft(me, r);
+    let all = true;
+    rows.forEach(function (x) {
+      const it = itemOf(r, x.num);
+      if (it.where === "recorded" || it.where === "unchanged") {
+        x.tried = null; x.asTyped = false;
+        const has = Object.prototype.hasOwnProperty.call(me.draft, x.num);
+        setSaved(me, x, has ? me.draft[x.num] : (me.typed[x.num] || ""), sent ? sent[x.num] : String(x.ctl.value || ""));
+        me.typed[x.num] = x.saved;                            /* what the page wrote, in the form the entry holds it */
+        x.spoken = false; if (x.mark) { txt(x.mark, ""); x.mark.hidden = true; }
+        say(x.st, me.kind === "log" ? SAYS_IN_ENTRY : SAYS_IN_RESP, true);
+        if (it.where === "recorded") { tellChanged(me, x.num, { draft: true }); me.viewDirty = true; }
+        return;
+      }
+      all = false;
+      const reason = (it.item && typeof it.item.reason === "string") ? it.item.reason : "";
+      if (reason === "changed_elsewhere") setSaved(me, x, Object.prototype.hasOwnProperty.call(me.draft, x.num) ? me.draft[x.num] : "", null);
+      const fl = floorOf(r, x.num);
+      refusedRow(me, x, lineOf(r, x.num, reason), fl.floor, fl.overridable);
+    });
+    if (me.cur !== -1) { const t = $("pp-lf-typed"); const c = curRow(me); if (t && c) t.hidden = !c.asTyped; }
+    return all;
+  }
+  function busyWait(me){
+    return new Promise(function (res) {
+      let n = 0;
+      (function tick(){ if (lf !== me || !me.rows.some(function (x) { return x.busy; }) || ++n > 60) res(); else setTimeout(tick, 50); })();
+    });
+  }
+  async function pushRows(me, rows){
+    const isLog = me.kind === "log", vals = {}, expect = {};
+    rows.forEach(function (x) { vals[x.num] = String(x.ctl.value || ""); expect[x.num] = String(x.saved || ""); });
+    const args = { instance_id: me.iid, conversation: me.cv, expect: expect };
+    args[isLog ? "values" : "answers"] = vals;
+    rows.forEach(function (x) { x.busy = true; say(x.st, "Saving…", null); });
+    let r;
+    try { r = await (isLog ? P.action("save_log_draft", args) : P.action("save_survey_answers", args)); }
+    finally { rows.forEach(function (x) { x.busy = false; }); }
+    if (lf !== me || lapsed(r) || goneIf(me, r)) return false;
+    if (convRefused(me, r)) { rows.forEach(function (x) { say(x.st, "", null); }); return false; }
+    return laneSaved(me, rows, r, vals);
+  }
+  async function saveLaneRow(me, row, how){
+    if (me.kind === "grid") { saveGridRow(me, row, how); return; }
+    const astyped = how === "astyped";
+    const v = String(row.ctl.value || "");
+    if (!me.cv) {                                            /* no conversation: the box holds it; Save entry saves it whole */
+      if ((how === "enter" || how === "button" || how === "pick") && isCursor(me, row)) next(me);
+      return;
+    }
+    if (!astyped && v.trim() === String(row.saved || "").trim()) {      /* nothing changed: no request */
+      if ((how === "enter" || how === "button") && isCursor(me, row)) {
+        if (!shown(v)) { say(row.st, row.ctl.tagName === "SELECT" ? "Pick an answer, or press Skip." : "Type an answer, or press Skip.", null); return; }
+        next(me);
+      }
+      return;
+    }
+    if (how === "leave" && row.tried === v) return;         /* (Phase 4) refused just now: kept, with the server's line */
+    if (astyped && !v.trim()) { say(row.st, "Type the answer in the box first.", false); return; }
+    const at = me.seq, isLog = me.kind === "log";
+    if (!astyped) row.tried = v;
+    const one = {}, expect = {};
+    one[row.num] = v; expect[row.num] = String(row.saved || "");
+    const args = { instance_id: me.iid, conversation: me.cv, expect: expect };
+    args[isLog ? "values" : "answers"] = one;
+    if (astyped && isLog) args.override = [row.num];        /* a FORMAT floor the server called overridable, this key only */
+    row.busy = true;
+    say(row.st, "Saving…", null);
+    let r;
+    try { r = await (isLog ? P.action("save_log_draft", args) : P.action("save_survey_answers", args)); }
+    finally { row.busy = false; }
+    if (lf !== me || lapsed(r) || goneIf(me, r)) return;
+    if (convRefused(me, r)) { say(row.st, "", null); return; }   /* the box keeps it: Save entry saves the whole entry */
+    if (!laneSaved(me, [row], r, one)) return;
+    if (isCursor(me, row) && me.seq === at) next(me);
+    else if (isCursor(me, row)) paintCursor(me);
+  }
+
+  /* ── the commit: Save entry / Record respondent, or kev's save_entry ── */
+  async function commitEntry(me, blank, viaVoice){
+    if (lf !== me || me.committing || !me.rowArea) return false;
+    const isLog = me.kind === "log", res = $("pp-lf-row-result"), bl = $("pp-lf-commit-blank");
+    me.committing = true;
+    if (bl) bl.hidden = true;
+    txt(res, "Saving…");
+    let r = null;
+    try {
+      await busyWait(me);                                    /* a box being saved as it was left: its write lands first */
+      if (lf !== me) return false;
+      if (me.cv) {
+        const typed = me.rows.filter(function (x) { return dirty(x) && !x.personal && x.ctl; });
+        if (typed.length && !(await pushRows(me, typed))) {
+          if (lf !== me) return false;
+          if (me.cv) { txt(res, "Nothing was saved — check the fields marked above."); refuseCommit(me, viaVoice, "Nothing was saved — some fields need checking on the screen."); return false; }
+          txt(res, me.convLine || SAYS_CONV_UNKNOWN);       /* the conversation was refused: the next press saves the boxes */
+          return false;
+        }
+        if (lf !== me) return false;
+      }
+      if (me.cv) {
+        const args = { instance_id: me.iid, conversation: me.cv };
+        if (blank === true) args.save_blank = true;
+        r = await P.action("commit_entry", args);
+      } else {
+        const values = {};
+        me.rows.forEach(function (x) { if (x.ctl && !x.personal) values[x.num] = String(x.ctl.value || ""); });
+        const args = { instance_id: me.iid, values: values };
+        if (blank === true) args.save_blank = true;
+        r = isLog ? await P.action("save_log_entry", args) : await P.action("commit_entry", args);   /* 2.2.417's save, as today */
+      }
+    } finally { me.committing = false; }
+    if (lf !== me) return false;
+    if (TYPING_OFF.indexOf(codeOf(r)) !== -1 && !isLog) { txt(res, msgOf(r, "The respondent was not recorded.")); return false; }
+    if (TYPING_OFF.indexOf(codeOf(r)) !== -1) { liveOff = true; offKey = me.key; closeLive("off"); note(SAYS_SOON); return false; }
+    if (lapsed(r) || goneIf(me, r)) return false;
+    if (convRefused(me, r)) { txt(res, me.convLine); refuseCommit(me, viaVoice, me.convLine); return false; }
+    if (r && r.success === true) { committed(me, r); return true; }
+    const code = codeOf(r);
+    if (code === "BLANK_FIELDS") {
+      txt(res, msgOf(r, "Some fields are blank. Save the entry with them blank?"));
+      if (bl) bl.hidden = false;
+      refuseCommit(me, viaVoice, msgOf(r, "Some fields are blank."));
+      return false;
+    }
+    if (code === "ENTRY_REFUSED" && Array.isArray(r.refused)) {
+      r.refused.forEach(function (f) {
+        const x = f && me.byNum[String(f.key)];
+        if (x) say(x.st, msgOf(f, "This value was not accepted."), false);
+      });
+    } else if (r && Array.isArray(r.skipped)) {
+      r.skipped.forEach(function (it) { const x = it && me.byNum[String(it.field)]; if (x) say(x.st, lineOf(r, x.num, String(it.reason || "")), false); });
+    }
+    txt(res, msgOf(r, isLog ? "The entry was not saved." : "The respondent was not recorded."));
+    refuseCommit(me, viaVoice, msgOf(r, isLog ? "The entry was not saved." : "The respondent was not recorded."));
+    return false;
+  }
+  // a SPOKEN commit that did not happen: the row step again, with the reason as its line (refused:"save_entry") — kev says
+  // nothing on save_entry, so the page's own answer is the only one
+  function refuseCommit(me, viaVoice, line){
+    if (viaVoice !== true || lf !== me || me.held || me.voiceless || !ready() || !walksNow(me)) return;
+    emit(me, Object.assign({}, rowEnv(me), { step: "row", say: String(line || ""), refused: "save_entry" }), true);
+  }
+  function committed(me, r){
+    const isLog = me.kind === "log", res = $("pp-lf-row-result");
+    const saved = (r.saved && typeof r.saved === "object" && !Array.isArray(r.saved)) ? r.saved : null;
+    const dup = r.already_saved === true
+      || (Array.isArray(r.recorded) && r.recorded.length === 0 && Array.isArray(r.unchanged) && r.unchanged.length > 0);
+    // (R2) a field the entry held that the saved row does not: said, never guessed
+    const lost = !saved ? [] : me.rows.filter(function (x) {
+      if (x.personal || !shown((me.draft || {})[x.num])) return false;
+      const lab = String(x.q.label || "");
+      return !shown(saved[x.num]) && !(lab && shown(saved[lab]));
+    }).map(function (x) { return String(x.q.label || x.num); });
+    const n = num0(r.entry_count);
+    me.entryCount = n || (me.entryCount + (dup ? 0 : 1));
+    let line = dup ? (isLog ? "Already saved — this entry is in the log." : "Already recorded.")
+                   : (isLog ? "Saved — the log now has " + me.entryCount + (me.entryCount === 1 ? " entry." : " entries.")
+                            : "Recorded — " + me.entryCount + (me.entryCount === 1 ? " response so far." : " responses so far."));
+    if (lost.length) line += " Check the saved entry: " + lost.join(", ") + (lost.length === 1 ? " was" : " were") + " not in it.";
+    if (!dup) { tellChanged(me, null); me.viewDirty = true; }
+    // a fresh entry: the boxes empty, the next number; bound to the open conversation (an earlier one is let go)
+    const C = CV();
+    if (me.cv && C && C.now() !== me.cv) { C.release(me.cv); if (binds.get(me.iid) === me.cv) binds.delete(me.iid); me.cv = null; }
+    me.typed = {}; me.draft = {}; me.ready = false; me.blank = []; me.rowSay = "";
+    me.entryNo = num0(isLog ? r.next_entry_number : r.next_respondent) || me.entryCount + 1;
+    me.rows.forEach(function (x) {
+      if (!x.ctl) return;
+      x.saved = ""; x.tried = null; x.asTyped = false; x.spoken = false; me.known[x.num] = "";
+      x.ctl.value = ""; say(x.st, ""); if (x.mark) { txt(x.mark, ""); x.mark.hidden = true; }
+    });
+    if (me.saved && me.saved.count && !isLog) txt(me.saved.count, me.entryCount === 1 ? "1 response recorded." : me.entryCount + " responses recorded.");
+    if (isLog) loadSaved(me);
+    paintLane(me);
+    txt(res, line);
+    const first = seekUnanswered(me, 0);
+    if (first !== -1) moveTo(me, first, "load");
+    if (!me.cv) bindEntry(me);
+  }
+  // kev's walk_control op save_entry (the spoken "save this entry"): only while this page walks the entry, in its own
+  // conversation, its Save button shown and usable — then exactly the press of it; the page reports what happened
+  function onSaveEntry(m){
+    const me = lf;
+    if (!me || me.mode === "load" || me.mode === "done" || !me.rowArea) { ignore("no entry on screen to save", m); return; }
+    const said = (m.instance_id === undefined || m.instance_id === null) ? "" : String(m.instance_id).trim();
+    if (said && said !== me.iid) { ignore("another copy's, not the one on screen", m); return; }
+    if (!walksNow(me) || !me.sentAny) { ignore("this entry is not walked in this conversation", m); return; }
+    if (!usable($("pp-lf-entry-commit")) || me.committing) { ignore("its button is not usable", m); return; }
+    commitEntry(me, false, true);
+  }
+
+  /* ── a task grid: the week, one cursor per cell, the walk down one day ── */
+  function renderGrid(me, r){
+    const cols = (Array.isArray(r.columns) ? r.columns : []).filter(function (c) { return c && typeof c === "object" && shown(c.key); })
+      .map(function (c) { return { key: String(c.key), label: shown(c.label) ? String(c.label) : String(c.key), date: shown(c.date) ? String(c.date) : "", future: c.future === true }; });
+    const tasks = (Array.isArray(r.rows) ? r.rows : []).filter(function (t) { return t && typeof t === "object" && shown(t.key); })
+      .map(function (t) { return { key: String(t.key), label: String(t.label || t.key), personal: t.personal === true }; });
+    me.colsBy = {}; me.colHeads = {}; me.cv = null; me.gridDraft = null;
+    cols.forEach(function (c) { me.colsBy[c.key] = c; });
+    me.weekOf = shown(r.week_of) ? String(r.week_of) : "";
+    const cells = {};
+    r.cells.forEach(function (c) { if (c && typeof c === "object" && shown(c.field)) cells[String(c.field)] = c; });
+    const sit = (r.sitting && typeof r.sitting === "object") ? r.sitting : null;
+    const sitCol = sit && shown(sit.date) ? cols.find(function (c) { return c.date === String(sit.date); }) : null;
+    const today = shown(r.today_column) && me.colsBy[String(r.today_column)] ? String(r.today_column) : "";
+    const open1 = cols.find(function (c) { return !c.future; });
+    me.walkCol = sitCol ? sitCol.key : (today || (open1 ? open1.key : ""));
+    const wrap = el("div", "pp-lf-gridwrap"), table = el("table", "pp-lf-grid"), head = el("tr");
+    head.appendChild(el("th", "", "Task"));
+    cols.forEach(function (c) {
+      const th = el("th", c.future ? "pp-lf-future" : "", c.label); th.setAttribute("scope", "col"); th.setAttribute("data-col", c.key);
+      if (c.date) th.title = c.date;
+      head.appendChild(th); me.colHeads[c.key] = th;
+    });
+    const thead = el("thead"); thead.appendChild(head); table.appendChild(thead);
+    const tb = el("tbody"), byCol = {};
+    me.gridTools = el("div", "pp-lf-gridtools");
+    tasks.forEach(function (t) {
+      const tr = el("tr"), th = el("th", "", t.label); th.setAttribute("scope", "row"); tr.appendChild(th);
+      cols.forEach(function (c) {
+        const cell = cells[t.key + "|" + c.key] || Object.keys(cells).map(function (k) { return cells[k]; })
+          .find(function (x) { return String(x.row_key) === t.key && String(x.column_key) === c.key; });
+        const td = el("td", "pp-lf-gcell"); td.setAttribute("data-col", c.key);
+        tr.appendChild(td);
+        if (!cell) { td.appendChild(el("span", "pp-lf-locked", "—")); return; }
+        const row = { q: cell, num: String(cell.field), i: -1, saved: shown(cell.value) ? String(cell.value) : "", ctl: null,
+                      st: null, el: td, cell: me.gridTools, id: "pp-lf-b-" + (++uid), personal: t.personal || cell.personal === true,
+                      calc: false, busy: false, tried: null, asTyped: false, offLine: null, lane: "grid", col: c.key };
+        if (cell.future !== true && c.future) cell.future = true;
+        td.setAttribute("data-n", row.num);
+        if (row.personal) td.appendChild(el("span", "pp-lf-locked", "not collected"));
+        else buildGridBox(me, row, td);
+        (byCol[c.key] = byCol[c.key] || []).push(row);
+      });
+      tb.appendChild(tr);
+    });
+    const ti = el("tr", "pp-lf-ginit"), tih = el("th", "", "Initials"); tih.setAttribute("scope", "row"); ti.appendChild(tih);
+    cols.forEach(function (c) {
+      const td = el("td", "pp-lf-gcell"); td.setAttribute("data-col", c.key);
+      const num = "initials|" + c.key;
+      td.setAttribute("data-n", num);
+      const row = { q: { column_key: c.key, future: c.future, label: "Initials — " + c.label }, num: num, i: -1,
+                    saved: (sit && String(sit.date) === c.date && shown(sit.initials)) ? String(sit.initials) : "", ctl: null,
+                    st: null, el: td, cell: me.gridTools, id: "pp-lf-b-" + (++uid), personal: false, calc: false, busy: false,
+                    tried: null, asTyped: false, offLine: null, lane: "grid", col: c.key, initials: true,
+                    say: "Your initials for " + c.label + "?" };
+      const b = makeBox("text", null, row.id, row.saved, null);
+      b.ctl.setAttribute("aria-label", row.q.label); b.ctl.maxLength = 20;
+      if (c.future) { b.ctl.disabled = true; td.classList.add("pp-lf-future"); }
+      td.appendChild(b.ctl); row.ctl = b.ctl;
+      row.st = statusLine(td);
+      wireBox(me, row);
+      ti.appendChild(td);
+      (byCol[c.key] = byCol[c.key] || []).push(row);
+    });
+    tb.appendChild(ti);
+    table.appendChild(tb); wrap.appendChild(table);
+    cols.forEach(function (c) { (byCol[c.key] || []).forEach(function (row) { row.i = me.rows.length; me.rows.push(row); me.byNum[row.num] = row; }); });
+    ui.body.textContent = "";
+    ui.body.appendChild(wrap);
+    ui.body.appendChild(me.gridTools);
+    const acts = el("div", "pp-lf-acts"); acts.id = "pp-lf-acts"; acts.hidden = true;
+    ui.body.appendChild(acts);
+    me.acts = acts;
+    me.voiceless = !me.rows.every(function (x) { return x.personal || x.initials || typeof x.q.say === "string"; });
+    me.held = !!holdsOnOpen(me);
+    paintVoice();
+    agreeWithServer(me);
+    paintCols(me);
+    me.mode = "q";
+    paintLane(me);
+    const first = seekUnanswered(me, 0);
+    if (first === -1) toActions(me, true); else moveTo(me, first, "load");
+    bindEntry(me);
+  }
+  function buildGridBox(me, row, td){
+    const cell = row.q, sel = document.createElement("select");
+    sel.appendChild(el("option", "", UNPICKED)); sel.options[0].value = "";
+    const opts = Array.isArray(cell.options) && cell.options.length ? cell.options.map(String) : GRID_OPTIONS.slice();
+    opts.forEach(function (o) { const op = el("option", "", o); op.value = o; sel.appendChild(op); });
+    sel.value = pickOption(opts, row.saved);
+    sel.id = row.id; sel.className = "lv-input pp-lf-input pp-lf-gsel";
+    sel.setAttribute("aria-label", String(cell.label || ""));
+    td.appendChild(sel); row.ctl = sel;
+    row.st = statusLine(td);
+    if (cell.future === true) { sel.disabled = true; td.classList.add("pp-lf-future"); }
+    if (cell.logged === true && cell.mine === false) elsewhere(row);
+    else if (shown(row.saved)) say(row.st, gridWord(row, row.saved), true);
+    wireBox(me, row);
+  }
+  function elsewhere(row){
+    row.q.logged = true; row.q.mine = false;
+    if (row.ctl) row.ctl.disabled = true;
+    if (row.el) row.el.classList.add("pp-lf-elsewhere");
+    say(row.st, SAYS_ELSEWHERE, true);
+  }
+  function gridWord(row, v){
+    if (row.initials) return shown(v) ? "✓ Saved" : "✓ Cleared";
+    return v === "Done" ? SAYS_LOGGED : (shown(v) ? SAYS_NOT_DONE : "✓ Cleared");
+  }
+  function paintCols(me){
+    Object.keys(me.colHeads || {}).forEach(function (k) { me.colHeads[k].classList.toggle("pp-lf-walkcol", k === me.walkCol); });
+    me.rows.forEach(function (x) { if (x.el && x.col !== undefined) x.el.classList.toggle("pp-lf-walkcol", x.col === me.walkCol); });
+  }
+  // a click (or Tab) into another day's cell: the walk goes to that day, and kev's sitting with it ("date|\x3ccolumn>": the
+  // server clears that conversation's sitting and writes the day, so nothing held for the old day is carried over)
+  function gridFocus(me, row){
+    if (!row || row.col === undefined || row.col === me.walkCol || !row.ctl || row.personal) return;
+    if (row.q.future === true || (row.q.logged === true && row.q.mine === false)) return;
+    me.walkCol = row.col;
+    paintCols(me);
+    paintLane(me);
+    const c = me.colsBy[row.col];
+    if (me.cv && c) { const cells = {}; cells["date|" + c.key] = c.date || c.key; gridSave(me, cells); }
+  }
+  async function gridSave(me, cells){
+    const args = { instance_id: me.iid, cells: cells };
+    if (me.cv) args.conversation = me.cv;
+    let r;
+    try { r = await P.action("save_grid_cells", args); } catch(e) { r = null; }
+    if (lf !== me) return null;
+    if (args.conversation && convRefused(me, r)) {           /* rows are the record: once more, without a conversation */
+      if (Object.keys(cells).some(function (k) { return k.indexOf("date|") === 0; })) return null;
+      try { r = await P.action("save_grid_cells", { instance_id: me.iid, cells: cells }); } catch(e) { r = null; }
+      if (lf !== me) return null;
+    }
+    return r;
+  }
+  async function saveGridRow(me, row, how){
+    const v = row.initials ? String(row.ctl.value || "").trim() : String(row.ctl.value || "");
+    if (v === String(row.saved || "").trim()) {
+      if ((how === "enter" || how === "button") && isCursor(me, row)) {
+        if (!shown(v)) { say(row.st, row.initials ? "Type your initials, or press Skip." : "Pick Done or Not Done, or press Skip.", null); return; }
+        next(me);
+      }
+      return;
+    }
+    if (how === "leave" && row.tried === v) return;
+    const at = me.seq, cells = {};
+    cells[row.num] = v;
+    row.tried = v; row.busy = true;
+    say(row.st, "Saving…", null);
+    let r;
+    try { r = await gridSave(me, cells); } finally { row.busy = false; }
+    if (lf !== me || !r || lapsed(r) || goneIf(me, r)) return;
+    if (r.success !== true || !lists(r)) { refusedRow(me, row, msgOf(r, "That wasn't logged."), "", false); return; }
+    if (r.draft_values && typeof r.draft_values === "object" && !Array.isArray(r.draft_values)) me.gridDraft = r.draft_values;
+    const it = itemOf(r, row.num);
+    if (it.where === "recorded" || it.where === "unchanged") {
+      const val = (it.item && typeof it.item.value === "string") ? it.item.value : v;
+      row.tried = null;
+      setSaved(me, row, val, v);
+      if (!row.initials) row.q.value = shown(val) ? val : null;
+      say(row.st, gridWord(row, val), true);
+      if (it.where === "recorded") { tellChanged(me, row.num); me.viewDirty = true; }
+      if (isCursor(me, row) && me.seq === at) next(me); else if (isCursor(me, row)) paintCursor(me);
+      return;
+    }
+    const reason = (it.item && typeof it.item.reason === "string") ? it.item.reason : "";
+    if (reason === "logged_elsewhere") { setSaved(me, row, "Done", null); elsewhere(row); return; }
+    const fl = floorOf(r, row.num);
+    refusedRow(me, row, lineOf(r, row.num, reason), fl.floor, fl.overridable);
+  }
+  async function rereadGrid(me){
+    if (lf !== me) return null;
+    const args = { instance_id: me.iid };
+    if (me.cv) args.conversation = me.cv;
+    let r;
+    try { r = await P.action("form_fields", args); } catch(e) { return null; }
+    if (lf !== me || lapsed(r) || goneIf(me, r)) return null;
+    if (args.conversation && convRefused(me, r)) return rereadGrid(me);
+    if (!r || r.success !== true || !Array.isArray(r.cells)) return null;
+    r.cells.forEach(function (c) {
+      const row = c && typeof c === "object" ? me.byNum[String(c.field)] : null;
+      if (!row || row.initials || !row.ctl) return;
+      Object.assign(row.q, c);
+      if (!dirty(row) && !row.busy) { setSaved(me, row, shown(c.value) ? String(c.value) : "", null); if (shown(row.saved)) say(row.st, gridWord(row, row.saved), true); }
+      if (c.logged === true && c.mine === false) elsewhere(row);
+    });
+    const sit = (r.sitting && typeof r.sitting === "object") ? r.sitting : null;
+    if (sit && shown(sit.date)) {
+      me.rows.forEach(function (x) { if (x.initials && me.colsBy[x.col] && me.colsBy[x.col].date === String(sit.date) && !dirty(x) && shown(sit.initials)) setSaved(me, x, String(sit.initials), null); });
+    }
+    if (r.draft_values && typeof r.draft_values === "object" && !Array.isArray(r.draft_values)) me.gridDraft = r.draft_values;
+    return r;
+  }
+
+  /* ── kev's results for a lane ── */
+  function laneResult(me, row, m){
+    // (25 Oct 2026, Yusuf CC from kev's code) a user who SPEAKS on a consent step: kev refuses before any write and says
+    //   nothing, and sends walk_result {ok:false, reason:"lane_not_supported", floor:"kev_walk_pass1_qa_only", lane:"consent"}
+    //   — correct behaviour, not an error. Every result on a consent form is IGNORED: no mark on the box, no failure line, no
+    //   cursor move; the form's own line ("Type the answers — …") is shown again, as text
+    if (me.kind === "consent") {
+      if (!me.completed && !ui.shell.classList.contains("pp-live-ro")) txt(ui.msg, SAYS_CONSENT);
+      ignore("a consent form is typed on the screen, never filled in by voice", m);
+      return;
+    }
+    const said = (m.instance_id === undefined || m.instance_id === null) ? "" : String(m.instance_id).trim();
+    if (said && said !== me.iid) { ignore("another copy's, not the one on screen", m); return; }
+    if (String(m.lane === undefined ? "" : m.lane) !== me.lane) { ignore("not this form's lane", m); return; }
+    if (m.row === true || (m.entry_count !== undefined && m.field === undefined)) {   /* kev touched the entry as a whole */
+      readDraft(me); if (me.kind === "log") loadSaved(me);
+      return;
+    }
+    if (!row || me.mode !== "q") { ignore("no field at the cursor", m); return; }
+    if (!sameNumber(me, m)) { ignore("not the field at the cursor", m); return; }
+    if (!stepIsCurrent(me)) { ignore("its field was not sent in this conversation", m); return; }
+    if (m.ok === true) {
+      row.tried = null; row.asTyped = false;
+      say(row.st, me.kind === "grid" ? gridWord(row, String(m.value_saved || "")) : (me.kind === "log" ? SAYS_IN_ENTRY : SAYS_IN_RESP), true);
+      const t = $("pp-lf-typed"); if (t) t.hidden = true;
+      me.viewDirty = true;
+      const at = me.seq;
+      clearTimeout(me.timer);
+      const read = me.kind === "grid" ? rereadGrid(me) : readDraft(me);   /* the box then shows what the server holds */
+      const wait = new Promise(function (res) { me.timer = setTimeout(res, VOICE_ADVANCE_MS); });
+      Promise.all([read, wait]).then(function () { if (lf === me && me.seq === at && isCursor(me, row)) next(me); });
+      return;
+    }
+    if (m.set_aside === true) { setAsideRow(me, row, m); return; }   /* (D9) */
+    const fl = String(m.floor || "");
+    refusedRow(me, row, shown(m.reason) ? String(m.reason) : "That answer was not saved.", fl, fl !== "kev_type_precheck");
+  }
+  // ⭐ (D9 — kev 1.133.0, agreed with Yusuf CC; Yusuf: "YES PLEASE, ALL OF THEM") THE SERVER SET THIS QUESTION ASIDE after
+  //   repeated refusals: kev's walk_result {ok:false, set_aside:true}. Taken ONLY for the field at the cursor whose step went
+  //   out in this conversation — the callers check both first; the flag is never trusted alone. The box stays visibly
+  //   BLANK, marked "Set aside" (text), and the walk moves on like a skip to the next open field; Back still returns to it.
+  //   ⛔ NEVER A SIGNATURE BOX: onResult turns a result for one away before this point, and the two paths stay SEPARATE on
+  //   purpose — here the SERVER decided, after three refusals, and the user can see the blank box; at a signature box a
+  //   misheard word must never pass an unsigned box (2.2.426: a sign step never moves on a refusal or a skip word).
+  function setAsideRow(me, row, m){
+    if (!row || row.sign || !isCursor(me, row)) return;
+    row.tried = null; row.asTyped = false; row.setAside = true;
+    say(row.st, SAYS_SET_ASIDE, null);
+    if (row.el) row.el.setAttribute("data-set-aside", "true");
+    const t = $("pp-lf-typed"); if (t) t.hidden = true;
+    log("set aside by the server: the walk moves on");
+    next(me, "skip");
+  }
+  // a consent form's save, as the question form's code reads a save: one of the three lists (the server's own line and floor
+  // for a skipped one) — unchanged when nothing was written; the reply as it came when it carries no lists
+  function consentReply(r, qn){
+    if (!r || r.success !== true || !lists(r)) return r;
+    const it = itemOf(r, qn);
+    if (it.where === "skipped" || it.where === "") {
+      const reason = (it.item && typeof it.item.reason === "string") ? it.item.reason : "";
+      const fl = floorOf(r, qn);
+      return { success: false, error_code: "VALUE_REFUSED", message: lineOf(r, qn, reason),
+               floor: fl.floor || String(r.floor || ""), overridable: fl.overridable || r.overridable === true };
+    }
+    const v = typeof r.value_saved === "string" ? r.value_saved : (it.item && typeof it.item.value === "string" ? it.item.value : "");
+    return Object.assign({}, r, { unchanged: it.where === "unchanged", value_saved: v });
+  }
+
   /* ══ kev → the live form: walk_result and walk_control ═══════════════════════════════════════════════════════════════ */
-  function sameNumber(me, m){ const row = curRow(me); return !!row && String(m.number === undefined ? "" : m.number) === row.num; }
+  function sameNumber(me, m){
+    const row = curRow(me);
+    const said = (laneRows(me) && m.field !== undefined) ? m.field : m.number;   /* (Phase 4) a lane's step names its field */
+    return !!row && String(said === undefined ? "" : said) === row.num;
+  }
   function onResult(m){
     const me = lf, row = curRow(me);
+    if (me && me.lane) { laneResult(me, row, m); return; }   /* (Phase 4) a log, a survey, a task grid, a consent form */
     if (!me || me.kind !== "qa" || !row) { ignore("no question at the cursor", m); return; }
     if (row.sign) { ignore("a signature is given on the screen, never by voice", m); return; }   /* (2.2.426) */
     // (kev 1.113.0) it names the copy: another copy's result is never shown here; no instance_id: the rule before it
@@ -10299,6 +12040,7 @@ window.teckelShell = (function () {
       me.timer = setTimeout(function () { if (lf === me && me.seq === at) next(me); }, VOICE_ADVANCE_MS);
       return;
     }
+    if (m.set_aside === true) { setAsideRow(me, row, m); return; }   /* (D9) the server set it aside: on, like a skip */
     const f = String(m.floor || "");
     refusedRow(me, row, shown(m.reason) ? String(m.reason) : "That answer was not saved.", f, f !== "kev_type_precheck");
   }
@@ -10321,13 +12063,15 @@ window.teckelShell = (function () {
   function onControl(m){
     const op = String(m.op || "");
     if (STEP_OPS.indexOf(op) !== -1) { onNext(m); return; }   /* (2.2.426) kev's "next": advance if allowed */
+    if (ENTRY_OPS.indexOf(op) !== -1) { onSaveEntry(m); return; }   /* (Phase 4) "save this entry": the page commits */
     if (LIVE_OPS.indexOf(op) === -1) { ignore("not an op a conversation may drive", m); return; }
     if (op === "quiet" || op === "speak") { setVoice(op === "speak", false); return; }
     if (op === "edit" || op === "walk") { voiceOpen(op, m); return; }
     const me = lf;
     if (!me || me.mode === "load" || me.mode === "done") { ignore("no live form", m); return; }
     if (op === "stop") { holdLive(me); return; }           /* (2.2.426, D4) kev's own stop: held, the form stays; echoed */
-    if (me.kind !== "qa") { ignore("a log is not walked yet", m); return; }
+    if (!walksNow(me)) { ignore("this form is not walked here", m); return; }   /* (Phase 4) every lane that walks */
+    if (me.mode === "row" && op === "back") { stepBack(me); return; }   /* (Phase 4) from the commit step to the fields */
     // (2.2.426) a signature box at the cursor: never skipped by voice (re-checked, and still unsigned the refusal line, as
     // for "next"); "go back", "say that again" and "sign" act on it without a question number (its step names none)
     const sr = curRow(me);
@@ -10368,7 +12112,7 @@ window.teckelShell = (function () {
   function onNext(m){
     const me = lf;
     if (!me || me.mode === "load" || me.mode === "done") { ignore("no live form", m); return; }
-    if (me.kind !== "qa") { ignore("a log is not walked yet", m); return; }
+    if (!walksNow(me)) { ignore("this form is not walked here", m); return; }   /* (Phase 4) */
     const row = curRow(me);
     if (row && row.sign) { signNext(me, row, "next"); return; }
     if (row) { if (usable($("pp-lf-skip"))) next(me, "skip"); else ignore("its button is not usable", m); return; }
@@ -10447,7 +12191,7 @@ window.teckelShell = (function () {
     if (!c) { ignore("no editable form on screen", m); return; }
     if (knownWhyNot(c)) { ignore("this form can't be typed into here", m); return; }
     if (lf && lf.iid === String(c.instance_id)) {
-      if (op === "walk" && lf.kind === "qa" && (!speak || lf.held)) {
+      if (op === "walk" && walksNow(lf) && (!speak || lf.held)) {   /* (Phase 4) every lane that walks */
         const wasHeld = !!lf.held;
         setVoice(true, false);                              /* a held walk starts here: its step goes */
         if (!wasHeld) { if (lastEnv && stepIsCurrent(lf)) emit(lf, lastEnv, true); else stepOut(lf); }
@@ -10532,6 +12276,7 @@ window.teckelShell = (function () {
     me.held = true; me.sent = null; me.lastOut = null; lastEnv = null;   /* the next start sends the cursor's step again */
     paintVoice();
     if (me.kind === "qa" && !me.completed) { me.baseMsg = SAYS_PAUSED; txt(ui.msg, SAYS_PAUSED); }
+    if (laneRows(me)) { me.baseMsg = SAYS_PAUSED; txt(ui.msg, SAYS_PAUSED); }   /* (Phase 4) a lane's walk, held the same way */
     log("kev's stop: the walk is held, the form stays");
   }
   // why: "user" (Stop) | "kev" (kev's stop, before 2.2.426) | "left" (the form left the viewer) | "lapse" | "off" | "fail" |
@@ -10647,12 +12392,31 @@ window.teckelShell = (function () {
     conv++;
     if (lf && lf.mode !== "load") stepOut(lf);              /* the cursor's step, once, for THIS conversation */
   });
+  // (2.2.428, phase 5) « THE REVIEW WALK » ended: the live form takes the conversation back — its current step again (the
+  //   Voice-on re-send path), since kev's held step was the review's; one that never went out goes as usual (stepOut)
+  window.addEventListener("teckel-review-walk", function (e) {
+    const d = (e && e.detail && typeof e.detail === "object") ? e.detail : {};
+    if (d.active === true || reviewHolds()) return;
+    const me = lf;
+    if (!me || me.mode === "load" || me.held || me.voiceless || !ready() || !walksNow(me)) return;
+    if (stepIsCurrent(me) && lastEnv) { if (d.sent === true) { log("the review walk ended: the current step again"); emit(me, lastEnv, false); } return; }
+    stepOut(me);
+  });
   const frameEl = $("form-viewer");
   if (frameEl && typeof MutationObserver === "function") {
     new MutationObserver(sync).observe(frameEl, { attributes: true, attributeFilter: ["src", "srcdoc"] });
   }
   P.on("signin", sync);
-  P.on("lapse", function () { closeLive("lapse"); handled = ""; kept = { key: "", text: "" }; goneNote = ""; note(""); });
+  P.on("lapse", function () { closeLive("lapse"); handled = ""; kept = { key: "", text: "" }; goneNote = ""; note(""); binds.clear(); });
+  // (Phase 4) « THE CONVERSATION »: kev's frame arrived (or the socket closed, or the page signed out) — an open entry joins
+  //   the conversation's own entry, pushing in what was typed before it connected (§2), or carries on as it is
+  window.addEventListener("teckel-conversation", function () {
+    const me = lf;
+    if (!me || !laneRows(me) || me.mode === "load") return;
+    const C = CV();
+    if (me.cv && (!C || !C.known(me.cv))) { if (binds.get(me.iid) === me.cv) binds.delete(me.iid); me.cv = null; }
+    if (!me.cv) bindEntry(me); else paintLane(me);
+  });
   P.on("mode", sync);
   setVoice(true, false);
   sync();
