@@ -20,6 +20,21 @@
 
     This page is READ-ONLY. It writes nothing and offers no actions, so there is no
     failure mode where a mis-click changes a compliance record.
+
+    ⭐ 25 Oct 2026 (phase 2, "finding and resuming work"; Yusuf: "YES ALL THREE PLEASE"):
+    TWO VIEWS, and it OPENS ON THE TRAFFIC LIGHT — the forms grouped by status band, the
+    most urgent first — or "By category" (the tree as before). The tabs switch views and
+    save nothing; the DEVICE'S choice is the Settings page's "On this device" (localStorage,
+    key teckel.directoryView__<the practice's folder>, read in try/catch: no storage, the
+    traffic light). With no `bands` in the reply there is no traffic light: the category
+    view, its tab greyed, and one line saying why. Inside the portal the page says when it
+    is ready ({type:"teckel-directory-ready"}) and takes {type:"teckel-show-band", band} —
+    kev's show_band, passed on — or ?show=<band> on its link: the traffic light, scrolled
+    to that band and highlighting it; an unknown key or an empty band, one line instead.
+    The band keys are the server's six, exactly: red, yellow, pink, amber, green, grey.
+    A row click sends {type:"teckel-fill-form", name, source:"directory", storage_key?}:
+    the title as before (the ElevenLabs page reads only that), the storage key as a hint
+    when the server named one.
 -->
 <style>
   :root {
@@ -94,11 +109,30 @@
   .shown { color:var(--muted); font-size:13px; margin:0 0 12px; }
   .gone { display:none; }
   .err { border-color:#d9534f; color:#d9534f; }
+  /* 25 Oct 2026 (phase 2, Yusuf: "YES ALL THREE PLEASE") — TWO VIEWS: the traffic light (the forms grouped by their
+     status band, the most urgent first) and by category (the tree as before). Tabs switch between them. */
+  .views { display:flex; gap:6px; margin:0 0 12px; border-bottom:1px solid var(--line); }
+  .views button { padding:7px 14px; border:1px solid transparent; border-bottom:none; border-radius:8px 8px 0 0;
+                  background:none; color:var(--muted); font:inherit; font-weight:600; cursor:pointer; margin-bottom:-1px; }
+  .views button[aria-selected="true"] { color:var(--fg); background:var(--bg); border-color:var(--line); }
+  .views button:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  .views button[disabled] { cursor:default; opacity:.5; }
+  .note { color:var(--muted); font-size:13px; margin:0 0 12px; }
+  .band-sec > summary .chip { margin-left:0; font-size:12px; }
+  .band-sec.hl { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
+  .incat { color:var(--muted); font-size:12px; }
 </style>
 </head>
 <body>
 <h1>Your document directory</h1>
 <div class="sub" id="sub">Loading…</div>
+<div class="views gone" id="views" role="tablist" aria-label="How the directory is arranged">
+  <button type="button" role="tab" id="tab-traffic" data-view="traffic" aria-selected="false"
+          aria-controls="tl">Traffic light</button>
+  <button type="button" role="tab" id="tab-category" data-view="category" aria-selected="false"
+          aria-controls="tree">By category</button>
+</div>
+<div class="note gone" id="note" role="status" aria-live="polite"></div>
 <div class="find gone" id="find">
   <input id="q" type="search" autocomplete="off" spellcheck="false"
          placeholder="Search your forms — type part of a name, e.g. fire"
@@ -107,6 +141,8 @@
 </div>
 <div class="tally" id="tally"></div>
 <div class="shown gone" id="shown" aria-live="polite"></div>
+<div id="hint"></div>
+<div id="tl" class="gone" role="tabpanel" aria-labelledby="tab-traffic"></div>
 <div id="tree"></div>
 
 <script>
@@ -115,18 +151,61 @@
   var API_BASE = "https://mcp2.bh.tkllabs.io:9779";
   var DATA_URL = API_BASE + "/document_analyser/get_directory_data";
 
+  // ── 25 Oct 2026 (phase 2) THE TRAFFIC LIGHT'S BANDS — the server's own keys (get_directory_data's `bands`, its
+  //    _due_band), in the server's urgency order, with the words this page shows for each. ⚠ These six keys are the
+  //    contract for "show me the red ones": kev maps the spoken words to them and the portal page passes them on
+  //    exactly as written here (window.teckel… in the portal's transport, « SHOW A BAND »). [key, heading, tally word]
+  var BANDS = [["red", "Overdue", "overdue"], ["yellow", "Never submitted", "never submitted"],
+               ["pink", "Due within a week", "due within a week"], ["amber", "Due within a month", "due within a month"],
+               ["green", "Due later", "due later"], ["grey", "No schedule set", "no schedule set"]];
+  var BAND_KEYS = BANDS.map(function (b) { return b[0]; });
+  var VIEWS = ["traffic", "category"];
+  // ── THE DEVICE'S CHOICE OF VIEW (phase 2): what the practice's Settings page saves under "On this device" — a
+  //    per-browser preference, never the account's. The key is the PRACTICE'S OWN: every practice's pages share the
+  //    github.io origin, so the key carries this page's folder (the practice's site). Every read in try/catch: with no
+  //    storage (a private window, blocked site data) the default — the traffic light — still applies.
+  var VIEW_KEY = "teckel.directoryView__" + window.location.pathname.replace(/[^\/]*$/, "");
+  var NOTE_NO_LIGHT = "The traffic light isn't available just now, so your forms are shown by category.";
+  var NOTE_UNKNOWN = "That colour isn't on the traffic light, so here is all of it.";
+
   function el(tag, cls, text) {
     var n = document.createElement(tag);
     if (cls) n.className = cls;
     if (text !== undefined && text !== null) n.textContent = String(text);
     return n;
   }
+  function say(text) {                       // the one-line note under the tabs: text only, never markup
+    var n = document.getElementById("note");
+    n.textContent = text ? String(text) : "";
+    n.classList.toggle("gone", !text);
+  }
+  function savedView() {
+    try {
+      var v = window.localStorage.getItem(VIEW_KEY);
+      return VIEWS.indexOf(v) !== -1 ? v : "";
+    } catch (e) { return ""; }
+  }
+
+  // 3 Oct 2026 (Steven) — inside the portal a row is a button: the title goes to the portal,
+  // which hands it to Benedict if a conversation is live. Opened on its own (no portal around
+  // it) the rows stay plain text.
+  var inPortal = false;
+  try { inPortal = window.parent && window.parent !== window; } catch (e) { inPortal = false; }
+  // (phase 2) the portal page is told when this directory is on screen and can take a band ("show me the red ones"),
+  // and when it could not load. Nothing in it: the portal only learns that THIS document is ready.
+  function tellReady(ok, light) {
+    if (!inPortal) { return; }
+    try { window.parent.postMessage({ type: "teckel-directory-ready", ok: !!ok, traffic: !!light }, "*"); } catch (e) {}
+  }
+
   function fail(msg) {
     document.getElementById("sub").textContent = "";
     var box = el("div", "msg err", msg);
     var t = document.getElementById("tree");
     t.textContent = "";
+    t.classList.remove("gone");
     t.appendChild(box);
+    tellReady(false, false);
   }
 
   var token = new URLSearchParams(window.location.search).get("token");
@@ -153,6 +232,7 @@
       document.getElementById("sub").textContent = "";
       document.getElementById("tree").appendChild(
         el("div", "msg", "There are no documents in your catalogue yet."));
+      tellReady(true, false);
       return;
     }
     document.getElementById("sub").textContent =
@@ -160,31 +240,24 @@
 
     // ⚠ `bands` ABSENT means the status join failed — show nothing rather than a row of
     // zeros, because "no colours available" and "everything is green" must never look alike.
-    if (data && data.bands) {
-      var order = [["red", "overdue"], ["yellow", "never submitted"],
-                   ["pink", "due within a week"],
-                   ["amber", "due within a month"], ["green", "due later"],
-                   ["grey", "no schedule set"]];
+    // (phase 2) It also means there is NO TRAFFIC LIGHT: the directory falls back to the category view and says why.
+    var light = !!(data && data.bands && typeof data.bands === "object");
+    if (light) {
       var tally = document.getElementById("tally");
-      order.forEach(function (pair) {
-        var n = data.bands[pair[0]] || 0;
+      BANDS.forEach(function (b) {
+        var n = data.bands[b[0]] || 0;
         if (!n) { return; }                       // an empty band is noise, not information
-        var chip = el("span", "chip filter " + pair[0], n + " " + pair[1]);
+        var chip = el("span", "chip filter " + b[0], n + " " + b[2]);
         // 5 Oct 2026 — a status chip is a filter: click it to see only those forms, again to see all
         chip.setAttribute("role", "button");
         chip.setAttribute("tabindex", "0");
         chip.setAttribute("aria-pressed", "false");
-        chip.setAttribute("data-band", pair[0]);
-        chip.title = "Show only the forms that are " + pair[1] + " (click again to show all)";
+        chip.setAttribute("data-band", b[0]);
+        chip.title = "Show only the forms that are " + b[2] + " (click again to show all)";
         tally.appendChild(chip);
       });
     }
 
-    // 3 Oct 2026 (Steven) — inside the portal a row is a button: the title goes to the portal,
-    // which hands it to Benedict ("Let's fill in …") if a conversation is live. Opened on its
-    // own (no portal around it) the rows stay plain text.
-    var inPortal = false;
-    try { inPortal = window.parent && window.parent !== window; } catch (e) { inPortal = false; }
     var pending = null;
     function note(li, text) {
       var old = li.querySelector(".sent");
@@ -197,18 +270,61 @@
       window.addEventListener("message", function (e) {
         if (e.source !== window.parent) { return; }
         var d = e.data || {};
+        // (phase 2) the portal passes on kev's {kind:"show_band", band}: a string, or "" when it was not one of the keys
+        if (d.type === "teckel-show-band") { showBand(typeof d.band === "string" ? d.band : ""); return; }
         if (d.type !== "teckel-fill-form-result" || !pending) { return; }
         note(pending, d.ok ? "sent to Benedict" : "start a conversation with Benedict first");
         pending = null;
       });
-      var hint = el("div", "msg", "Click a form and Benedict will open it for you.");
-      document.getElementById("tree").appendChild(hint);
+      document.getElementById("hint").appendChild(el("div", "msg", "Click a form and Benedict will open it for you."));
     }
 
+    var tree = document.getElementById("tree"), tl = document.getElementById("tl");
+    var rows = [];                              // 5 Oct 2026 — one entry per form (its category row), for the counts
+    var groups = [];                            // one entry per category, and (phase 2) per band
+    var bandGroup = {};                         // band key -> its group in the traffic light
+
+    // ONE ROW, in either view. The SERVER decides the band and the words; this page paints them and computes nothing
+    // about compliance. (phase 2) A click sends the form's title — exactly as before — and, when the server named it,
+    // the form's storage key as a HINT (the portal caps it; kev re-runs the server's search on the title and never
+    // trusts it as a key), and where the click came from.
+    function makeRow(f, catLabel, view) {
+      var li = el("li");
+      li.appendChild(el("span", null, f.title || f.form_id));
+      if (f.band && f.band_label) {
+        li.appendChild(el("span", "chip " + f.band, f.band_label));
+      }
+      if (f.started) { li.appendChild(el("span", "started", "started")); }
+      if (f.cadence) { li.appendChild(el("span", "cad", "  ·  " + f.cadence)); }
+      if (view === "traffic" && catLabel) { li.appendChild(el("span", "incat", "  ·  " + catLabel)); }
+      if (inPortal) {
+        li.className = "pick";
+        li.setAttribute("role", "button");
+        li.setAttribute("tabindex", "0");
+        li.title = "Click and Benedict opens this form";
+        var send = function () {
+          pending = li;
+          var m = { type: "teckel-fill-form", name: f.title || f.form_id || "", source: "directory" };
+          if (typeof f.storage_key === "string" && f.storage_key) { m.storage_key = f.storage_key.slice(0, 200); }
+          window.parent.postMessage(m, "*");
+        };
+        li.addEventListener("click", send);
+        li.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); send(); }
+        });
+      }
+      return li;
+    }
+    function rowOf(li, f, catLabel, group) {
+      return { li: li, text: String(f.title || f.form_id || "").toLowerCase(), cat: catLabel.toLowerCase(),
+               band: f.band || "", group: group };
+    }
+
+    // ── BY CATEGORY — the tree, as before ──
     var frag = document.createDocumentFragment();
-    var rows = [];                              // 5 Oct 2026 — one entry per form row, for the search and filters
-    var groups = [];                            // one entry per category
+    var byBand = {}, other = [];
     cats.forEach(function (c, i) {
+      var catLabel = String(c.label || c.category || "");
       var d = el("details", "cat");
       if (i === 0) { d.open = true; }           // open the largest so the page is never blank
       var s = el("summary");
@@ -218,43 +334,94 @@
       d.appendChild(s);
       var ul = el("ul");
       var group = { box: d, count: countEl, total: (c.forms || []).length, shownAtStart: c.count,
-                    label: String(c.label || c.category || "").toLowerCase(), openAtStart: i === 0, rows: [] };
+                    openAtStart: i === 0, rows: [], view: "category" };
       groups.push(group);
       (c.forms || []).forEach(function (f) {
-        var li = el("li");
-        var row = { li: li, text: String(f.title || f.form_id || "").toLowerCase(), band: f.band || "", group: group };
+        var li = makeRow(f, catLabel, "category");
+        var row = rowOf(li, f, catLabel, group);
         rows.push(row);
         group.rows.push(row);
-        li.appendChild(el("span", null, f.title || f.form_id));
-        // The SERVER decides the band and the words; this page paints them and computes
-        // nothing about compliance. Same rule as the rest of the directory.
-        if (f.band && f.band_label) {
-          li.appendChild(el("span", "chip " + f.band, f.band_label));
-        }
-        if (f.started) { li.appendChild(el("span", "started", "started")); }
-        if (f.cadence) { li.appendChild(el("span", "cad", "  ·  " + f.cadence)); }
-        if (inPortal) {
-          li.className = "pick";
-          li.setAttribute("role", "button");
-          li.setAttribute("tabindex", "0");
-          li.title = "Click and Benedict opens this form";
-          var send = function () {
-            pending = li;
-            window.parent.postMessage({ type: "teckel-fill-form", name: f.title || f.form_id || "" }, "*");
-          };
-          li.addEventListener("click", send);
-          li.addEventListener("keydown", function (e) {
-            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); send(); }
-          });
-        }
         ul.appendChild(li);
+        if (light) {
+          // a band the page does not know is never dropped: it is listed under "Status not known"
+          if (BAND_KEYS.indexOf(f.band) !== -1) { (byBand[f.band] = byBand[f.band] || []).push([f, catLabel]); }
+          else { other.push([f, catLabel]); }
+        }
       });
       d.appendChild(ul);
       frag.appendChild(d);
     });
-    document.getElementById("tree").appendChild(frag);
+    tree.appendChild(frag);
 
-    // ── 5 Oct 2026 — SEARCH AND FILTER. Hides rows only; shows exactly what the server sent. ──
+    // ── (phase 2) THE TRAFFIC LIGHT — the same forms, grouped by band in the server's order, a band with no forms
+    //    left out (as the tally leaves it out); within a band, by title. ──
+    if (light) {
+      var tfrag = document.createDocumentFragment();
+      BANDS.concat([["", "Status not known", ""]]).forEach(function (b) {
+        var list = b[0] ? (byBand[b[0]] || []) : other;
+        if (!list.length) { return; }
+        list.sort(function (x, y) {
+          var a = String(x[0].title || x[0].form_id || "").toLowerCase(), z = String(y[0].title || y[0].form_id || "").toLowerCase();
+          return a < z ? -1 : (a > z ? 1 : 0);
+        });
+        var d = el("details", "cat band-sec");
+        d.open = true;
+        if (b[0]) { d.setAttribute("data-band", b[0]); d.id = "band-" + b[0]; }
+        var s = el("summary");
+        s.appendChild(el("span", b[0] ? "chip " + b[0] : null, b[1]));
+        var countEl = el("span", "count", list.length);
+        s.appendChild(countEl);
+        d.appendChild(s);
+        var ul = el("ul");
+        var group = { box: d, count: countEl, total: list.length, shownAtStart: list.length, openAtStart: true,
+                      rows: [], view: "traffic" };
+        groups.push(group);
+        if (b[0]) { bandGroup[b[0]] = group; }
+        list.forEach(function (pair) {
+          var li = makeRow(pair[0], pair[1], "traffic");
+          group.rows.push(rowOf(li, pair[0], pair[1], group));
+          ul.appendChild(li);
+        });
+        d.appendChild(ul);
+        tfrag.appendChild(d);
+      });
+      tl.appendChild(tfrag);
+    }
+
+    // ── (phase 2) THE TWO VIEWS. A tab click switches the view for now and saves nothing: the device's choice is made
+    //    on the Settings page. With no traffic light the Traffic light tab is greyed and the reason is said. ──
+    var views = document.getElementById("views");
+    var tabs = { traffic: document.getElementById("tab-traffic"), category: document.getElementById("tab-category") };
+    tree.setAttribute("role", "tabpanel");
+    tree.setAttribute("aria-labelledby", "tab-category");
+    views.classList.remove("gone");
+    if (!light) {
+      tabs.traffic.disabled = true;
+      tabs.traffic.setAttribute("aria-disabled", "true");
+      tabs.traffic.title = NOTE_NO_LIGHT;
+    }
+    var current = "";
+    function setView(v) {
+      if (v !== "category" && v !== "traffic") { v = "traffic"; }
+      if (v === "traffic" && !light) { v = "category"; }
+      current = v;
+      tl.classList.toggle("gone", v !== "traffic");
+      tree.classList.toggle("gone", v !== "category");
+      VIEWS.forEach(function (k) {
+        tabs[k].setAttribute("aria-selected", k === v ? "true" : "false");
+      });
+      document.body.setAttribute("data-view", v);
+    }
+    VIEWS.forEach(function (k) {
+      tabs[k].addEventListener("click", function () {
+        if (tabs[k].disabled) { return; }
+        setView(k);
+        if (light) { say(""); }
+        clearHighlight();
+      });
+    });
+
+    // ── 5 Oct 2026 — SEARCH AND FILTER. Hides rows only; shows exactly what the server sent. (phase 2: in both views) ──
     var find = document.getElementById("find"), q = document.getElementById("q");
     var clear = document.getElementById("clear"), shown = document.getElementById("shown");
     var chips = Array.prototype.slice.call(document.querySelectorAll("#tally .chip.filter"));
@@ -268,12 +435,12 @@
         var n = 0;
         g.rows.forEach(function (r) {
           // every word typed must be in the form's name or in its category's name
-          var ok = terms.every(function (t) { return r.text.indexOf(t) !== -1 || g.label.indexOf(t) !== -1; })
+          var ok = terms.every(function (t) { return r.text.indexOf(t) !== -1 || r.cat.indexOf(t) !== -1; })
                    && (band === "" || r.band === band);
           r.li.classList.toggle("gone", !ok);
           if (ok) { n += 1; }
         });
-        seen += n;
+        if (g.view === "category") { seen += n; }    // each form once
         g.box.classList.toggle("gone", active && n === 0);
         g.count.textContent = active ? (n + " of " + g.total) : String(g.shownAtStart);
         if (active) { g.box.open = n > 0; } else { g.box.open = g.openAtStart; }
@@ -301,12 +468,46 @@
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); }
       });
     });
-    // the link may carry a starting filter (?q=fire, ?band=red) — used when Benedict is asked for "the fire forms"
+
+    // ── (phase 2) SHOW A BAND — kev's {kind:"show_band", band}, passed on by the portal (or ?show= on the link): the
+    //    traffic light, scrolled to that band and highlighting it. It opens no form. A key that is not one of BAND_KEYS,
+    //    or a band with no forms: the traffic light and ONE line saying so. Nothing the portal or kev sent is written
+    //    to the screen. Any search or filter is cleared first, so the band is never hidden behind one. ──
+    function clearHighlight() {
+      groups.forEach(function (g) { g.box.classList.remove("hl"); });
+    }
+    function showBand(b) {
+      q.value = ""; band = ""; apply();
+      clearHighlight();
+      if (!light) { setView("category"); say(NOTE_NO_LIGHT); return; }
+      setView("traffic");
+      var i = BAND_KEYS.indexOf(b);
+      if (i === -1) { say(NOTE_UNKNOWN); window.scrollTo(0, 0); return; }
+      var g = bandGroup[b];
+      if (!g) { say("There are no forms in “" + BANDS[i][1] + "” right now."); window.scrollTo(0, 0); return; }
+      say("");
+      g.box.open = true;
+      g.box.classList.add("hl");
+      // scroll THIS document only (scrollIntoView would also scroll the portal page around the frame)
+      var top = g.box.getBoundingClientRect().top + (window.pageYOffset || 0) - 8;
+      window.scrollTo(0, top > 0 ? top : 0);
+      // ⚠ NO focus(): kev sends this mid-conversation, and focus moved into this frame would leave the portal's
+      //   typing box while the user may be typing in it. The highlight and the scroll are the signal.
+    }
+
+    // the starting view: ?show=<band> (a band asked for), else ?view=, else the device's choice, else the traffic light
     var params = new URLSearchParams(window.location.search);
+    var show0 = params.has("show") ? String(params.get("show") || "").slice(0, 40) : null;
+    var view0 = params.get("view");
+    setView(VIEWS.indexOf(view0) !== -1 ? view0 : (savedView() || "traffic"));
+    if (!light) { say(NOTE_NO_LIGHT); }
+    // the link may carry a starting filter (?q=fire, ?band=red) — used when Benedict is asked for "the fire forms"
     var q0 = (params.get("q") || "").slice(0, 80), b0 = params.get("band") || "";
     if (q0) { q.value = q0; }
     if (chips.some(function (c) { return c.getAttribute("data-band") === b0; })) { band = b0; }
     if (q0 || band) { apply(); }
+    if (show0 !== null) { showBand(show0); }
+    tellReady(true, light);
   }).catch(function (e) {
     if (String(e && e.message) === "expired") {
       fail("This directory link has expired. Ask Benedict to show the directory again "
