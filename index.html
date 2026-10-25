@@ -7,14 +7,14 @@
   allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
   any file carrying it.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/canary/portal.a6b04026c461.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/canary/portal.68102ba1aeef.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/canary/portal.a6b04026c461.js
+      https://teckel-io.github.io/practice_portal_core/canary/portal.68102ba1aeef.js
   (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -52,7 +52,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="a6b04026c461">/* =====================================================================================================================
+<script data-teckel-core="68102ba1aeef">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -402,6 +402,34 @@ window.teckelShell = (function () {
         #lv-code { width: 9.5em; letter-spacing: 3px; text-align: center; }
         .lv-hint { color: var(--steel); font-size: 12px; margin-top: 8px; }
         .lv-volume[hidden] { display: none; }   /* (24 Oct 2026, phase 1) "Can't hear Benedict? …" while a conversation is open */
+        /* (25 Oct 2026, « MUTE ») while muted: the voice panel's line, and every Mute control FILLED gold, so the state
+           cannot be missed. House tokens only — the page has ONE theme, the dark navy one, so these are its dark-mode
+           colours. TEXT ONLY: nothing is drawn before or after the line (no ::before / ::after content, no icon). */
+        .lv-muted {
+            margin-top: 10px; padding: 9px 12px; border-radius: 4px;
+            border: 2px solid var(--gold); background: var(--note-bg);
+            color: var(--gold); font-size: 14px; font-weight: 700; line-height: 1.35;
+        }
+        .lv-muted[hidden] { display: none; }
+        .lv-btn[data-lv-mute][aria-pressed="true"] {
+            background: var(--gold); border-color: var(--gold); color: var(--navy-deep); font-weight: 600;
+        }
+        /* (25 Oct 2026, « END THE CONVERSATION ») "Ending the conversation…" + Keep talking, for 3 seconds: a bar at the foot
+           of the screen (a phone scrolled to the form still sees it), inside a 16px gutter. House tokens; text only. */
+        .lv-ending {
+            position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 60;
+            max-width: 560px; margin: 0 auto; padding: 10px 14px; border-radius: 6px;
+            display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+            background: var(--navy-deep); color: var(--white); font-size: 14px; font-weight: 600;
+            border: 2px solid var(--gold); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+        }
+        .lv-ending[hidden] { display: none; }
+        .lv-ending .lv-btn { background: var(--gold); border-color: var(--gold); color: var(--navy-deep); font-weight: 600; }
+        @media (forced-colors: active) {
+            .lv-ending { border-color: CanvasText; }
+            .lv-muted { border-color: CanvasText; }
+            .lv-btn[data-lv-mute][aria-pressed="true"] { border: 2px solid Highlight; }
+        }
         /* The server's own words, shown verbatim (a refused code, a credit stop). */
         .lv-msg { color: #ffe9b0; font-size: 13px; margin-top: 10px; }
         .lv-auth .lv-msg { margin-top: 8px; }
@@ -1266,14 +1294,25 @@ window.teckelShell = (function () {
                   \x3c/div>
                   \x3cdiv class="lv-actions">
                     \x3cbutton type="button" id="lv-connect" class="lv-btn primary">Start conversation\x3c/button>
-                    \x3cbutton type="button" id="lv-mute" class="lv-btn" aria-pressed="false" disabled>Mute\x3c/button>
+                    \x3cbutton type="button" id="lv-mute" class="lv-btn" data-lv-mute aria-pressed="false" disabled>Mute\x3c/button>
                     \x3cbutton type="button" id="lv-disconnect" class="lv-btn" disabled>End conversation\x3c/button>
                   \x3c/div>
+                  \x3c!-- (25 Oct 2026, Yusuf: a MUTE button — Benedict listens by default) shown only while the conversation is
+                       muted. TEXT ONLY: no icon, nothing drawn before or after it; the transport writes its words. -->
+                  \x3cp class="lv-muted" id="lv-muted" role="status" aria-live="polite" hidden>Muted — Benedict can't hear you\x3c/p>
                   \x3c!-- (24 Oct 2026, phase 1; tcc's run 42) on a phone Benedict follows the MEDIA volume: at 0 he is
                        silent and nothing says why. Shown while a conversation is open. -->
                   \x3cdiv class="lv-hint lv-volume" id="lv-volume" hidden>Can't hear Benedict? Turn up your media volume.\x3c/div>
                   \x3cdiv class="lv-msg" id="lv-msg" aria-live="polite">\x3c/div>
                   \x3cdiv class="lv-notice" id="lv-notice" role="status" aria-live="polite" hidden>\x3c/div>
+                  \x3c!-- (25 Oct 2026, « END THE CONVERSATION ») Benedict said goodbye (kev's session_end): shown for 3 seconds,
+                       once his closing words have played, then the conversation ends exactly as End ends it. "Keep talking"
+                       keeps it. A bar at the foot of the screen, so a phone scrolled down to the form still sees it.
+                       TEXT ONLY; the transport writes the words. -->
+                  \x3cdiv class="lv-ending" id="lv-ending" hidden>
+                    \x3cspan id="lv-ending-msg" role="alert">Ending the conversation…\x3c/span>
+                    \x3cbutton type="button" id="lv-keep" class="lv-btn">Keep talking\x3c/button>
+                  \x3c/div>
                   \x3c!-- A status line while Benedict works (kev-flow 1.61.0 {"kind":"status"}). Shown,
                        never spoken. The host's text verbatim, present tense only: the page adds no
                        "Done" of its own. -->
@@ -1547,6 +1586,9 @@ window.teckelShell = (function () {
                     \x3ch2 class="pp-h" id="pp-walk-h">Walk through the form\x3c/h2>
                     \x3cspan class="pp-card-tools">
                         \x3cbutton type="button" id="pp-walk-voice" class="lv-btn pp-small" aria-pressed="true">Voice on\x3c/button>
+                        \x3c!-- (25 Oct 2026, « MUTE ») the conversation's Mute, beside Voice: shown only while one is open -->
+                        \x3cbutton type="button" id="pp-walk-mute" class="lv-btn pp-small" data-lv-mute aria-pressed="false"
+                                hidden>Mute\x3c/button>
                         \x3cbutton type="button" id="pp-walk-stop" class="lv-btn pp-small">Stop\x3c/button>
                     \x3c/span>
                 \x3c/div>
@@ -1574,6 +1616,9 @@ window.teckelShell = (function () {
                         \x3c/div>
                         \x3cspan class="pp-live-tools">
                             \x3cbutton type="button" id="pp-live-voice" class="lv-btn pp-small" aria-pressed="true">Voice on\x3c/button>
+                            \x3c!-- (25 Oct 2026, « MUTE ») the conversation's Mute, beside Voice: shown only while one is open -->
+                            \x3cbutton type="button" id="pp-live-mute" class="lv-btn pp-small" data-lv-mute aria-pressed="false"
+                                    hidden>Mute\x3c/button>
                             \x3cbutton type="button" id="pp-live-ro" class="lv-btn pp-small" aria-pressed="false"
                                     aria-controls="pp-live-body">Read-only view\x3c/button>
                             \x3cbutton type="button" id="pp-live-stop" class="lv-btn pp-small">Stop\x3c/button>
@@ -2562,7 +2607,7 @@ window.teckelShell = (function () {
                         meta.textContent = msg;
                         setTimeout(function () { meta.textContent = restore; }, 1600);
                     }
-                    if (askBenedictToFill(name)) {
+                    if (askBenedictToFill(name, { source: 'search' })) {   // LOCAL V2 (phase 2, V24)
                         flash('sent to Benedict');
                         var outBox = document.getElementById('form-search-results');
                         setTimeout(function () { if (outBox) outBox.style.display = 'none'; }, 900);
@@ -2611,7 +2656,7 @@ window.teckelShell = (function () {
             if (box) renderSearchResults(box.value);   // the hint follows the state
         }
         window.setBenedictLive = setBenedictLive;   // 20 Oct: the local chain's socket script (another scope) sets it
-        function askBenedictToFill(name) {
+        function askBenedictToFill(name, pick) {
             name = String(name || '').replace(/\\s+/g, ' ').trim().slice(0, 200);
             if (!name || !benedictLive) return false;
             var now = Date.now();
@@ -2624,7 +2669,7 @@ window.teckelShell = (function () {
             // 20 Oct, later: kev-flow 1.66.0 takes a STRUCTURED pick ({kind:"pick_form", title}); it re-runs the server's
             // search on the title and opens only what the search offers, and the pick drives its own turn.
             if (typeof window.teckelLocalPick === 'function') {
-                if (!window.teckelLocalPick(name)) return false;
+                if (!window.teckelLocalPick(name, null, pick)) return false;
             } else if (typeof window.teckelLocalSay === 'function') {
                 if (!window.teckelLocalSay(said)) return false;
             } else {
@@ -2651,7 +2696,8 @@ window.teckelShell = (function () {
                 if (!/^https:\\/\\/teckel-io\\.github\\.io$/.test(e.origin)) return;
                 var d = e.data || {};
                 if (d.type !== 'teckel-fill-form') return;
-                var ok = askBenedictToFill(d.name);
+                // LOCAL V2 (25 Oct 2026, phase 2, V24): a directory row says so, with its key as a hint
+                var ok = askBenedictToFill(d.name, { source: 'directory', storage_key: d.storage_key });
                 e.source.postMessage({ type: 'teckel-fill-form-result', ok: ok,
                                        name: String(d.name || '').slice(0, 200) }, e.origin);
             } catch (err) { /* a click that cannot be relayed simply does nothing */ }
@@ -3933,6 +3979,20 @@ window.teckelShell = (function () {
          16 kHz context is resumed INSIDE the tap (with a silent sound, as the output's), never waited on after an await, and
          when a phone still leaves it paused a "Turn on the microphone" tap (or any tap) resumes it; client_ready carries a
          COARSE device ("\x3cbrowser> \x3cmajor> / \x3cOS> \x3cmajor>", never the user-agent text) and the core's build.
+       · (25 Oct 2026, PHASE 2 "finding and resuming work" — Yusuf: "YES ALL THREE PLEASE"; F-FJ item 3) kev's
+         {kind:"show_band", band} puts the document directory on screen on its traffic light at that band (« SHOW A BAND »);
+         a pick says where it came from — {kind:"pick_form", title, …, source} with source "directory" (and the row's
+         storage_key as a capped hint when the server named one), "list", "search" or "review" — title first and unchanged.
+       · (25 Oct 2026, Yusuf: a "MUTE" button, not push-to-talk — "Benedict listens by default, and you tap to mute it") « MUTE »:
+         every conversation and every load starts unmuted; muted, the microphone's frames KEEP GOING to kev as SILENCE (every
+         sample 0; the stream, its track, the context and the socket untouched); the voice panel says "Muted — Benedict can't
+         hear you"; a second Mute sits beside Voice on / off on the form; {kind:"mic_state", muted} goes to kev on every change
+         and once in the opening run.
+       · (25 Oct 2026, Yusuf: "YES PLEASE, BUILD BOTH AND FIX THE LINE"; agreed with Yusuf CC) kev's {kind:"walk_control",
+         op:"close_form"} puts the form away (back to the directory it came from, else the empty viewer), the conversation
+         going on, then screen_form says none is open (« CLOSE THE FORM »); kev's {kind:"session_end", reason} waits for the
+         closing words (5 s at most), offers "Keep talking" for 3 s ({kind:"session_end_cancelled"}), then ends the session
+         exactly as End does (« END THE CONVERSATION »).
      ===================================================================== -->
 \x3cscript>
 "use strict";
@@ -3944,8 +4004,9 @@ window.teckelShell = (function () {
   const DEFAULT_WS = "wss://flow.tkllabs-ai.work";
   const MIC_RATE = 16000, BOT_RATE = 24000, FRAME = 320;   /* 20 ms at 16 kHz */
   // kev reaps an idle socket after 30 minutes (FLOW_IDLE_SECS default 1800). A muted page
-  // sends no audio, so it is warned at 25 minutes rather than dying silently at 30.
+  // sends only silence, so it is warned at 25 minutes rather than dying silently at 30.
   const MUTE_WARN_MS = 25 * 60 * 1000;
+  const MUTE_SAYS = "Muted — Benedict can't hear you";   /* « MUTE »: the voice panel's line while muted (text only) */
   const ENDING_MS = 600;                 /* the "Ending…" state is shown before the close */
   const TYPED_MAX = 400;                 /* the same cap the tap path has always used */
   const $ = (id) => document.getElementById(id);
@@ -4143,6 +4204,7 @@ window.teckelShell = (function () {
     const c = $("lv-connect");
     c.hidden = open; c.disabled = open || connecting || !gate;
     $("lv-mute").disabled = !open;
+    syncMuteControls();                  /* « MUTE »: the form's copies only while a conversation is open */
     $("lv-disconnect").disabled = !open || endingByUser;
     $("lv-type").disabled = !open || !gate; $("lv-send").disabled = !open || !gate;
     $("lv-type").placeholder = open ? "Type to Benedict…" : "Start a conversation to type";
@@ -4227,12 +4289,27 @@ window.teckelShell = (function () {
   };
   // kev-flow 1.66.0: a tap is a PICK, not speech. kev re-runs the server's search on the title
   // (it never trusts a storage key from the page). list_token only for kev's numbered lists.
-  window.teckelLocalPick = function (title, listToken) {
+  // ⭐ (25 Oct 2026, PHASE 2 — Yusuf: "YES ALL THREE PLEASE"; F-FJ item 3) two OPTIONAL fields after the title, from opts:
+  //   · source — where the pick came from, one of PICK_SOURCES: "directory" (a row of the document directory), "list"
+  //     (a numbered list kev put on screen), "search" (the search box above the viewer), "review" (a form the review
+  //     panel's accepted suggestion names). Any other value is left out, never passed on.
+  //   · storage_key — a HINT for kev's server search (the directory row's key, when the server named one): a string, its
+  //     control characters taken out, at most PICK_KEY_MAX characters. Never a trusted key: kev still re-runs the search
+  //     on the title, which stays first and exactly as before.
+  //   ⚠ BACKWARD COMPATIBLE: kev 1.120.0 routes on \`kind\` and reads title (and list_token); a field it does not know is
+  //     ignored, as \`type\` is. So {kind, title} and {kind, title, list_token} are unchanged, with the new fields after.
+  const PICK_SOURCES = Object.freeze(["directory", "list", "search", "review"]);
+  const PICK_KEY_MAX = 200;
+  window.teckelLocalPick = function (title, listToken, opts) {
     const m = { kind: "pick_form", title: String(title || "").slice(0, 300) };
     if (!m.title) return false;
     if (listToken) m.list_token = String(listToken).slice(0, 80);
+    const o = (opts && typeof opts === "object") ? opts : {};
+    const sk = (typeof o.storage_key === "string") ? o.storage_key.replace(/[\\u0000-\\u001f\\u007f]/g, "").trim().slice(0, PICK_KEY_MAX) : "";
+    if (sk) m.storage_key = sk;
+    if (PICK_SOURCES.indexOf(o.source) !== -1) m.source = o.source;
     if (!sendJSON(m)) return false;
-    activity(); log("pick -> " + m.title.slice(0, 80)); return true;
+    activity(); log("pick -> " + m.title.slice(0, 80) + (m.source ? " (" + m.source + ")" : "")); return true;
   };
   // A display outcome that arrived AFTER the tool had already answered (a phone still drawing at
   // 5 s). ⚠ It is a NEW kind on purpose: a second client_tool_result for an answered call could
@@ -4552,7 +4629,8 @@ window.teckelShell = (function () {
      browse_forms' OWN items, untouched — areas {n, key, label, count, aliases} or forms {n, form_id, title,
      storage_key, in_progress}. The page shows them as numbered rows, each a button, numbered AS THE SERVER NUMBERED
      THEM (n). A tap is the existing pick: teckelLocalPick(\x3cthe item's label or title>, list_token) ->
-     {kind:"pick_form", title, list_token}; kev re-runs the server's pick and never trusts the page's words as a key.
+     {kind:"pick_form", title, list_token, source:"list"} (source since phase 2, 25 Oct 2026); kev re-runs the server's
+     pick and never trusts the page's words as a key.
      · CLEARED by: an empty items list, a form opening in the viewer (kev's display_form, or the page's own View), the
        conversation ending, a new conversation, and Sign out.
      ⚠ TEXT ONLY: every string is written as a text node (never markup). Nothing is kept in storage. */
@@ -4594,11 +4672,87 @@ window.teckelShell = (function () {
   }
   function shownText(v){ return v !== undefined && v !== null && String(v).trim() !== ""; }
   function pickFromList(b, label, token){
-    const ok = typeof window.teckelLocalPick === "function" && window.teckelLocalPick(label, token);
+    const ok = typeof window.teckelLocalPick === "function" && window.teckelLocalPick(label, token, { source: "list" });
     if (!ok) { showMsg("That was not sent — the conversation is not connected. Start a conversation first."); return; }
     showMsg("");
     document.querySelectorAll("#lv-list-items .lv-list-item.picked").forEach(function (x) { x.classList.remove("picked"); });
     b.classList.add("picked");
+  }
+
+  /* ══ SHOW A BAND (25 Oct 2026, PHASE 2 "finding and resuming work" — Yusuf: "YES ALL THREE PLEASE"; F-FJ item 3) ══════
+     kev → page: {kind:"show_band", band:"\x3ckey>"} — "show me the red ones". The page puts the DOCUMENT DIRECTORY on screen
+     on its TRAFFIC-LIGHT view, scrolled to that band and highlighting it. It never opens a form, and says nothing back.
+     · THE KEYS are the directory's own, which are the server's (get_directory_data's bands, _due_band), EXACTLY as written
+       in DIR_BANDS: red (Overdue), yellow (Never submitted), pink (Due within a week), amber (Due within a month), green
+       (Due later), grey (No schedule set). kev maps the spoken words to them; the page does no mapping and no case-folding.
+       Anything else — an unknown word, markup, not a string — is "unknown": the traffic light with a one-line note. What
+       kev sent is never written to the screen (the directory writes its own fixed words, as text).
+     · A directory already on screen that has said it is ready ({type:"teckel-directory-ready"} from the viewer's frame,
+       the practice site's origin, and still the same document) is told directly ({type:"teckel-show-band", band}); one
+       still loading is told when it says ready (DIR_READY_MS at most, then as below); otherwise the page asks the portal
+       door for a fresh directory link (directory_link, no arguments) and opens it with view=traffic&show=\x3cband>. A refusal
+       (no pass, the door off, an unreachable server) leaves the screen as it was and says one line.
+     · Benedict changed the screen: as for his display tools, nothing is echoed to kev and the page forgets its own form.
+     · Inert until kev sends it. Nothing in storage. */
+  const DIR_BANDS = Object.freeze(["red", "yellow", "pink", "amber", "green", "grey"]);
+  const DIR_ORIGIN = "https://teckel-io.github.io";
+  const DIR_URL = /^https:\\/\\/teckel-io\\.github\\.io\\/[^?#]*directory\\.html\\?token=[^\\s]+$/;
+  const DIR_READY_MS = 5000;
+  let dirReadyDoc = null;                /* the directory document that last said it is ready */
+  let dirWait = null;                    /* {band, timer}: a band asked for while the directory was still loading */
+  let dirSeq = 0;                        /* a later show_band (or a sign-out) supersedes a fresh open still on its way */
+  function dirFrame(){ const f = $("form-viewer"); return (f && !f.hasAttribute("srcdoc")) ? f : null; }
+  function dirOnScreen(){ const f = dirFrame(); return !!f && DIR_URL.test(String(f.getAttribute("src") || "")); }
+  function dirDoc(){ try { const f = dirFrame(); return f ? f.contentDocument : null; } catch(e) { return null; } }
+  function dirReady(){ const d = dirDoc(); return dirOnScreen() && !!d && d === dirReadyDoc; }
+  function tellDirectory(band){
+    try { const f = dirFrame(); f.contentWindow.postMessage({ type: "teckel-show-band", band: band }, DIR_ORIGIN); return true; }
+    catch(e) { log("show_band could not reach the directory: " + e.message); return false; }
+  }
+  function dirWaitClear(){ if (dirWait) { clearTimeout(dirWait.timer); dirWait = null; } }
+  function dirForget(){ dirWaitClear(); dirSeq++; dirReadyDoc = null; }   /* a new conversation, a sign-out */
+  window.addEventListener("message", function (e) {
+    try {
+      const f = dirFrame();
+      if (!f || e.source !== f.contentWindow || e.origin !== DIR_ORIGIN) return;
+      const d = e.data || {};
+      if (!d || d.type !== "teckel-directory-ready") return;
+      dirReadyDoc = (d.ok === true) ? dirDoc() : null;
+      if (dirWait) {
+        const band = dirWait.band; dirWaitClear();
+        if (dirReadyDoc) tellDirectory(band);
+        else showMsg("The directory could not be shown just now.");
+      }
+    } catch(err) { /* a message that cannot be read does nothing */ }
+  });
+  async function openDirectoryOnBand(band){
+    const seq = ++dirSeq;
+    let r;
+    try { r = await portalAction("directory_link", {}); }
+    catch(e) { r = null; }
+    if (seq !== dirSeq) { log("show_band: a later one superseded this"); return; }
+    const url = (r && r.success === true && typeof r.url === "string") ? r.url.trim() : "";
+    if (!DIR_URL.test(url)) { showMsg("The directory could not be opened just now."); log("show_band: no directory link"); return; }
+    const u = url + "&view=traffic&show=" + encodeURIComponent(band || "unknown");
+    let ok = false;
+    try { ok = typeof window.teckelPortalShow === "function" && await window.teckelPortalShow("directory", u); }
+    catch(e) { ok = false; }
+    if (!ok) { showMsg("The directory could not be shown just now."); return; }
+    showMsg("");
+    // Benedict changed the screen (as his display_category_directory would): no echo, and the page's own form is forgotten
+    forgetVoiceCopy(); viewerIid = null; screenForm = null; viewerEvent();
+  }
+  function showBand(m){
+    const band = (typeof m.band === "string" && DIR_BANDS.indexOf(m.band) !== -1) ? m.band : "";
+    log("show_band " + (band || "(not one of the keys)"));
+    dirWaitClear();
+    if (dirReady()) { dirSeq++; if (tellDirectory(band)) { showMsg(""); return; } }
+    else if (dirOnScreen() && dirDoc()) {
+      dirSeq++;
+      dirWait = { band: band, timer: setTimeout(function () { dirWait = null; openDirectoryOnBand(band); }, DIR_READY_MS) };
+      return;
+    }
+    openDirectoryOnBand(band);
   }
 
   /* ══ THE PAGE TELLS KEV IT IS READY (Yusuf, 22 Oct 2026: "Yes, tell kev"; timing agreed with kev's side) ══════════
@@ -4611,6 +4765,8 @@ window.teckelShell = (function () {
        2 {kind:"review_panel", shown:\x3cbool>, open_items:\x3cint>} — shown:true ONLY while the review panel is open on
           screen with N > 0 open items, N being the count the panel itself shows; otherwise shown:false, open_items:0;
        3 the remembered screen_form, if any (« THE FORM ON SCREEN »), unchanged.
+       4 (25 Oct 2026, « MUTE ») {kind:"mic_state", muted:\x3cbool>} — the Mute state as it is at that moment (false unless
+          the user tapped Mute before this run), so kev never takes the page as unmuted when it is not.
      · WHEN: once the socket is open AND the audio output is "running" AND the microphone attempt has settled (capturing
        or refused) AND the review panel's FIRST load after a sign-in has settled (opened, or confirmed empty) — each
        waited for, never forever: the audio and the microphone at most HELLO_WAIT_MS from the open (then audio_out /
@@ -4695,8 +4851,10 @@ window.teckelShell = (function () {
     if (!helloSent) return;
     sendReviewPanel(true);
     resendScreenForm();                  /* « THE FORM ON SCREEN »: the form the user opened before Start */
+    sendMicState(true);                  /* « MUTE »: the state as it is now — kev never takes this page as unmuted wrongly */
     // (2.2.421) « THE LIVE FORM »: the conversation has heard the page's opening run — the live form may now send its
-    // cursor's walk_step. On the NEXT task, so the opening run stays exactly client_ready, review_panel, screen_form.
+    // cursor's walk_step. On the NEXT task, so the opening run stays exactly client_ready, review_panel, screen_form,
+    // mic_state (« MUTE »).
     const heard = sock;
     setTimeout(function () {
       if (helloSent && sock === heard && isOpen()) { try { window.dispatchEvent(new Event("teckel-hello")); } catch(e) {} }
@@ -4786,6 +4944,7 @@ window.teckelShell = (function () {
   let firstHeard = false;                /* this conversation's first audio has been let through */
   let heldAudio = [];                    /* [bytes, rate] waiting for it, in arrival order */
   let holdTimer = null, holdSince = 0;
+  let lastBotAudioAt = 0;                /* (« END THE CONVERSATION ») performance.now() of kev's latest audio frame */
   let micOpenAt = 0;                     /* performance.now() when this conversation's microphone stream opened; 0: not yet */
   let micNone = false;                   /* this conversation's microphone attempt ended without one */
   function holdReset(){
@@ -4814,6 +4973,7 @@ window.teckelShell = (function () {
     q.forEach(function (f) { playPCM(f[0], f[1]); });
   }
   function botAudio(bytes, rate){
+    lastBotAudioAt = performance.now();
     if (firstHeard) { playPCM(bytes, rate); return; }
     if (!heldAudio.length) holdSince = performance.now();
     heldAudio.push([bytes, rate]);
@@ -4929,8 +5089,10 @@ window.teckelShell = (function () {
     try { await micCtx.audioWorklet.addModule(u); } finally { URL.revokeObjectURL(u); }
     micNode = new AudioWorkletNode(micCtx, "cap", { processorOptions: { target: MIC_RATE, frame: FRAME } });
     micNode.port.onmessage = (e) => {
-      if (muted || !isOpen()) return;              /* MUTED: nothing leaves the page */
-      sock.send(encodeAudio(e.data, MIC_RATE)); frames++;
+      if (!isOpen()) return;
+      // « MUTE »: muted, the frame STILL goes — as silence: the same length, every sample 0, never the microphone's
+      const pcm = muted ? new Int16Array(e.data.length) : e.data;
+      sock.send(encodeAudio(pcm, MIC_RATE)); frames++;
       if (dbg.frames && frames % 25 === 0) dbg.frames.textContent = frames + " frames";
     };
     micSrc.connect(micNode);
@@ -4946,30 +5108,78 @@ window.teckelShell = (function () {
     if (micStream) { micStream.getTracks().forEach(function (t) { t.stop(); }); micStream = null; }
   }
 
-  /* ── mute: client-side only. kev has no mute message; the socket stays open and simply
-        receives no audio. ⚠ kev reaps a socket idle for 30 minutes, so a long mute is warned
-        at 25 minutes, and a close is shown as a close — never as "connected". ────────── */
+  /* ══ MUTE (25 Oct 2026, Yusuf: "A 'mic off' button: Benedict listens by default, and you tap to mute it … LABEL IT
+        'MUTE' PERHAPS?" — TASKS_AND_DECISIONS.md; not push-to-talk) ═══════════════════════════════════════════════════════
+     · BENEDICT LISTENS BY DEFAULT. \`muted\` lives only in this script — nothing in storage — and connect() and the close
+       both set it false, so every page load and every conversation starts unmuted, and End and Sign out (each ends the
+       conversation) clear it.
+     · WHILE MUTED THE FRAMES KEEP GOING, AS SILENCE (Yusuf CC, from kev's source: one 30-minute idle timer, no silence
+       prompts, and a stream kept up needs no reconnect). Each 20 ms frame the worklet hands over is replaced, at the ONE
+       place a frame is sent (micNode.port.onmessage), by a frame of the same length whose every sample is 0. The stream,
+       its track, the 16 kHz context, the worklet and the socket are never touched by Mute.
+       ⭐ WHY ZEROS AND NOT track.enabled = false: zeros are silence BY CONSTRUCTION, in this page's own code, on every
+       browser — what a disabled track yields is the browser's affair, and it is exactly where Chrome on Android and
+       Safari on iOS have differed (a disabled capture track may give zeros, may stop feeding the source node so no frame
+       reaches the worklet at all — the stream kev was promised stops — or may release the capture route, so the phone
+       switches its audio again on Unmute and the first words after it are lost, the F-FG route switch « THE FIRST
+       WORDS » exists for). Left enabled, nothing about the device, its route or its audio mode changes on a tap, so
+       Unmute is instant and the first-words hold and the resume-inside-the-tap work exactly as before. The microphone's
+       sound still reaches this page while muted, and is dropped here: nothing of it leaves the page.
+     · kev is told {kind:"mic_state", muted:\x3cbool>}: on EVERY change once the conversation has said client_ready, and
+       ONCE in the opening run (« THE PAGE TELLS KEV IT IS READY », after client_ready, review_panel and the screen_form
+       re-send — the screen_form lesson: a session must never look unmuted to kev when it is not). A change before
+       client_ready is not sent on its own: the opening run carries the state as it is then. kev ignores a kind it does
+       not know, so this is inert until kev uses it.
+     · On screen: every Mute control ([data-lv-mute]: the voice panel's, and the copy beside Voice on / off on the live
+       form and the walk panel) reads "Unmute" with aria-pressed="true", and the voice panel shows MUTE_SAYS (text only).
+       Outside a conversation the panel's Mute is greyed and the form's copies are hidden.
+     · Typing, Voice on / off (Benedict speaking) and the walk are not touched: Benedict still speaks while muted.
+     ⚠ kev reaps a socket idle for 30 minutes, and silence is not speech, so a long mute is warned at 25 minutes, and a
+       close is shown as a close — never as "connected". ════════════════════════════════════════════════════════════ */
+  function muteControls(){
+    try { return Array.prototype.slice.call(document.querySelectorAll("[data-lv-mute]")); } catch(e) { return []; }
+  }
+  function syncMuteControls(){
+    const open = isOpen();
+    muteControls().forEach(function (b) {
+      b.setAttribute("aria-pressed", muted ? "true" : "false");
+      b.textContent = muted ? "Unmute" : "Mute";
+      if (b.id !== "lv-mute") b.hidden = !open;   /* the form's copies: only while a conversation is open */
+    });
+    const line = $("lv-muted");
+    if (line) { line.textContent = MUTE_SAYS; line.hidden = !(muted && open); }
+  }
+  function sendMicState(always){
+    if (!helloSent || !isOpen()) return false;    /* before client_ready: the opening run carries it */
+    const ok = sendJSON({ kind: "mic_state", muted: muted === true });
+    log("mic_state " + (muted ? "muted" : "unmuted") + (ok ? " sent" : " not sent") + (always ? " (opening run)" : ""));
+    return ok;
+  }
   function applyMute(){
-    if (micStream) micStream.getAudioTracks().forEach(function (t) { t.enabled = !muted; });
-    const b = $("lv-mute");
-    b.setAttribute("aria-pressed", muted ? "true" : "false");
-    b.textContent = muted ? "Unmute" : "Mute";
+    syncMuteControls();
     if (isOpen()) {
       setConn(muted ? "muted" : "on", "Connected");
-      setMic(micStream ? (muted ? "microphone muted"
-                                : (micCtx && micCtx.state !== "running" ? "microphone paused — tap to turn it on" : "listening"))
-                       : "no microphone — type below");
+      // (« MUTE ») muted says so even while the microphone is still starting; unmuted then says it is starting, not absent
+      setMic(muted ? "microphone muted"
+                   : micStream ? (micCtx && micCtx.state !== "running" ? "microphone paused — tap to turn it on" : "listening")
+                   : (micNone ? "no microphone — type below" : "starting the microphone…"));
     }
     clearTimeout(muteTimer); muteTimer = null;
     if (muted) muteTimer = setTimeout(muteWarn, MUTE_WARN_MS);
     else if (!micPausedShown) hideNotice();   /* (phase 1) the microphone-paused notice stays until the mic runs */
   }
-  function toggleMute(){ muted = !muted; applyMute(); activity(); }
+  // the ONE way the state changes during a conversation: the screen follows, and kev is told
+  function setMuted(on){
+    on = on === true;
+    if (on === muted) return;
+    muted = on; applyMute(); sendMicState(false);
+  }
+  function toggleMute(){ if (!isOpen()) return; setMuted(!muted); activity(); }
   function muteWarn(){
     if (!muted || !isOpen()) return;
     showNotice("Still there? The microphone has been muted for 25 minutes, and a conversation "
                + "with no sound for 30 minutes is closed.", "Unmute to stay connected",
-               function () { muted = false; applyMute(); });
+               function () { setMuted(false); });
   }
 
   /* ── the client-tool dispatch: the portal's own handlers, on window.* ─────────────── */
@@ -5320,6 +5530,7 @@ window.teckelShell = (function () {
     if (el.closest && el.closest(LOCK_EXEMPT_ZONES)) return true;
     // A control that stops the microphone is never greyed while a conversation is open.
     if ((el.id === "lv-mute" || el.id === "lv-disconnect") && isOpen()) return true;
+    if (el.id === "lv-keep" && isOpen()) return true;       /* (« END THE CONVERSATION ») keeping it is never greyed either */
     return false;
   }
   function lockEl(el){
@@ -5713,6 +5924,7 @@ window.teckelShell = (function () {
   function clearScreen(){
     try { if (typeof window.teckelNewConversation === "function") window.teckelNewConversation(); }   /* the viewer */
     catch(e) { log("panel reset failed: " + e.message); }
+    dirForget();                           /* (phase 2) a band asked for before the sign-out is dropped */
     clearTranscript(); showStatus({ text: "" }); hideNotice(); showMsg(""); clearList();
     lastRecorded = null;
     const box = $("form-search"), out = $("form-search-results");
@@ -5747,7 +5959,7 @@ window.teckelShell = (function () {
   function afterConversationEnded(){
     // On a greyed page Mute and End were exempt only while the conversation was open: grey them now. (End was
     // already disabled by the close, so the observer saw no change to act on.)
-    if (locked) { lockEl($("lv-mute")); lockEl($("lv-disconnect")); }
+    if (locked) { lockEl($("lv-mute")); lockEl($("lv-disconnect")); lockEl($("lv-keep")); }
     if (droppingFrames) { droppingFrames = false; clearScreen(); return; }   /* signed out during it: clear again */
     if (signOutAfterCall) { const w = signOutAfterCall; signOutAfterCall = ""; signOut(w, true); return; }
     signOutTick();
@@ -5779,6 +5991,7 @@ window.teckelShell = (function () {
     catch(e) { log("panel reset failed: " + e.message); }
     if (keep) log("the form the user opened stays on screen");
     forgetVoiceCopy();                     /* (2.2.419) the reset cleared Benedict's form from the viewer */
+    dirForget();                           /* (phase 2) and one asked for in the last conversation */
     clearTranscript(); showStatus({ text: "" }); hideNotice(); showMsg(""); clearList();
     lastRecorded = null; frames = 0;
     Object.keys(callIdByKey).forEach(function (k) { delete callIdByKey[k]; });
@@ -5845,7 +6058,10 @@ window.teckelShell = (function () {
         else if (m.kind === "recorded") { activity(); onRecorded(m); }
         else if (m.kind === "client_tool") runClientTool(m);
         else if (m.kind === "display_numbered_list") { activity(); showNumberedList(m); }   /* contract §7 */
+        else if (m.kind === "show_band") { activity(); showBand(m); }   /* (phase 2) « SHOW A BAND » */
+        else if (m.kind === "walk_control" && m.op === "close_form") { activity(); closeForm(); }   /* « CLOSE THE FORM » */
         else if (m.kind === "walk_result" || m.kind === "walk_control") { activity(); walkFrame(m); }   /* (2.2.419) */
+        else if (m.kind === "session_end") { activity(); sessionEnd(m); }   /* « END THE CONVERSATION » */
         else log("message ignored: " + String(m.kind).slice(0, 40));
       } catch(e) { log("message handling failed: " + e.message); }
     };
@@ -5853,6 +6069,7 @@ window.teckelShell = (function () {
       const wasOpen = everOpened, byUser = endingByUser;
       sock = null; connecting = false; endingByUser = false; muted = false;
       stopHello(); helloSent = false; reviewSentKey = null;   /* the next conversation says client_ready afresh */
+      endReset();                            /* « END THE CONVERSATION »: a pending end goes with the session */
       clearTimeout(muteTimer); muteTimer = null;
       live(false); stopMic(); flushPlayback(); holdReset(); volumeLine(false); showStatus({ text: "" }); applyMute(); clearList();
       const part = document.querySelector("#lv-transcript .l.bot.partial"); if (part) part.remove();
@@ -5868,16 +6085,145 @@ window.teckelShell = (function () {
     sock.onerror = () => log("socket error");
   }
 
-  // END: kev has no in-band end message, and cleans up when the socket CLOSES. So End is a clean
-  // close after a short "Ending…" state. (A spoken goodbye from kev is a later kev item.)
+  // END: kev cleans up when the socket CLOSES. So End is a clean close after a short "Ending…" state.
+  // (25 Oct 2026) kev's spoken goodbye, {kind:"session_end"}, ends the session through THIS function too
+  // (« END THE CONVERSATION » below), after the closing words and a moment to keep talking.
   function endConversation(){
     if (!sock) return;
+    endReset();                              /* « END THE CONVERSATION »: a pending end (its bar, its timers) gives way */
     endingByUser = true;
     setButtons(); setConn("busy", "Ending…"); setMic("");
     clearTimeout(muteTimer); muteTimer = null; hideNotice();
     stopMic(); flushPlayback();
     const s = sock;
     setTimeout(function () { try { s.close(1000, "user"); } catch(e) {} }, ENDING_MS);
+  }
+
+  /* ══ CLOSE THE FORM (25 Oct 2026, Yusuf: "YES PLEASE, BUILD BOTH AND FIX THE LINE"; the contract agreed with Yusuf CC —
+        TASKS_AND_DECISIONS.md, the top entry) ══════════════════════════════════════════════════════════════════════════
+     kev → page {kind:"walk_control", op:"close_form"} ("close the form"). The page puts the form away and the
+     conversation goes on:
+       · any walk ends — the live form (and the walk panel) close as they do whenever the form leaves the viewer, which
+         tells kev {kind:"walk_control", op:"stop"} after a step went out, exactly as before;
+       · the viewer goes back to where the user came from: the DOCUMENT DIRECTORY when the form replaced it there
+         (formFrom, below: a fresh directory_link through the portal door, opened on the device's own view), else the
+         empty viewer (the home view). A directory that cannot be opened leaves the empty viewer and one line;
+       · then the usual screen_form state, {kind:"screen_form", instance_id:null, form_name:null, action:"closed", at}, ONCE,
+         on the task after the walk's own stop, so kev's state follows the screen. No form on screen: nothing to put away,
+         and that same state is sent.
+     ⛔ NOTHING IS SUBMITTED, DISCARDED OR SAVED HERE: no request about the copy at all — every answer already written stays
+       written. The conversation, the microphone and Mute are not touched. Nothing in storage.
+     formFrom: whenever the viewer changes ("teckel-viewer"), a form arriving straight after the directory was on screen
+     came FROM the directory; a form arriving after anything else came from home; a form replacing a form keeps the
+     first one's origin (the user is still on that errand). */
+  let viewerWas = "other";                 /* what the viewer showed last: "form" | "directory" | "other" */
+  let formFrom = "home";                   /* where the form now on screen was opened from: "directory" | "home" */
+  function viewerNow(){
+    let f = false;
+    try { f = !!(window.teckelPortalViewer && window.teckelPortalViewer.formShown()); } catch(e) { f = false; }
+    return f ? "form" : (dirOnScreen() ? "directory" : "other");
+  }
+  window.addEventListener("teckel-viewer", function () {
+    try {
+      const now = viewerNow();
+      if (now === "form" && viewerWas !== "form") formFrom = viewerWas === "directory" ? "directory" : "home";
+      viewerWas = now;
+    } catch(e) { /* the origin is a nicety: never an error */ }
+  });
+  function closeForm(){
+    const on = viewerNow() === "form";
+    const back = on && formFrom === "directory";
+    log("close_form: " + (on ? "the form is put away" + (back ? ", back to the directory" : "") : "no form on screen"));
+    if (on) {
+      const pv = window.teckelPortalViewer;   /* the viewer's own clear: the frame, a drawn PDF, its polls, the Back target */
+      try { if (pv && typeof pv.clear === "function") pv.clear(); } catch(e) { log("close_form: the viewer could not be cleared"); }
+      viewerWas = "other"; formFrom = "home";
+    }
+    // the state kev follows: on the NEXT task, after the walk's own stop (the viewer's change reaches the walk on that task)
+    setTimeout(function () { try { tellScreenForm(null, null, "closed"); } catch(e) { log("close_form: state not sent"); } }, 0);
+    if (back) openDirectoryHome();
+  }
+  async function openDirectoryHome(){
+    const seq = ++dirSeq;
+    let r;
+    try { r = await portalAction("directory_link", {}); }
+    catch(e) { r = null; }
+    if (seq !== dirSeq) return;
+    const url = (r && r.success === true && typeof r.url === "string") ? r.url.trim() : "";
+    if (!DIR_URL.test(url)) { showMsg("The directory could not be opened just now."); log("close_form: no directory link"); return; }
+    let ok = false;
+    try { ok = typeof window.teckelPortalShow === "function" && await window.teckelPortalShow("directory", url); }
+    catch(e) { ok = false; }
+    if (!ok) { showMsg("The directory could not be shown just now."); return; }
+    showMsg("");
+  }
+
+  /* ══ END THE CONVERSATION (25 Oct 2026, Yusuf: "YES PLEASE, BUILD BOTH AND FIX THE LINE"; the contract agreed with
+        Yusuf CC) ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+     kev → page {kind:"session_end", reason:"user_asked"} ("goodbye", "I'll stop there"):
+       1 the page waits until Benedict's closing words have PLAYED — nothing queued or held, and no audio for
+         END_QUIET_MS — but never longer than END_DRAIN_CAP_MS from the message, then goes on anyway;
+       2 it shows "Ending the conversation…" with ONE button, "Keep talking", for END_CANCEL_MS (the voice Submit's Cancel
+         pattern; text only; a bar at the foot of the screen, so a phone scrolled to the form still sees it);
+       3 then it closes the session EXACTLY as the user's own End button does: endConversation(), the one function that
+         button calls.
+     · "Keep talking" in those seconds keeps the session and tells kev {kind:"session_end_cancelled"}.
+     · EVERY session_end takes this path, whatever its reason — "user_asked", another or a future reason, none, or one that
+       is not a string: the reason is never shown, never acted on, and logged only as letters and underscores (40 at most).
+       Nothing in it can throw. One at a time: another while one is pending is ignored. Routed on kind only.
+     · The user's own End, a sign-out or the socket closing while one is pending cancels it quietly (no message).
+     · Mute, the walk and the form on screen are left as they are; only the ending of the session changes anything. */
+  const END_DRAIN_CAP_MS = 5000;           /* the closing words: waited for at most this long */
+  const END_QUIET_MS = 250;                /* … and "played" means nothing queued and no audio arriving for this long */
+  const END_CANCEL_MS = 3000;              /* "Keep talking" is offered this long */
+  const END_POLL_MS = 50;
+  let ending = null;                       /* {sock, t0, timer, phase: "drain" | "window"} */
+  function audioDrained(){
+    return !heldAudio.length && !sources.length && performance.now() - lastBotAudioAt >= END_QUIET_MS;
+  }
+  function showEnding(on){
+    const bar = $("lv-ending");
+    if (!bar) return;
+    if (on) { const t = $("lv-ending-msg"); if (t) t.textContent = "Ending the conversation…"; }
+    bar.hidden = !on;
+  }
+  function endReset(){
+    if (ending) { clearTimeout(ending.timer); ending = null; }
+    showEnding(false);
+  }
+  function sessionEnd(m){
+    let why = "";
+    try { why = (m && typeof m.reason === "string") ? m.reason.replace(/[^A-Za-z_]/g, "").slice(0, 40) : ""; } catch(e) { why = ""; }
+    if (ending || !isOpen() || endingByUser) { log("session_end ignored (" + (ending ? "one is pending" : "not open") + ")"); return; }
+    log("session_end (" + (why || "no reason") + "): waiting for the closing words");
+    ending = { sock: sock, t0: performance.now(), timer: null, phase: "drain" };
+    endTick();
+  }
+  function endTick(){
+    const e = ending;
+    if (!e) return;
+    if (e.sock !== sock || !isOpen()) { endReset(); return; }
+    const waited = performance.now() - e.t0;
+    if (!audioDrained() && waited \x3c END_DRAIN_CAP_MS) { e.timer = setTimeout(endTick, END_POLL_MS); return; }
+    log("session_end: " + (audioDrained() ? "the closing words played" : "still playing after " + END_DRAIN_CAP_MS + " ms")
+        + " — Keep talking is offered");
+    e.phase = "window";
+    showEnding(true);
+    e.timer = setTimeout(endNow, END_CANCEL_MS);
+  }
+  function endNow(){
+    const e = ending;
+    if (!e) return;
+    endReset();
+    if (e.sock === sock && isOpen()) { log("session_end: ending, as the End button does"); endConversation(); }
+  }
+  function keepTalking(){
+    const e = ending;
+    if (!e || e.phase !== "window") return;
+    endReset();
+    const ok = sendJSON({ kind: "session_end_cancelled" });
+    log("session_end_cancelled " + (ok ? "sent" : "not sent (no socket)"));
+    activity();
   }
 
   function onStartClick(){
@@ -5914,6 +6260,9 @@ window.teckelShell = (function () {
   $("lv-code").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); verifyCode(); } });
   $("lv-disconnect").addEventListener("click", endConversation);
   $("lv-mute").addEventListener("click", toggleMute);
+  // « MUTE »: the copies beside Voice on / off (the live form, the walk panel) — the same state, the same toggle
+  muteControls().forEach(function (b) { if (b.id !== "lv-mute") b.addEventListener("click", toggleMute); });
+  { const k = $("lv-keep"); if (k) k.addEventListener("click", keepTalking); }   /* « END THE CONVERSATION » */
   $("lv-type-form").addEventListener("submit", function (e) { e.preventDefault(); sendTyped(); });
   if (DEBUG) buildDebugDrawer();
   // THE DOOR, FROM THE FIRST PAINT: greyed now; asked once every script on the page is in, so the
@@ -6200,7 +6549,7 @@ window.teckelShell = (function () {
       return;
     }
     const asked = P.live() && shown(s.form_name) && typeof window.teckelLocalPick === "function"
-                  && window.teckelLocalPick(String(s.form_name));
+                  && window.teckelLocalPick(String(s.form_name), null, { source: "review" });
     txt(rv.result, asked ? ("Accepted. Benedict has been asked to open " + name + ".")
                          : ("Accepted. Start a conversation and ask Benedict to open " + name + "."));
   }
@@ -8116,11 +8465,13 @@ window.teckelShell = (function () {
   // the transcript, while these phrases do — the same line as the live form's
   const SAYS_SPOKEN = "To move on by voice, say “skip this one”, “go back” or “say that again”.";
   // a PRESS of any of the walk's own buttons: the box's blur saves nothing (the button does its own thing)
+  // (25 Oct 2026, « MUTE ») the conversation's Mute beside Voice is one of these: muting is not leaving the question
   const NO_BLUR_SAVE = Object.freeze(["pp-walk-save", "pp-walk-typed", "pp-walk-skip", "pp-walk-back", "pp-walk-stop",
-                                      "pp-walk-voice", "pp-walk-btn"]);
+                                      "pp-walk-voice", "pp-walk-btn", "pp-walk-mute"]);
   // keyboard focus moving ONTO one of these (Tab): a skip, a step back or a stop — the blur saves nothing either; Tab onto
   // Save & next is leaving the box (saved), and Save & next then only moves on
-  const TAB_NO_SAVE = Object.freeze(["pp-walk-skip", "pp-walk-back", "pp-walk-stop", "pp-walk-voice", "pp-walk-btn"]);
+  const TAB_NO_SAVE = Object.freeze(["pp-walk-skip", "pp-walk-back", "pp-walk-stop", "pp-walk-voice", "pp-walk-btn",
+                                     "pp-walk-mute"]);
   let pressing = null;              /* one of the walk's own buttons being pressed: its blur saves nothing */
   function tellSent(ok){
     if (!feature("walk_says_why")) return;
@@ -8636,6 +8987,8 @@ window.teckelShell = (function () {
   w.voice.addEventListener("click", function () { setVoice(!speak, true); });
   // (2.2.420) a press of the walk's own buttons: the typed box's blur saves nothing (each does its own thing)
   [w.btn, w.stop, w.voice].forEach(function (x) { x.addEventListener("pointerdown", function () { press(x.id); }); });
+  // (« MUTE ») the conversation's Mute beside Voice: the transport owns it; pressing it saves nothing here
+  { const mu = $("pp-walk-mute"); if (mu) mu.addEventListener("pointerdown", function () { press(mu.id); }); }
   document.addEventListener("pointerup", function () { setTimeout(function () { pressing = null; }, 0); }, true);
   document.addEventListener("pointercancel", function () { pressing = null; }, true);
   window.addEventListener("teckel-viewer", syncBtn);
@@ -8783,10 +9136,12 @@ window.teckelShell = (function () {
   const SEND_CANCEL_MS = 3000;     /* a VOICE submit can be cancelled for this long */
   const SIGN_URL = /^https:\\/\\/teckel-io\\.github\\.io\\/[^?#\\s]*sign\\.html\\?\\S+$/;
   // a PRESS of these: the box's blur saves nothing (each does its own thing; Skip never saves)
+  // (25 Oct 2026, « MUTE ») the conversation's Mute beside Voice is one of these: muting is not leaving the question
   const PRESS_NO_SAVE = Object.freeze(["pp-lf-save", "pp-lf-typed", "pp-lf-skip", "pp-lf-back", "pp-live-stop",
-                                       "pp-live-voice", "pp-live-ro"]);
+                                       "pp-live-voice", "pp-live-ro", "pp-live-mute"]);
   // keyboard focus moving ONTO these (Tab): no save either; Tab onto Save & next is leaving the box (saved)
-  const TAB_KEEPS = Object.freeze(["pp-lf-skip", "pp-lf-back", "pp-live-stop", "pp-live-voice", "pp-live-ro"]);
+  const TAB_KEEPS = Object.freeze(["pp-lf-skip", "pp-lf-back", "pp-live-stop", "pp-live-voice", "pp-live-ro",
+                                   "pp-live-mute"]);
 
   let lf = null;          /* the live form open now: a new object each time (see openLive) */
   let opening = null;     /* the live form whose questions are loading */
@@ -9985,6 +10340,8 @@ window.teckelShell = (function () {
   ui.ro.addEventListener("click", function () { if (lf) setRo(!ui.shell.classList.contains("pp-live-ro")); });
   ui.stop.addEventListener("click", onStop);
   [ui.voice, ui.ro, ui.stop].forEach(function (x) { x.addEventListener("pointerdown", function () { press(x.id); }); });
+  // (« MUTE ») the conversation's Mute beside Voice: the transport owns it; pressing it saves nothing here
+  { const mu = $("pp-live-mute"); if (mu) mu.addEventListener("pointerdown", function () { press(mu.id); }); }
   document.addEventListener("pointerup", function () { setTimeout(function () { pressing = null; }, 0); }, true);
   document.addEventListener("pointercancel", function () { pressing = null; }, true);
   window.addEventListener("teckel-viewer", sync);
