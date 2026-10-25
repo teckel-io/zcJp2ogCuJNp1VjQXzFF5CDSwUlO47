@@ -7,14 +7,14 @@
   allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
   any file carrying it.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/canary/portal.68102ba1aeef.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/canary/portal.fd05535a3ef4.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/canary/portal.68102ba1aeef.js
+      https://teckel-io.github.io/practice_portal_core/canary/portal.fd05535a3ef4.js
   (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -52,7 +52,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="68102ba1aeef">/* =====================================================================================================================
+<script data-teckel-core="fd05535a3ef4">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -3990,7 +3990,8 @@ window.teckelShell = (function () {
          and once in the opening run.
        · (25 Oct 2026, Yusuf: "YES PLEASE, BUILD BOTH AND FIX THE LINE"; agreed with Yusuf CC) kev's {kind:"walk_control",
          op:"close_form"} puts the form away (back to the directory it came from, else the empty viewer), the conversation
-         going on, then screen_form says none is open (« CLOSE THE FORM »); kev's {kind:"session_end", reason} waits for the
+         going on, then screen_form says none is open (« CLOSE THE FORM »; 2.2.426, F-GR D5: a live form HELD after kev's
+         stop goes with it — the viewer's clear closes it); kev's {kind:"session_end", reason} waits for the
          closing words (5 s at most), offers "Keep talking" for 3 s ({kind:"session_end_cancelled"}), then ends the session
          exactly as End does (« END THE CONVERSATION »).
      ===================================================================== -->
@@ -4519,6 +4520,11 @@ window.teckelShell = (function () {
          {kind:"walk_step", step:"field", instance_id, speak, say, payload:{number, label, field_type, options, lane:"qa"}}
          {kind:"walk_step", step:"action", instance_id, speak, say, payload:{action:"sign"|"submit", ready}}
          {kind:"walk_control", op:"quiet"|"speak"|"stop"}
+       (2.2.426, phase 3, agreed with Yusuf CC) every walk_step may also carry say_help (the step's own line of what works
+       on it, the server's words; kev speaks it after two unresolved utterances — nothing here counts), and an action step
+       {action:"sign"} mid-walk names its box: payload {action:"sign", ready, slot, label, signed}. The page's reply to an op
+       it refused at an unsigned signature box is that step again with say "That box still needs a signature — sign on the
+       screen, then say 'next'." and refused:"next" | "skip". Absent (today's server): the shapes above, byte for byte.
        ONE envelope for every step (agreed DA CC + Yusuf CC, 24 Oct 2026): speak, say and the copy are the envelope's, so
        Silent, "again" and the rest are handled once, whatever the step. A step this page does not know — "row" (a cursor
        over a list) is reserved and NOT built — is refused here and never sent. The copy's id only one the server gave this
@@ -4587,6 +4593,10 @@ window.teckelShell = (function () {
       const iid = walkIid(m.instance_id), p = (m.payload && typeof m.payload === "object") ? m.payload : {};
       if (!iid || WALK_STEPS.indexOf(m.step) === -1) return null;
       const env = { kind: "walk_step", step: m.step, instance_id: iid, speak: m.speak === true, say: capText(m.say, 900) };
+      // (2.2.426, phase 3) the step's own help line (say_help: what works on THIS step, the server's words) — only when the
+      // page has one — and, on the page's reply to an op it refused at a signature box, which op ("next" | "skip")
+      if (typeof m.say_help === "string" && m.say_help.trim()) env.say_help = capText(m.say_help, 600);
+      if (m.refused === "next" || m.refused === "skip") env.refused = m.refused;
       if (m.step === "field") {
         const num = String(p.number === undefined || p.number === null ? "" : p.number).trim();
         if (!FORM_CHANGED_QN.test(num)) return null;
@@ -4597,6 +4607,10 @@ window.teckelShell = (function () {
       }
       if (WALK_ACTIONS.indexOf(p.action) === -1) return null;
       env.payload = { action: p.action, ready: p.ready === true };
+      // (2.2.426) a signature box mid-walk names itself — its slot, its label, whether it is signed — never a signer's name
+      if (p.action === "sign" && typeof p.slot === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(p.slot)) {
+        env.payload.slot = p.slot; env.payload.label = capText(p.label, 300); env.payload.signed = p.signed === true;
+      }
       return env;
     }
     if (m.kind === "walk_control" && WALK_PAGE_OPS.indexOf(m.op) !== -1) return { kind: "walk_control", op: m.op };
@@ -9079,9 +9093,28 @@ window.teckelShell = (function () {
          page's own discard) is dropped: the live form closes, the viewer empties, "This form has been removed from your
          list." And (server 2.2.422) submit_preview's practice_details_say, when practice_details_missing, sits beside Submit
          as a prompt with "Settings" linked to the header's Settings button — never a block.
+       · (25 Oct 2026, PHASE 3 — server 2.2.426, R426_WALK_COMMANDS; Yusuf: "we must get these 5 phases built and deployed";
+         the contract agreed with Yusuf CC) EVERY STEP SAYS WHAT WORKS ON IT: a question's say_help (form_fields) and the
+         Submit step's (submit_preview) ride in the walk_step envelope — read only when the server sends them; kev speaks
+         one after two unresolved utterances (the page counts nothing). A SIGNATURE BOX IS A STEP OF ITS OWN: form_fields'
+         \`signatures\` (absent: today's server — the page as before) puts each box in the walk — a printed signature line
+         made digital in its question's place, a block after the last question — as a row with Sign (the signing page,
+         as the end's Sign opens it) and Next, its step {step:"action", payload:{action:"sign", ready, slot, label,
+         signed}} with the server's say ("Please sign on the screen, then say 'next'."). The walk never moves past an
+         UNSIGNED box: Next, or kev's walk_control "next" / "skip", re-reads form_fields and, still unsigned, shows and
+         sends kev "That box still needs a signature — sign on the screen, then say 'next'." (the same step, refused:
+         "next" | "skip"); signed, the cursor moves on. Never signed by voice (kev's walk_result there is ignored), never
+         skipped by voice; "go back", "say that again" and "sign" act on it. kev's "next" (STEP_OPS, beside the walk's
+         allowlist) on a question moves on as Skip does; on the end's Sign step it re-checks the form, and still owed says
+         that same line.
+       · (25 Oct 2026, F-GR — tcc's run 44; Yusuf: "YES PLEASE, ALL OF THEM") kev's own stop ("pause") HOLDS the walk: the
+         form and its answers stay, "Paused — your answers are kept. …", and Voice on or kev's walk sends the cursor's step
+         again (D4); a value kev saved shows as the server stored it — one form_fields read after his ok (D2); My forms
+         re-read without the copy on screen asks about that copy once and drops it when the server says it is gone (D7);
+         the same step is never sent twice running into one conversation — only "again" and Voice on re-send (D13).
      ⚠ Every request goes through window.teckelPortal.action, which adds the pass; this script never holds it. Every server
        string is written as TEXT; nothing is stored in the browser; the console never carries a value. The live form closes,
-       and empties, on a lapse, a sign-out and when the form leaves the viewer.
+       and empties, on a lapse, a sign-out, the user's Stop, kev's close_form and when the form leaves the viewer.
      ===================================================================== -->
 \x3cscript>
 "use strict";
@@ -9107,6 +9140,8 @@ window.teckelShell = (function () {
   // (the coordinator, 24 Oct) the hint points at the CONTROL only: kev does not yet send op "walk" / "edit", so nothing
   // here ever suggests saying "walk me through it" (op "walk" is still accepted if it arrives, just never advertised)
   const SAYS_HELD = "Press Voice on and Benedict will read the questions one by one, or type your answers.";
+  // (2.2.426, F-GR D4) kev's own stop ("pause"): the walk ends, the form and its answers stay on screen, held
+  const SAYS_PAUSED = "Paused — your answers are kept. Press Voice on to carry on, or type your answers.";
   const SAYS_COMPLETED = "Every question is answered — check it, then Submit.";
   // ── PHASE 1 (24 Oct 2026; Yusuf "Yes, please" to phase 0+1; FINDINGS F-FX, F-GB, F-GC — tcc's runs 41 and 43) ──
   // a list's unselected state (Yusuf, F-FX: "-- Select --", not "—")
@@ -9120,6 +9155,20 @@ window.teckelShell = (function () {
   // door answers NOT_YOURS for a deleted copy (teckel__r391_portal_v1_0.py _owns), and a copy that was this practice's a
   // moment ago cannot have become another's — at the first open it keeps its own line ("not on this practice's account").
   const GONE_CODES = Object.freeze(["NOT_FOUND", "INSTANCE_NOT_FOUND", "FORM_NOT_FOUND", "COPY_NOT_FOUND"]);
+  // ── (2.2.426, PHASE 3) A SIGNATURE BOX IS A STEP OF THE WALK (form_fields' \`signatures\`, only when the server sends them):
+  //    signed on the signing page, never by voice; the walk never moves past one that is not signed. The page's own line
+  //    when it refuses (shown beside the box, and sent to kev as the same step with refused:"next" | "skip"):
+  const SAYS_UNSIGNED = "That box still needs a signature — sign on the screen, then say 'next'.";
+  // …and when the box could not be checked (the re-read failed): never moved past, said honestly
+  const SAYS_SIGN_UNCHECKED = "The signature couldn't be checked just now — sign on the screen, then say 'next' again.";
+  const SAYS_SIGN_OWED = "Needs a signature — press Sign and sign on the screen.";
+  const SAYS_SIGNED = "✓ Signed";
+  const SAYS_SIGN_OPEN = "The signing page is open in a new tab — sign there, then press Next.";
+  const SAYS_SIGN_LINK = "Open the signing page in a new tab, sign there, then say 'next'. ";
+  // kev's walk_control ops of this build, beside the walk's allowlist (LIVE_OPS stays the walk's eleven): "next" — advance
+  // if allowed (a signature box only once it is signed; a question as Skip; the end's Sign step re-checked)
+  const STEP_OPS = Object.freeze(["next"]);
+  const SLOT_OK = /^[A-Za-z0-9_-]{1,64}$/;
   const LOCKED_LINE = "left blank — personal details aren't collected";
   const FOLLOW_UP_LINE = "only needed if not compliant";
   const BOX_HINT = Object.freeze({ date: "dd/mm/yyyy or 'today'", time: "hh:mm", datetime: "dd/mm/yyyy hh:mm" });
@@ -9313,7 +9362,7 @@ window.teckelShell = (function () {
     if (r.editable !== true || String(r.status || "") === "submitted") { closeLive("not"); keepNote(me.key, whyNotFromServer(r)); return; }
     me.kind = String(r.form_kind || "");
     me.completed = String(r.status || "").trim().toLowerCase() === "completed";   /* every answer in, not submitted */
-    if (me.kind === "qa" && Array.isArray(r.questions)) { renderQa(me, r.questions); return; }
+    if (me.kind === "qa" && Array.isArray(r.questions)) { renderQa(me, r.questions, r.signatures); return; }
     if (me.kind === "log" && Array.isArray(r.columns)) { renderLog(me, r); return; }
     closeLive("not"); keepNote(me.key, SAYS_KIND);
   }
@@ -9366,8 +9415,9 @@ window.teckelShell = (function () {
   function press(id){ pressing = id; }
 
   /* ══ A QUESTION FORM ═════════════════════════════════════════════════════════════════════════════════════════════ */
-  function renderQa(me, questions){
+  function renderQa(me, questions, sigs){
     const list = el("div", "pp-lf-list");
+    const signs = signSteps(sigs);                          /* (2.2.426) the copy's signature boxes, when the server sends them */
     questions.forEach(function (q) {
       if (!q || typeof q !== "object" || !shown(q.number)) return;
       const num = String(q.number);
@@ -9375,9 +9425,19 @@ window.teckelShell = (function () {
       const row = { q: q, num: num, i: me.rows.length, saved: shown(q.answer) ? String(q.answer) : "", ctl: null, st: null,
                     el: null, cell: null, id: "", personal: q.personal === true, calc: fieldType(q) === "computed",
                     busy: false, tried: null, asTyped: false, offLine: null };
+      if (signs && signs.byNum[num]) asSign(row, signs.byNum[num]);   /* (2.2.426) a printed signature line made digital */
       me.known[num] = row.saved;
       me.rows.push(row); me.byNum[num] = row;
-      list.appendChild(buildRow(me, row));
+      list.appendChild(row.sign ? buildSignRow(me, row) : buildRow(me, row));
+    });
+    if (signs) signs.tail.forEach(function (s) {            /* (2.2.426) a signature block: after the last question */
+      const num = "sig:" + s.slot;
+      if (me.byNum[num]) return;
+      const row = { q: { number: num, label: s.label }, num: num, i: me.rows.length, saved: "", ctl: null, st: null, el: null,
+                    cell: null, id: "", personal: false, calc: false, busy: false, tried: null, asTyped: false, offLine: null };
+      asSign(row, s);
+      me.rows.push(row); me.byNum[num] = row;
+      list.appendChild(buildSignRow(me, row));
     });
     ui.body.textContent = "";
     ui.body.appendChild(list);
@@ -9385,7 +9445,7 @@ window.teckelShell = (function () {
     ui.body.appendChild(acts);
     me.acts = acts;
     // the server gives every question its spoken line (2.2.419); without them there is no walk, only typing
-    me.voiceless = !me.rows.every(function (x) { return x.personal || x.calc || typeof x.q.say === "string"; });
+    me.voiceless = !me.rows.every(function (x) { return x.personal || x.calc || !!x.sign || typeof x.q.say === "string"; });
     ui.voice.hidden = me.voiceless;
     sayHint(!me.voiceless);                                 /* (phase 1) the spoken commands that work */
     me.held = holdsOnOpen(me);                              /* completed, or Benedict's form without walks_on_open */
@@ -9451,6 +9511,51 @@ window.teckelShell = (function () {
     }
   }
 
+  /* ── (2.2.426) signature boxes: a row of their own, walked like a question, never typed into or signed by voice ── */
+  // the server's sign steps by question number (a printed line made digital) and in order after the last question (a
+  // block); null when the reply carries none (today's server: the page exactly as before)
+  function signSteps(sigs){
+    if (!Array.isArray(sigs)) return null;
+    const out = { byNum: {}, tail: [] };
+    sigs.forEach(function (s) {
+      if (!s || typeof s !== "object" || typeof s.slot !== "string" || !SLOT_OK.test(s.slot)) return;
+      const st = { slot: s.slot, signed: s.signed === true, label: shown(s.label) ? String(s.label) : "",
+                   say: typeof s.say === "string" ? s.say : "", say_help: typeof s.say_help === "string" ? s.say_help : "" };
+      const n = shown(s.number) ? String(s.number) : "";
+      if (n && !out.byNum[n]) out.byNum[n] = st; else out.tail.push(st);
+    });
+    return out;
+  }
+  function asSign(row, s){
+    row.sign = s; row.personal = false; row.calc = false;
+    row.saved = s.signed ? "signed" : "";                   /* the walk's "answered": signed, nothing else */
+  }
+  function buildSignRow(me, row){
+    const s = row.sign, id = "pp-lf-b-" + (++uid);
+    const r = el("div", "pp-lf-row pp-lf-sign-row"); r.setAttribute("data-n", row.num); r.setAttribute("data-sign", s.slot);
+    const text = row.num.indexOf("sig:") === 0 ? (s.label || "Signatures") : row.num + ". " + String(row.q.label || s.label || "");
+    const lab = el("label", "pp-lf-label", text); lab.htmlFor = id; lab.id = id + "-l";
+    const cell = el("div", "pp-lf-cell");
+    r.appendChild(lab); r.appendChild(cell);
+    row.el = r; row.cell = cell; row.id = id;
+    const b = button("Sign", "pp-small", function () { signRow(me, row, false); });
+    b.id = id; b.setAttribute("aria-describedby", id + "-s");
+    b.addEventListener("focus", function () { onFocusBox(me, row); });
+    row.ctl = b;
+    cell.appendChild(b);
+    row.st = statusLine(cell); row.st.id = id + "-s";
+    paintSign(row);
+    return r;
+  }
+  function paintSign(row){ say(row.st, row.sign.signed ? SAYS_SIGNED : SAYS_SIGN_OWED, row.sign.signed ? true : null); }
+  // the cursor's tools on a signature box: Next in place of Save & next, Save as typed and Skip; Back as everywhere
+  function signTools(row){
+    const sg = !!(row && row.sign), nx = $("pp-lf-next");
+    if (nx) nx.hidden = !sg;
+    if (!sg) { $("pp-lf-skip").hidden = false; return; }
+    $("pp-lf-save").hidden = true; $("pp-lf-typed").hidden = true; $("pp-lf-skip").hidden = true;
+  }
+
   /* ── follow-up boxes (2.2.420): one that does not apply is greyed, never asked ── */
   function activeNow(me, q){
     if (!q) return false;
@@ -9464,6 +9569,7 @@ window.teckelShell = (function () {
   function refreshActive(me){
     me.rows.forEach(function (row) {
       if (!row.ctl || row.calc || row.personal) return;
+      if (row.sign) return;                                 /* (2.2.426) a signature box always applies */
       const on = activeNow(me, row.q);
       row.el.classList.toggle("pp-lf-off", !on);
       row.ctl.disabled = !on;
@@ -9580,7 +9686,10 @@ window.teckelShell = (function () {
     typedB.id = "pp-lf-typed"; typedB.hidden = true;
     const skip = button("Skip", "pp-small", function () { next(me, "skip"); }); skip.id = "pp-lf-skip";
     const back = button("Back", "pp-small", function () { stepBack(me); }); back.id = "pp-lf-back";
-    [save, typedB, skip, back].forEach(function (x) { x.addEventListener("pointerdown", function () { press(x.id); }); t.appendChild(x); });
+    // (2.2.426) a signature box's Next: moves on only once it is signed
+    const nx = button("Next", "primary pp-small", function () { const row = curRow(me); if (row && row.sign) signNext(me, row, "button"); });
+    nx.id = "pp-lf-next"; nx.hidden = true;
+    [save, typedB, nx, skip, back].forEach(function (x) { x.addEventListener("pointerdown", function () { press(x.id); }); t.appendChild(x); });
     me.tools = t;
     return t;
   }
@@ -9601,6 +9710,7 @@ window.teckelShell = (function () {
       $("pp-lf-save").hidden = row.ctl.tagName === "SELECT";
       $("pp-lf-typed").hidden = !row.asTyped;
       $("pp-lf-back").disabled = seekBack(me, row.i - 1) === -1;
+      signTools(row);                                       /* (2.2.426) a signature box: Next, Back */
       return;
     }
     if (t.parentNode) t.parentNode.removeChild(t);
@@ -9609,6 +9719,7 @@ window.teckelShell = (function () {
   function stepLine(me){
     const ws = me.rows.filter(function (x) { return walkable(me, x); });
     const row = curRow(me);
+    if (row && row.sign) { txt(ui.step, "Signature — step " + (ws.indexOf(row) + 1) + " of " + ws.length); return; }   /* (2.2.426) */
     if (row) txt(ui.step, "Question " + (ws.indexOf(row) + 1) + " of " + ws.length);
   }
   // scrolled into view INSIDE the live form's own box — the page itself never moves. "In view" is the part of the box
@@ -9674,7 +9785,11 @@ window.teckelShell = (function () {
     if (lf !== me || me.kind !== "qa" || me.voiceless || me.held || !ready()) return false;
     if (me.sent && me.sent.seq === me.seq && me.sent.conv === conv) return false;   /* this move's step has gone */
     let env = null;
-    if (me.mode === "q") {
+    // (2.2.426) a signature box at the cursor: its own action step (the server's say and say_help), never a field
+    if (me.mode === "q" && curRow(me) && curRow(me).sign) {
+      if (!walkable(me, curRow(me))) return false;
+      env = signEnv(curRow(me));
+    } else if (me.mode === "q") {
       const row = curRow(me);
       if (!walkable(me, row)) return false;
       // (Yusuf, 24 Oct: "2 yes") the follow-up's short form, ONLY straight on from its parent: the walk's previous field
@@ -9687,18 +9802,47 @@ window.teckelShell = (function () {
       env = { step: "field", say: String(short ? row.q.say_short : (row.q.say || "")),
               payload: { number: row.num, label: String(row.q.label || ""), field_type: fieldType(row.q),
                          options: Array.isArray(row.q.options) ? row.q.options.map(String) : [], lane: "qa" } };
+      if (typeof row.q.say_help === "string" && row.q.say_help.trim()) env.say_help = row.q.say_help;   /* (2.2.426) */
       me.lastField = { num: row.num, seq: me.seq, conv: conv };
     } else if (me.mode === "act" && me.pv) {
-      env = { step: "action", say: me.pv.say, payload: { action: me.step, ready: me.pv.can } };
+      env = actEnv(me);
     }
     if (!env) return false;
+    // (2.2.426, F-GR D13; F-GQ: kev received walk_step n=8 TWICE, 6.4 s apart, after a pick on the screen) never the SAME
+    // step again into the same conversation when nothing moved between: only "again" and Voice on re-send (each calls
+    // emit itself); the step stays current (a result for it is still taken)
+    const outKey = conv + "|" + JSON.stringify(env);
+    if (me.lastOut === outKey) {
+      me.sent = { seq: me.seq, conv: conv }; lastEnv = env;
+      log("not re-sent: that step is already current");
+      return false;
+    }
+    me.lastOut = outKey;
     me.sent = { seq: me.seq, conv: conv }; me.sentAny = true; lastEnv = env;
     return emit(me, env, false);
   }
+  // the action step's envelope: the preview's say, and (2.2.426) its say_help when the server gives one
+  function actEnv(me){
+    const env = { step: "action", say: me.pv.say, payload: { action: me.step, ready: me.pv.can } };
+    if (me.pv.help) env.say_help = me.pv.help;
+    return env;
+  }
+  // (2.2.426) a signature box's envelope: an action step {action:"sign"} naming its box (never a signer's name)
+  function signEnv(row){
+    const s = row.sign;
+    const env = { step: "action", say: String(s.say || ""),
+                  payload: { action: "sign", ready: s.signed === true, slot: s.slot,
+                             label: String(s.label || row.q.label || ""), signed: s.signed === true } };
+    if (s.say_help) env.say_help = s.say_help;
+    return env;
+  }
   function emit(me, env, loud){
     if (typeof window.teckelWalkSend !== "function") return false;
+    // (2.2.426) the step's own help line and, on the reply to an op the page refused, which op — each only when there is one
     return window.teckelWalkSend({ kind: "walk_step", step: env.step, instance_id: me.iid,
-                                   speak: loud === true ? true : speak, say: env.say, payload: env.payload });
+                                   speak: loud === true ? true : speak, say: env.say, payload: env.payload,
+                                   ...((typeof env.say_help === "string" && env.say_help) ? { say_help: env.say_help } : {}),
+                                   ...(env.refused ? { refused: env.refused } : {}) });
   }
   function stepIsCurrent(me){ return !!(me && me.sent && me.sent.seq === me.seq && me.sent.conv === conv); }
   function control(op){
@@ -9741,9 +9885,10 @@ window.teckelShell = (function () {
     if (to && TAB_KEEPS.indexOf(String(to)) !== -1) return;                /* Tab onto Skip, Back, Stop … */
     saveRow(me, row, "leave");
   }
-  function dirty(row){ return !!(row && row.ctl && String(row.ctl.value || "").trim() !== String(row.saved || "").trim()); }
+  function dirty(row){ return !!(row && !row.sign && row.ctl && String(row.ctl.value || "").trim() !== String(row.saved || "").trim()); }
   async function saveRow(me, row, how){
     if (lf !== me || !row.ctl || row.busy || me.mode === "done") return;
+    if (row.sign) return;                                   /* (2.2.426) a signature box takes no typed value */
     const astyped = how === "astyped";
     const v = String(row.ctl.value || "");
     if (!astyped && v.trim() === String(row.saved || "").trim()) {          /* nothing changed: no request */
@@ -9826,12 +9971,20 @@ window.teckelShell = (function () {
               say: previewSay(r), sign: Array.isArray(r.blocked_by) && r.blocked_by.indexOf("SIGNATURES_OUTSTANDING") !== -1,
               // (server 2.2.422, R422_DETAILS_PROMPT) the practice's details are missing: a PROMPT beside Submit, never a block
               details: (r.practice_details_missing === true && shown(r.practice_details_say)) ? String(r.practice_details_say).trim() : "" };
+    me.pv.help = shown(r.say_help) ? String(r.say_help) : "";   /* (2.2.426) what Submit / Cancel (or signing) do here */
     me.step = me.pv.sign ? "sign" : "submit";
     me.seq++;                                               /* a fresh action step: its ONE walk_step */
     renderActs(me, "");
+    if (fromVoice === "next" && ready()) {                  /* (2.2.426) kev's "next" on the end's Sign step: re-checked */
+      me.sent = { seq: me.seq, conv: conv }; me.sentAny = true;
+      lastEnv = actEnv(me);
+      if (me.step === "sign") txt($("pp-lf-reason"), SAYS_UNSIGNED);
+      emit(me, me.step === "sign" ? Object.assign({}, lastEnv, { say: SAYS_UNSIGNED, refused: "next" }) : lastEnv, true);
+      return me.pv;
+    }
     if (fromVoice === true && ready()) {                    /* RED by voice: the fresh step, spoken once */
       me.sent = { seq: me.seq, conv: conv }; me.sentAny = true;
-      lastEnv = { step: "action", say: me.pv.say, payload: { action: me.step, ready: me.pv.can } };
+      lastEnv = actEnv(me);
       emit(me, lastEnv, true);
     } else stepOut(me);
     return me.pv;
@@ -10127,6 +10280,7 @@ window.teckelShell = (function () {
   function onResult(m){
     const me = lf, row = curRow(me);
     if (!me || me.kind !== "qa" || !row) { ignore("no question at the cursor", m); return; }
+    if (row.sign) { ignore("a signature is given on the screen, never by voice", m); return; }   /* (2.2.426) */
     // (kev 1.113.0) it names the copy: another copy's result is never shown here; no instance_id: the rule before it
     const said = (m.instance_id === undefined || m.instance_id === null) ? "" : String(m.instance_id).trim();
     if (said && said !== me.iid) { ignore("not the copy on screen", m); return; }
@@ -10139,6 +10293,7 @@ window.teckelShell = (function () {
       const t = $("pp-lf-typed"); if (t) t.hidden = true;
       me.viewDirty = true;
       afterInputs(me, row.num, null);
+      rereadStored(me, row.num);                            /* (2.2.426, D2) the box then shows what the server stored */
       const at = me.seq;
       clearTimeout(me.timer);
       me.timer = setTimeout(function () { if (lf === me && me.seq === at) next(me); }, VOICE_ADVANCE_MS);
@@ -10147,15 +10302,36 @@ window.teckelShell = (function () {
     const f = String(m.floor || "");
     refusedRow(me, row, shown(m.reason) ? String(m.reason) : "That answer was not saved.", f, f !== "kev_type_precheck");
   }
+  // ⭐ (2.2.426, F-GR D2; tcc's run 44, 14:27:32Z: Q1 showed the raw words "The 25th of October, 2026." until a reopen
+  //   showed 25-Oct-2026) A VALUE KEV SAVED SHOWS AS THE SERVER STORED IT, never the words kev passed: ONE form_fields read
+  //   after kev's ok, and the box takes the stored answer — unless it was typed into meanwhile (the user's box wins), the
+  //   copy is gone (dropped, as anywhere), or the read failed (the box keeps what it shows).
+  async function rereadStored(me, num){
+    if (lf !== me) return;
+    let r;
+    try { r = await P.action("form_fields", { instance_id: me.iid }); } catch(e) { return; }
+    if (lf !== me || goneIf(me, r)) return;
+    if (!r || r.success !== true || !Array.isArray(r.questions)) return;
+    const q = r.questions.find(function (x) { return !!x && String(x.number) === String(num); });
+    const row = me.byNum[String(num)];
+    if (!q || !row || !row.ctl || row.busy || row.sign || !shown(q.answer)) return;
+    if (dirty(row) || String(q.answer) === String(row.saved)) return;
+    setSaved(me, row, String(q.answer), null);
+  }
   function onControl(m){
     const op = String(m.op || "");
+    if (STEP_OPS.indexOf(op) !== -1) { onNext(m); return; }   /* (2.2.426) kev's "next": advance if allowed */
     if (LIVE_OPS.indexOf(op) === -1) { ignore("not an op a conversation may drive", m); return; }
     if (op === "quiet" || op === "speak") { setVoice(op === "speak", false); return; }
     if (op === "edit" || op === "walk") { voiceOpen(op, m); return; }
     const me = lf;
     if (!me || me.mode === "load" || me.mode === "done") { ignore("no live form", m); return; }
-    if (op === "stop") { closeLive("kev"); return; }       /* kev's own stop: echoed too (see closeLive) */
+    if (op === "stop") { holdLive(me); return; }           /* (2.2.426, D4) kev's own stop: held, the form stays; echoed */
     if (me.kind !== "qa") { ignore("a log is not walked yet", m); return; }
+    // (2.2.426) a signature box at the cursor: never skipped by voice (re-checked, and still unsigned the refusal line, as
+    // for "next"); "go back", "say that again" and "sign" act on it without a question number (its step names none)
+    const sr = curRow(me);
+    if (sr && sr.sign && (op === "skip" || op === "back" || op === "again" || op === "sign")) { signControl(me, sr, op, m); return; }
     if (op === "again") {
       if (me.mode === "q" && !sameNumber(me, m)) { ignore("not the question at the cursor", m); return; }
       if (!lastEnv || !stepIsCurrent(me)) { ignore("nothing was asked in this conversation", m); return; }
@@ -10175,6 +10351,95 @@ window.teckelShell = (function () {
     if (op !== "submit") { ignore("not an action a conversation may take", m); return; }   /* never a fall-through */
     if (me.pv && me.pv.can === true) { countdown(me); return; }   /* GREEN by voice: 3 seconds to cancel */
     preview(me, true);                                      /* RED: check again; still blocked, the fresh step spoken once */
+  }
+  /* ── (2.2.426, PHASE 3) a signature box in the walk: Next, kev's "next", and his ops on the box ── */
+  function signControl(me, row, op, m){
+    if (op === "skip") { signNext(me, row, "skip"); return; }   /* never skipped by voice: moved past only once signed */
+    if (op === "back") { if (usable($("pp-lf-back"))) stepBack(me); else ignore("its button is not usable", m); return; }
+    if (op === "again") {
+      if (!lastEnv || !stepIsCurrent(me)) { ignore("nothing was asked in this conversation", m); return; }
+      emit(me, lastEnv, true);                              /* the SAME envelope, speak:true, once */
+      return;
+    }
+    signRow(me, row, true);                                 /* "sign": the signing page's link — never a signature */
+  }
+  // kev's walk_control "next" (STEP_OPS): advance if allowed — a signature box only once it is signed; a question as Skip
+  // does; the end's Sign step re-checked (still owed: the refusal line); anything else: nothing
+  function onNext(m){
+    const me = lf;
+    if (!me || me.mode === "load" || me.mode === "done") { ignore("no live form", m); return; }
+    if (me.kind !== "qa") { ignore("a log is not walked yet", m); return; }
+    const row = curRow(me);
+    if (row && row.sign) { signNext(me, row, "next"); return; }
+    if (row) { if (usable($("pp-lf-skip"))) next(me, "skip"); else ignore("its button is not usable", m); return; }
+    if (me.mode === "act" && me.step === "sign" && !me.busy && !me.countdown) { preview(me, "next"); return; }
+    ignore("nothing to move on to", m);
+  }
+  // Next on a signature box (via "button" | "next" | "skip"): known signed — on to the next step; else form_fields is read
+  // again (the signing page is another tab) and the box moves on ONLY when the server says it is signed (a box no longer on
+  // the copy has nothing to sign); still unsigned, or the read failed — the cursor stays and the line says why
+  async function signNext(me, row, via){
+    if (lf !== me || !row.sign || row.busy || !isCursor(me, row)) return;
+    const at = me.seq;
+    if (row.sign.signed !== true) {
+      row.busy = true;
+      say(row.st, "Checking the signature…", null);
+      let r = null;
+      try { r = await P.action("form_fields", { instance_id: me.iid }); }
+      catch(e) { r = null; }
+      finally { row.busy = false; }
+      if (lf !== me) return;
+      if (lapsed(r) || goneIf(me, r)) return;
+      const fresh = (r && r.success === true && Array.isArray(r.signatures)) ? r.signatures : null;
+      if (fresh) {
+        const s = fresh.find(function (x) { return x && x.slot === row.sign.slot; });
+        row.sign = Object.assign({}, row.sign, { signed: !s || s.signed === true });
+        row.saved = row.sign.signed ? "signed" : "";
+        me.known[row.num] = row.saved;
+      }
+      paintSign(row);
+      if (!isCursor(me, row) || me.seq !== at) return;      /* moved meanwhile: only the box's own line changed */
+      if (!fresh || row.sign.signed !== true) { refuseSign(me, row, via, fresh ? SAYS_UNSIGNED : SAYS_SIGN_UNCHECKED); return; }
+    }
+    next(me, "saved");
+  }
+  // the refusal: shown beside the box, and — a step of this conversation's — sent to kev as the same step with the line as
+  // its say (refused: "next" | "skip"), spoken when kev asked, as the walk's Voice says when the button was pressed
+  function refuseSign(me, row, via, line){
+    say(row.st, line, false);
+    if (me.held || me.voiceless || !ready() || !stepIsCurrent(me)) return;
+    emit(me, Object.assign({}, signEnv(row), { say: line, refused: via === "skip" ? "skip" : "next" }), via !== "button");
+  }
+  // Sign on a signature box: the signing page (sign_link), in a new tab opened inside the click — by voice ("sign") only a
+  // link to it; nothing is ever signed here
+  async function signRow(me, row, fromVoice){
+    if (lf !== me || !row.sign || row.busy) return;
+    let tab = null;
+    if (!fromVoice) {
+      try { tab = window.open("", "_blank"); } catch(e) { tab = null; }
+      if (tab) { try { tab.opener = null; } catch(e) {} try { tab.document.title = "Opening…"; } catch(e) {} }
+    }
+    say(row.st, "Opening the signing page…", null);
+    row.busy = true;
+    let r;
+    try { r = await P.action("sign_link", { instance_id: me.iid }); }
+    finally { row.busy = false; }
+    const ok = !!(r && r.success && typeof r.url === "string" && SIGN_URL.test(r.url));
+    if (!ok) {
+      if (tab) { try { tab.close(); } catch(e) {} }
+      if (lf === me && goneIf(me, r)) return;
+      if (!lapsed(r) && lf === me) say(row.st, (r && r.success) ? "The signing page could not be opened."
+                                                                 : msgOf(r, "The signing page could not be opened just now."), false);
+      return;
+    }
+    try { if (typeof window.teckelScreenForm === "function") window.teckelScreenForm(me.iid, me.name, "sign"); } catch(e) {}
+    if (tab && !tab.closed) {
+      try { tab.location.replace(r.url); say(row.st, SAYS_SIGN_OPEN, null); return; }
+      catch(e) { /* fall through to the link */ }
+    }
+    const a = document.createElement("a");
+    a.href = r.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open the signing page";
+    if (row.st) { row.st.className = "pp-lf-status"; row.st.textContent = SAYS_SIGN_LINK; row.st.appendChild(a); }
   }
   // kev's "edit" / "walk": the live form on the form on screen (open it if Stop closed it); "walk" also turns Voice on
   function voiceOpen(op, m){
@@ -10255,7 +10520,21 @@ window.teckelShell = (function () {
   //   step went out, {kind:"walk_control", op:"stop"} is sent — whatever ended it: Stop, kev's own stop, the form leaving
   //   the screen, a lapse or a sign-out. 2.2.419/420's walk skipped the echo for kev's stop and kev held the field until
   //   the socket closed. kev's clear is idempotent and kev never re-sends a stop on receiving one, so no loop.
-  // why: "user" (Stop) | "kev" (kev's stop) | "left" (the form left the viewer) | "lapse" | "off" | "fail" |
+  // ⭐ (2.2.426, F-GR D4; tcc's run 44, 14:34:05Z: "Pause, please." went out as kev's op "stop" and the live form CLOSED, so
+  //   "carry on" then walked a form that was not on screen) KEV'S OWN STOP HOLDS THE WALK — the form and every answer stay on
+  //   screen, held exactly as a form opened with Voice off is: no step goes until Voice on or kev's walk, which send the
+  //   cursor's step again, once. The stop is still sent back after a step went out (24 Oct's rule above). Stop, close_form,
+  //   the form leaving the viewer, a lapse or a sign-out close it as before (closeLive).
+  function holdLive(me){
+    clearTimeout(me.timer); clearTimeout(me.calcTimer); stopCountdown(me);
+    if (me.sentAny && me.mode !== "done") control("stop");  /* after a step went out, as closeLive does */
+    if (me.viewDirty) refreshView(me);                      /* the read-only view shows what was saved */
+    me.held = true; me.sent = null; me.lastOut = null; lastEnv = null;   /* the next start sends the cursor's step again */
+    paintVoice();
+    if (me.kind === "qa" && !me.completed) { me.baseMsg = SAYS_PAUSED; txt(ui.msg, SAYS_PAUSED); }
+    log("kev's stop: the walk is held, the form stays");
+  }
+  // why: "user" (Stop) | "kev" (kev's stop, before 2.2.426) | "left" (the form left the viewer) | "lapse" | "off" | "fail" |
   //      "not" (the server says it cannot be typed into) | "sent" (submitted, or the upload page replaced it)
   function closeLive(why){
     const me = lf;
@@ -10305,6 +10584,25 @@ window.teckelShell = (function () {
         return false;
       } catch(e) { log("copy gone failed"); return false; }
     } });
+  // ⭐ (2.2.426, F-GR D7; tcc's run 44, 14:42:14Z: the copy was discarded BY VOICE and its live form stayed on screen after a
+  //   list refresh) MY FORMS RE-READ WITHOUT THE COPY ON SCREEN: ONE form_fields read of that copy; the server says it is gone
+  //   (the NOT_FOUND family, or NOT_YOURS for a copy this page had open) — dropped exactly as this page's own discard drops
+  //   it; anything else (a copy older than the list's 90 days, a read fault) — left as it is. A copy still on the list is
+  //   never asked about.
+  async function probeListed(list){
+    try {
+      const me = lf || opening, c = me ? null : editableCopy();
+      const iid = me ? me.iid : (c ? String(c.instance_id) : "");
+      if (!iid || !Array.isArray(list) || list.some(function (f) { return !!f && String(f.instance_id) === iid; })) return;
+      let r;
+      try { r = await P.action("form_fields", { instance_id: iid }); } catch(e) { return; }
+      if (me) { if (lf === me || opening === me) goneIf(me, r); return; }
+      const c2 = editableCopy();
+      if (goneReply(r, true) && c2 && String(c2.instance_id) === iid) goneScreen();
+    } catch(e) { log("list probe failed"); }
+  }
+  try { if (window.teckelPortalForms && typeof window.teckelPortalForms.onList === "function") window.teckelPortalForms.onList(probeListed); }
+  catch(e) { /* no My forms on this page: nothing to follow */ }
   // the strip's Edit (its script asks): the live form is on, not showing, and the copy on screen can be typed into
   function offersEdit(){
     if (!liveOn() || lf || opening || !P.held()) return false;
