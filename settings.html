@@ -93,7 +93,7 @@
   .msg.err  { background-color: rgba(230, 120, 120, 0.12); color: #f3a3a3; border: 1px solid rgba(230, 120, 120, 0.25); }
   .msg.info { background-color: var(--note-bg); color: var(--steel); border: 1px solid var(--card-border); }
   .row { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: .93rem; color: var(--white); }
-  .row input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--gold); }
+  .row input[type=checkbox], .row input[type=radio] { width: 18px; height: 18px; accent-color: var(--gold); }
   .soon { font-size: .68rem; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;
           background-color: var(--note-bg); color: var(--gold); border-radius: 5px; padding: 3px 9px; vertical-align: middle; }
   .thumb { max-height: 46px; max-width: 180px; display: block; margin-top: 10px; border-radius: 6px; border: 1px solid var(--card-border); }
@@ -238,6 +238,22 @@
     <div class="msg" id="practiceNameMsg"></div>
   </div>
 
+  <div class="card" id="deviceCard">
+    <h2>On this device</h2>
+    <!-- 25 Oct 2026 (phase 2, "finding and resuming work"; Yusuf: "YES ALL THREE PLEASE"). A PER-DEVICE preference,
+         unlike every other card on this page: it is kept in THIS BROWSER (localStorage) and never sent to the server,
+         so it works with or without this page's link and changes nothing for the rest of the practice. The key is the
+         practice's own (teckel.directoryView__ + this page's folder: every practice's pages share one origin), and the
+         document directory (directory.html, the same folder) reads it. Every read and write in try/catch: a browser
+         that keeps nothing still gets the default, the traffic light, and is told so. -->
+    <p class="sub">Saved in this browser only &mdash; it does not change anything for the rest of your practice.</p>
+    <label id="dirViewLabel">Open the directory on</label>
+    <div role="radiogroup" aria-labelledby="dirViewLabel">
+      <div class="row"><input type="radio" name="dirView" id="dirViewTraffic" value="traffic"><label for="dirViewTraffic" style="margin:0">Traffic light</label></div>
+      <div class="row"><input type="radio" name="dirView" id="dirViewCategory" value="category"><label for="dirViewCategory" style="margin:0">By category</label></div>
+    </div>
+    <div class="msg" id="deviceMsg"></div>
+  </div>
   <div class="foot">teckel Document Analyser — secure settings</div>
 </div>
 
@@ -534,6 +550,35 @@ el("textTranscripts").addEventListener("change", function(){
   };
   xhr.send(JSON.stringify({ settings_token: token, setting: "text_transcripts", value: wanted ? "true" : "false" }));
 });
+// --- On this device: where the document directory opens (25 Oct 2026, phase 2) -----------------------
+// Kept in this browser only and never sent anywhere; works with no settings link at all. The key is the practice's
+// own (its folder), which directory.html in the same folder reads. Storage that throws: the default (the traffic
+// light) stands and the card says so.
+(function(){
+  var KEY = "teckel.directoryView__" + location.pathname.replace(/[^\/]*$/, "");
+  var t = el("dirViewTraffic"), c = el("dirViewCategory");
+  if (!t || !c) return;
+  var v = "", readable = true;
+  try { v = window.localStorage.getItem(KEY) || ""; } catch (e) { readable = false; }
+  (v === "category" ? c : t).checked = true;
+  if (!readable){
+    t.disabled = true; c.disabled = true;
+    showMsg("deviceMsg", "info", "This browser is not keeping settings, so the directory opens on the traffic light.");
+    return;
+  }
+  function save(val){
+    try {
+      window.localStorage.setItem(KEY, val);
+      showMsg("deviceMsg", "ok", val === "category" ? "Saved. On this device the directory opens by category."
+                                                    : "Saved. On this device the directory opens on the traffic light.");
+    } catch (e) {
+      t.checked = true;
+      showMsg("deviceMsg", "err", "This browser would not keep that, so the directory opens on the traffic light.");
+    }
+  }
+  t.addEventListener("change", function(){ if (t.checked) save("traffic"); });
+  c.addEventListener("change", function(){ if (c.checked) save("category"); });
+})();
 </script>
 <div style="text-align:center; color:#8aa0b8; opacity:.7; font-size:12px; padding:26px 0 18px;">&copy; <a href="https://teckel.io" target="_blank" rel="noopener" style="color:inherit; text-decoration:underline;">teckel.io</a></div>
 </body>
