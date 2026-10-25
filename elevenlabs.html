@@ -859,6 +859,26 @@
         'use strict';
 
         // -----------------------------------------------------------------
+        // Which origins this page trusts (25 Oct 2026, F-HA; Yusuf: "build the fix and republish the 17 pages")
+        // -----------------------------------------------------------------
+        // The practice pages moved from teckel-io.github.io to benedict.teckel.io, and a frame opened from an
+        // old-host link follows the redirect and ENDS on the new host, so a check pinned to one host refused it
+        // (a click in the traffic-light list never reached Benedict). Every origin and link check below accepts
+        // this page's own origin and both teckel hosts — never one host alone (a page on a practice's own domain
+        // is its location.origin).
+        var OK_ORIGINS = [location.origin, 'https://teckel-io.github.io', 'https://benedict.teckel.io'];
+        function isOkOrigin(o) { return OK_ORIGINS.indexOf(o) !== -1; }
+        // A teckel page link: one of OK_ORIGINS, then a path + query that pathRe matches (pathRe starts at the "/").
+        function isTeckelPageUrl(url, pathRe) {
+            if (!url || typeof url !== 'string') return false;
+            for (var i = 0; i < OK_ORIGINS.length; i++) {
+                var o = OK_ORIGINS[i];
+                if (url.indexOf(o + '/') === 0 && pathRe.test(url.slice(o.length))) return true;
+            }
+            return false;
+        }
+
+        // -----------------------------------------------------------------
         // tc → GBP conversion
         // -----------------------------------------------------------------
         // payments_due rows that aren't backed by a cost_events row (i.e.
@@ -1720,7 +1740,7 @@
             try {
                 var frame = document.getElementById('form-viewer');
                 if (!frame || e.source !== frame.contentWindow) return;
-                if (!/^https:\/\/teckel-io\.github\.io$/.test(e.origin)) return;
+                if (!isOkOrigin(e.origin)) return;
                 var d = e.data || {};
                 if (d.type !== 'teckel-fill-form') return;
                 var ok = askBenedictToFill(d.name);
@@ -2037,7 +2057,7 @@
         var UPLOAD_LINK_DEBOUNCE_MS = 30 * 1000;
         function isValidUploadUrl(url) {
             if (!url || typeof url !== 'string') return false;
-            return /^https:\/\/teckel-io\.github\.io\/[^?#]*upload\.html\?token=[^\s]+$/.test(url);
+            return isTeckelPageUrl(url, /^\/[^?#]*upload\.html\?token=[^\s]+$/);
         }
         // 2.2.335 (I-31, 5 Oct 2026): the agent dropped four characters of a 295-char signed
         // upload URL on its way here, twice, and this page said the link was no longer
@@ -2125,7 +2145,7 @@
             // 7 Oct 2026 (I-109) — signatures.html is accepted too. Since server 2.2.337 the link
             // for "who signs THIS form" points at signatures.html (same token, same origin, opened
             // with &storage_key=). It was refused here, so that page could only ever be e-mailed.
-            return /^https:\/\/teckel-io\.github\.io\/[^?#]*(?:settings|signatures)\.html\?token=[^\s]+$/.test(url);
+            return isTeckelPageUrl(url, /^\/[^?#]*(?:settings|signatures)\.html\?token=[^\s]+$/);
         }
         function showSettingsInIframe(url, sourceNote) {
             var iframe      = document.getElementById('form-viewer');
@@ -2212,7 +2232,7 @@
         var DIRECTORY_DEBOUNCE_MS = 30 * 1000;
         function isValidDirectoryUrl(url) {
             if (!url || typeof url !== 'string') return false;
-            return /^https:\/\/teckel-io\.github\.io\/[^?#]*directory\.html\?token=[^\s]+$/.test(url);
+            return isTeckelPageUrl(url, /^\/[^?#]*directory\.html\?token=[^\s]+$/);
         }
         function showDirectoryInIframe(url) {
             var iframe      = document.getElementById('form-viewer');
@@ -2291,7 +2311,7 @@
         var GUIDANCE_DEBOUNCE_MS = 30 * 1000;
         function isValidGuidanceUrl(url) {
             if (!url || typeof url !== 'string') return false;
-            return /^https:\/\/teckel-io\.github\.io\/[^?#]*guidance\.html\?token=[^\s]+$/.test(url);
+            return isTeckelPageUrl(url, /^\/[^?#]*guidance\.html\?token=[^\s]+$/);
         }
         function showGuidanceInIframe(url) {
             var iframe      = document.getElementById('form-viewer');
@@ -2391,7 +2411,7 @@
         var SELF_FILL_LINK_DEBOUNCE_MS = 30 * 1000;
         function isValidSelfFillUrl(url) {
             if (!url || typeof url !== 'string') return false;
-            return /^https:\/\/teckel-io\.github\.io\/[^?#]*(survey|log)\.html\?token=[^\s]+$/.test(url);
+            return isTeckelPageUrl(url, /^\/[^?#]*(survey|log)\.html\?token=[^\s]+$/);
         }
         function selfFillKind(url) {
             return /log\.html\?/.test(url || '') ? 'log' : 'survey';
