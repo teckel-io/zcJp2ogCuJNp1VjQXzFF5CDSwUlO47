@@ -33,6 +33,14 @@
     it is what the record stores. Do not word anything on this page to imply otherwise —
     "verified", "authenticated" and "identity confirmed" are all false here.
 
+    ⭐ INSIDE THE PORTAL (26 Oct 2026, page 2.2.433 G7): the practice's portal opens this page in a frame of its own
+    signing panel, so a phone's conversation is not dropped by a new tab in front. In a frame (and only there) this page
+    tells its parent two things, by postMessage, and nothing else — no name, no token, no path data:
+      {type:"teckel-sign-ready", ok}                 once, when the first read of the session has answered (ok: it loaded)
+      {type:"teckel-sign-saved", signed, required}   after each signature saved, with the counts read again
+    The parent treats both as cues and asks the server itself before anything moves. Opened on its own — the e-mailed
+    link, a new tab — it never posts anything and works exactly as before.
+
     ⚠ NO CLIENT NAMES, TOWNS, CLINICIANS OR REGISTRATION NUMBERS ANYWHERE IN THIS FILE,
     INCLUDING IN THESE COMMENTS. This page is served from every tenant's portal, so a
     comment naming one practice is public page source on all the others. That leak has
@@ -97,6 +105,22 @@
     m.textContent = text; m.className = 'msg ' + (kind || ''); m.hidden = false;
   }
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+  // (2.2.433, G7) the portal around this page, when it opened it in its signing panel: told the two cues above, nothing
+  // more. Opened on its own (no parent), nothing is ever posted.
+  var inPortal = false;
+  try { inPortal = window.parent && window.parent !== window; } catch (e) { inPortal = false; }
+  var toldReady = false;
+  function tellPortal(m) {
+    if (!inPortal) { return; }
+    try { window.parent.postMessage(m, '*'); } catch (e) {}
+  }
+  function count(v) { return (typeof v === 'number' && isFinite(v) && v >= 0) ? Math.floor(v) : null; }
+  function ready(ok) {
+    if (toldReady) { return; }
+    toldReady = true;
+    tellPortal({ type: 'teckel-sign-ready', ok: !!ok });
+  }
 
   // ── the drawing pad ───────────────────────────────────────────────────────────────
   // Collects POINTS and emits SVG path `d` strings. ⚠ It never builds SVG markup: the
@@ -231,7 +255,9 @@
         signatory_name: name, paths: pad.toPaths()
       }).then(function () {
         say('Saved — thank you, ' + name + '.', 'ok');
-        return load();
+        return load().then(function (data) {
+          tellPortal({ type: 'teckel-sign-saved', signed: count(data && data.signed), required: count(data && data.required) });
+        });
       }).catch(function (e) {
         btn.disabled = false;
         var d = e && e.body && e.body.detail;
@@ -243,17 +269,20 @@
 
   function load() {
     return post('get_signature_session', { token: TOKEN, instance_id: IID })
-      .then(render)
+      .then(function (data) { render(data); ready(true); return data; })
       .catch(function (e) {
         var d = e && e.body && e.body.detail;
         document.getElementById('sub').textContent = '';
         say((d && d.user_message) || 'This signing session is not valid any more. Ask for the form again.', 'err');
+        ready(false);
+        return null;
       });
   }
 
   if (!TOKEN || !IID) {
     say('This signing link is incomplete. Ask for the form again.', 'err');
     document.getElementById('sub').textContent = '';
+    ready(false);
   } else {
     load();
   }
