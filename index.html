@@ -7,14 +7,14 @@
   allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
   any file carrying it.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/canary/portal.8fdfc44e3836.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/canary/portal.ed658450de08.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/canary/portal.8fdfc44e3836.js
+      https://teckel-io.github.io/practice_portal_core/canary/portal.ed658450de08.js
   (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -52,7 +52,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="8fdfc44e3836">/* =====================================================================================================================
+<script data-teckel-core="ed658450de08">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -4236,6 +4236,62 @@ window.teckelShell = (function () {
     try { console.info("[teckel-local] " + m); } catch(e) {}
     if (dbg.log) { dbg.log.textContent += line + "\\n"; dbg.log.scrollTop = 1e9; }
   }
+
+  /* ══ (2.2.432, G4 — Yusuf: "PLEASE PROCEED", TASKS_AND_DECISIONS.md; tcc's run 50, 26 Oct 11:11:32Z: a grid cell showed
+       \x3cp class="pp-lf-status pp-bad">no_such_question\x3c/p>, visibly) A REASON IN PLAIN WORDS, NEVER A CODE ═════════════
+       Every place this page shows a reason or a code from the server or kev goes through teckelReasonWords, and THIS is the
+       one map it reads: kev's walk_result.reason (the live form's boxes and grid cells, the walk panel's why line), a write
+       door's skipped[].reason (the live form's lines, via its lineOf), an access code's refusal. The caller hands it the
+       candidates in the order it prefers them — the server's own sentence first (\`say\`, a field's own line, \`message\`),
+       then the reason — and it returns:
+         · the first candidate that is WORDS (it has a space in it): the server's own human sentence, exactly as it came;
+         · for a CODE (one token, no space), its words from REASON_WORDS (any case) — the first code that has words;
+         · only codes with no words here: \`unknown\` (default "That wasn't saved."), and each such code goes to the console
+           (letters, digits and _ only, 40 at most — never a value), never the screen;
+         · nothing at all: \`fallback\` (the caller's own line for that place, as before this build).
+       ⚠ A code is looked up as an OWN property only: "constructor" or "toString" from kev is a code with no words, never a
+         function's text on screen. ⚠ Each caller keeps its own check's suffix (" (the list of answers)") and its own Save
+         as typed rule; this decides only the words. */
+  const REASON_UNKNOWN = "That wasn't saved.";
+  const REASON_WORDS = Object.freeze({
+    // the brief's words (2.2.432)
+    no_such_question: "That isn't one of this form's boxes.",
+    about_the_conversation: "That sounded like an instruction, not an answer.",
+    option: "That isn't one of the choices.",
+    typed_only: "Consent forms are typed on the screen.",
+    lane_not_supported: "Benedict can't fill that box by voice.",
+    computed_field: "Benedict can't fill that box by voice.",
+    no_instance_from_page: "Benedict can't fill that box by voice.",
+    // the live form's own lines for the page doors' reasons (Phase 4, 2.2.427), moved here unchanged from its REASON_LINE
+    changed_elsewhere: "Benedict changed this one meanwhile — the box shows what the entry holds now.",
+    blank_words: "That reads as a blank — leave the box empty instead.",
+    day_not_yet: "That day hasn't come yet, so it can't be logged.",
+    logged_elsewhere: "Logged in another session — it stays as it is.",
+    no_column_for_day: "There's no column for that day on this sheet.",
+    grid_entry_refused: "That couldn't be logged.",
+    personal: "Personal details aren't collected, so this one stays blank.",
+    personal_question: "Personal details aren't collected, so this one stays blank.",
+    personal_field: "Personal details aren't collected, so this one stays blank.",
+    signing_field: "This one is signed on the signing page, not typed.",
+    submitted: "This form has been submitted — it can't be changed here." });
+  function reasonWords(list, fallback, unknown){
+    const xs = Array.isArray(list) ? list : [list];
+    let coded = false;
+    for (let i = 0; i \x3c xs.length; i++) {
+      const s = (typeof xs[i] === "string") ? xs[i].replace(/\\s+/g, " ").trim() : "";
+      if (!s) continue;
+      if (s.indexOf(" ") !== -1) return s;                  /* words: the server's own sentence, as it came */
+      const k = s.toLowerCase();
+      if (Object.prototype.hasOwnProperty.call(REASON_WORDS, k)) return REASON_WORDS[k];
+      coded = true;
+      log("a reason with no words on this page: " + (s.replace(/[^A-Za-z0-9_]/g, "").slice(0, 40) || "(not a code)"));
+    }
+    if (coded) return (typeof unknown === "string" && unknown) ? unknown : REASON_UNKNOWN;
+    return (typeof fallback === "string" && fallback) ? fallback : REASON_UNKNOWN;
+  }
+  Object.defineProperty(window, "teckelReasonWords", { configurable: false, enumerable: false, writable: false,
+    value: reasonWords });
+
   function activity(){
     try { if (typeof window.teckelMarkActivity === "function") window.teckelMarkActivity(); } catch(e) {}
     markUse();                             /* the conversation's own life is use too (« SIGN-OUT ») */
@@ -5908,7 +5964,9 @@ window.teckelShell = (function () {
       // ⚠ Show the server's \`message\` VERBATIM. The code rotates every 15 minutes, so
       //   \`not_recognised\` usually means EXPIRED; substituting "incorrect code" would be a FALSE
       //   ACCUSATION most of the time.
-      authUI(true, b.message || ("Not accepted (" + (b.reason || ("HTTP " + res.http)) + ")."));
+      //   (2.2.432, G4) no message: plain words for the reason, never the code itself (it showed "Not accepted" and the
+      //   code in brackets)
+      authUI(true, b.message || reasonWords([b.reason], "Not accepted.", "Not accepted."));
       // ⚠ CLEAR A REFUSED CODE: it is very likely dead, and leaving it invites a retry that cannot work.
       $("lv-code").value = "";
       log("access: refused — " + (b.reason || ("HTTP " + res.http)));
@@ -9249,6 +9307,12 @@ window.teckelShell = (function () {
   function codeOf(r){ return String((r && r.error_code) || "").trim().toUpperCase(); }
   function lapsed(r){ const c = codeOf(r); return LAPSE.indexOf(c) !== -1 || c === "NO_PASS"; }
   function msgOf(r, fallback){ const m = (r && typeof r.message === "string") ? r.message.trim() : ""; return m || fallback; }
+  // (2.2.432, G4) a reason or a code from kev, in PLAIN WORDS: the transport's ONE map (teckelReasonWords); never the code
+  function words(list, fallback, unknown){
+    try { if (typeof window.teckelReasonWords === "function") return window.teckelReasonWords(list, fallback, unknown); }
+    catch(e) {}
+    return String(fallback || "That wasn't saved.");
+  }
   function txt(el, s){ if (el) el.textContent = (s === undefined || s === null) ? "" : String(s); }
   function shown(v){ return v !== undefined && v !== null && String(v).trim() !== ""; }
   function el(tag, cls, text){
@@ -9730,7 +9794,7 @@ window.teckelShell = (function () {
     if (!sameNumber(m)) { ignore("not the question on screen", m); return; }
     if (m.ok === true) { savedThen(mine, shown(m.value_saved) ? String(m.value_saved) : ""); return; }
     const floor = String(m.floor || "");
-    refused(shown(m.reason) ? String(m.reason) : "That answer was not saved.", floor,
+    refused(words([m.reason], "That answer was not saved."), floor,   /* (2.2.432, G4) words, never kev's code */
             floor !== "kev_type_precheck" && FORMAT_FLOORS.indexOf(floor) !== -1);
   }
   function onControl(m){
@@ -10058,17 +10122,8 @@ window.teckelShell = (function () {
   const SAYS_CONV_NOT_YOURS = "That conversation isn't this page's, so nothing was saved.";
   const CONV_CODES = Object.freeze(["CONVERSATION_UNKNOWN", "CONVERSATION_NOT_YOURS", "NO_CONVERSATION"]);
   const GRID_OPTIONS = Object.freeze(["Done", "Not Done"]);
-  const REASON_LINE = Object.freeze({
-    changed_elsewhere: "Benedict changed this one meanwhile — the box shows what the entry holds now.",
-    blank_words: "That reads as a blank — leave the box empty instead.",
-    day_not_yet: "That day hasn't come yet, so it can't be logged.",
-    logged_elsewhere: "Logged in another session — it stays as it is.",
-    no_column_for_day: "There's no column for that day on this sheet.",
-    grid_entry_refused: "That couldn't be logged.", typed_only: SAYS_CONSENT,
-    personal: "Personal details aren't collected, so this one stays blank.",
-    PERSONAL: "Personal details aren't collected, so this one stays blank.",
-    SIGNING_FIELD: "This one is signed on the signing page, not typed.",
-    SUBMITTED: SAYS_SUBMITTED });
+  // (2.2.432, G4) the reasons' words are the transport's ONE map now (teckelReasonWords; this block's REASON_LINE moved
+  //   there unchanged, typed_only taking the brief's words) — see words() and lineOf()
   const LOCKED_LINE = "left blank — personal details aren't collected";
   const FOLLOW_UP_LINE = "only needed if not compliant";
   const BOX_HINT = Object.freeze({ date: "dd/mm/yyyy or 'today'", time: "hh:mm", datetime: "dd/mm/yyyy hh:mm" });
@@ -10107,6 +10162,14 @@ window.teckelShell = (function () {
   function codeOf(r){ return String((r && r.error_code) || "").trim().toUpperCase(); }
   function lapsed(r){ const c = codeOf(r); return LAPSE.indexOf(c) !== -1 || c === "NO_PASS"; }
   function msgOf(r, fallback){ const m = (r && typeof r.message === "string") ? r.message.trim() : ""; return m || fallback; }
+  // ⭐ (2.2.432, G4 — tcc's run 50: "no_such_question" in a grid cell) a reason or a code from the server or kev, in PLAIN
+  //   WORDS: the transport's ONE map (teckelReasonWords) — the first sentence given, else a code's words, else the line
+  //   here; never the code itself
+  function words(list, fallback, unknown){
+    try { if (typeof window.teckelReasonWords === "function") return window.teckelReasonWords(list, fallback, unknown); }
+    catch(e) {}
+    return String(fallback || "That wasn't saved.");
+  }
   function txt(e, s){ if (e) e.textContent = (s === undefined || s === null) ? "" : String(s); }
   function shown(v){ return v !== undefined && v !== null && String(v).trim() !== ""; }
   function el(tag, cls, text){
@@ -11674,10 +11737,11 @@ window.teckelShell = (function () {
     }
     return { where: "", item: null };
   }
+  // a skipped box's line: the server's line for that box, else its reason in words (2.2.432, G4 — the ONE map), else the
+  //   reply's message; a code with no words: "That wasn't saved." (the code to the console only)
   function lineOf(r, f, reason){
     const ms = (r && r.messages && typeof r.messages === "object") ? r.messages : {};
-    if (typeof ms[f] === "string" && ms[f].trim()) return ms[f].trim();
-    return REASON_LINE[reason] || msgOf(r, "That answer was not saved.");
+    return words([ms[f], reason, r && r.message], "That answer was not saved.");
   }
   function floorOf(r, f){
     const fl = (r && r.floors && typeof r.floors === "object") ? r.floors[f] : null;
@@ -12141,7 +12205,9 @@ window.teckelShell = (function () {
     }
     if (m.set_aside === true) { setAsideRow(me, row, m); return; }   /* (D9) */
     const fl = String(m.floor || "");
-    refusedRow(me, row, shown(m.reason) ? String(m.reason) : "That answer was not saved.", fl, fl !== "kev_type_precheck");
+    // (2.2.432, G4) kev's reason in words — run 50's grid cell showed his "no_such_question" as it came. kev's frame
+    //   carries no sentence of its own (the transport passes only its named fields: no \`say\`), so the reason is all there is
+    refusedRow(me, row, words([m.reason], "That answer was not saved."), fl, fl !== "kev_type_precheck");
   }
   // ⭐ (D9 — kev 1.133.0, agreed with Yusuf CC; Yusuf: "YES PLEASE, ALL OF THEM") THE SERVER SET THIS QUESTION ASIDE after
   //   repeated refusals: kev's walk_result {ok:false, set_aside:true}. Taken ONLY for the field at the cursor whose step went
@@ -12205,7 +12271,7 @@ window.teckelShell = (function () {
     }
     if (m.set_aside === true) { setAsideRow(me, row, m); return; }   /* (D9) the server set it aside: on, like a skip */
     const f = String(m.floor || "");
-    refusedRow(me, row, shown(m.reason) ? String(m.reason) : "That answer was not saved.", f, f !== "kev_type_precheck");
+    refusedRow(me, row, words([m.reason], "That answer was not saved."), f, f !== "kev_type_precheck");   /* (2.2.432, G4) */
   }
   // ⭐ (2.2.426, F-GR D2; tcc's run 44, 14:27:32Z: Q1 showed the raw words "The 25th of October, 2026." until a reopen
   //   showed 25-Oct-2026) A VALUE KEV SAVED SHOWS AS THE SERVER STORED IT, never the words kev passed: ONE form_fields read
