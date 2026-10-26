@@ -7,14 +7,14 @@
   allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
   any file carrying it.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/canary/portal.ed658450de08.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/canary/portal.de30e355082f.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/canary/portal.ed658450de08.js
+      https://teckel-io.github.io/practice_portal_core/canary/portal.de30e355082f.js
   (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -52,7 +52,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="ed658450de08">/* =====================================================================================================================
+<script data-teckel-core="de30e355082f">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -584,6 +584,14 @@ window.teckelShell = (function () {
             background: var(--navy-deep); color: var(--white); font-size: 14px; line-height: 1.5;
         }
         .pp-dialog::backdrop { background: rgba(0, 10, 25, 0.75); }
+        /* (26 Oct 2026, page 2.2.433 G7) THE SIGNING PANEL: the signing page in a frame over the form — nearly the whole
+           screen on a computer, ALL of it on a phone. Laid out only while open (a dialog's closed state stays hidden). */
+        .pp-dialog.pp-sign-dlg {
+            width: min(800px, calc(100vw - 32px)); height: calc(100vh - 32px); overflow: hidden; padding: 14px 16px;
+        }
+        .pp-dialog.pp-sign-dlg[open] { display: flex; flex-direction: column; }
+        .pp-sign-host { flex: 1 1 auto; min-height: 0; margin-top: 8px; }
+        .pp-sign-frame { display: block; width: 100%; height: 100%; border: 0; border-radius: 6px; background: #f6f8fb; }
         .pp-dlg-head { display: flex; align-items: flex-start; gap: 12px; }
         .pp-dlg-title { font-size: 17px; font-weight: 600; flex: 1 1 auto; min-width: 0; }
         .pp-dlg-sub { color: var(--steel); font-size: 13px; margin-top: 6px; overflow-wrap: anywhere; }
@@ -844,6 +852,10 @@ window.teckelShell = (function () {
             body .page-shell { padding-left: 16px; padding-right: 16px; }
             .pp-card { padding: 14px 16px; }
             .pp-dialog { padding: 16px; }
+            .pp-dialog.pp-sign-dlg {
+                width: 100vw; max-width: 100vw; height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh;
+                margin: 0; border-radius: 0; border: 0; padding: 10px 12px;
+            }
             .pp-kv-row { grid-template-columns: minmax(0, 1fr); }
             .pp-card-tools { margin-left: 0; }
             .pp-sec-body { padding-left: 10px; }
@@ -4377,6 +4389,8 @@ window.teckelShell = (function () {
     pendingTyped.push({ key: norm(text), el: el });
     if (pendingTyped.length > 20) pendingTyped.shift();
   }
+  // a removal ALREADY DONE (past tense), from the user's forms or list — never the warning before it ("will be DELETED")
+  const SAID_REMOVED = /\\b(?:I(?:'|’)ve|I have|has been|have been|was already|was)\\s+(?:removed|deleted|discarded)\\b[^\\n]{0,300}?\\bfrom your (?:forms|list)\\b/i;
   function addTranscript(m){
     if (m && m.role === "bot") showStatus({ text: "" });      /* Benedict is speaking: the wait is over */
     const box = $("lv-transcript");
@@ -4399,6 +4413,12 @@ window.teckelShell = (function () {
     // (2.2.431, G1) Benedict finished a line: the live form may re-read the entry it walks (« THE ENTRY FOLLOWS A SAVE
     //   BENEDICT MADE HIMSELF »). The event carries nothing — never the words, which are no receipt of anything.
     if (m.role === "bot") { try { window.dispatchEvent(new Event("teckel-turn-end")); } catch(e) {} }
+    // (2.2.433, G5 — tcc's battery 5, B8) Benedict said a form was REMOVED (the server's own line: "I've removed "…" from
+    //   your forms." / "… was already removed from your forms."): the live form asks the server whether the copy on screen
+    //   still exists. A CUE ONLY — the event carries nothing, and the server's answer decides (never these words).
+    if (m.role === "bot" && SAID_REMOVED.test(String(m.text || ""))) {
+      try { window.dispatchEvent(new Event("teckel-said-removed")); } catch(e) {}
+    }
   }
   function clearTranscript(){ const b = $("lv-transcript"); if (b) b.textContent = ""; botPartial = ""; pendingTyped = []; }
 
@@ -4703,7 +4723,7 @@ window.teckelShell = (function () {
        on it, the server's words; kev speaks it after two unresolved utterances — nothing here counts), and an action step
        {action:"sign"} mid-walk names its box: payload {action:"sign", ready, slot, label, signed}. The page's reply to an op
        it refused at an unsigned signature box is that step again with say "That box still needs a signature — sign on the
-       screen, then say 'next'." and refused:"next" | "skip". Absent (today's server): the shapes above, byte for byte.
+       screen, then say 'next, please'." (2.2.433, G6) and refused:"next" | "skip". Absent (today's server): the shapes above, byte for byte.
        ONE envelope for every step (agreed DA CC + Yusuf CC, 24 Oct 2026): speak, say and the copy are the envelope's, so
        Silent, "again" and the rest are handled once, whatever the step. A step this page does not know — "row" (a cursor
        over a list) is reserved and NOT built — is refused here and never sent. The copy's id only one the server gave this
@@ -6859,7 +6879,8 @@ window.teckelShell = (function () {
          Later -> review_resolve, and the result in a line under the buttons. A refused accept STAYS
          OPEN and stays on screen. Closing the panel decides nothing (the items stay open); the
          "N open" badge in the header shows while N > 0 and reopens it.
-       · MY FORMS (my_forms): View (view_link, in this page's viewer), Sign (sign_link, a new tab),
+       · MY FORMS (my_forms): View (view_link, in this page's viewer), Sign (sign_link — since 2.2.433 in this
+         page's signing panel, « SIGNING INSIDE THE PAGE »; a new tab only as the fallback),
          Upload (upload_link, in the viewer), and for a copy in progress Submit: submit_preview ->
          the address shown AS TEXT (Steven, 7 Oct: a custom address is shown as text before it is
          used) and the unanswered list -> Confirm -> submit with the preview's confirm_token.
@@ -6969,6 +6990,16 @@ window.teckelShell = (function () {
     \x3cbutton type="button" id="pp-sub-cancel" class="lv-btn">Cancel\x3c/button>
   \x3c/div>
   \x3cdiv id="pp-sub-result" class="pp-result" role="status" aria-live="polite">\x3c/div>
+\x3c/dialog>
+\x3c!-- (26 Oct 2026, page 2.2.433 G7) THE SIGNING PANEL: the signing page (sign.html, the link sign_link returns) in a frame
+     INSIDE this page, so the conversation and the walk stay as they are behind it. See « SIGNING INSIDE THE PAGE ». -->
+\x3cdialog id="pp-sign" class="pp-dialog pp-sign-dlg" aria-labelledby="pp-sign-h" aria-describedby="pp-sign-msg">
+  \x3cdiv class="pp-dlg-head">
+    \x3ch2 id="pp-sign-h" class="pp-dlg-title">Sign this form\x3c/h2>
+    \x3cbutton type="button" id="pp-sign-close" class="lv-btn pp-small">Close\x3c/button>
+  \x3c/div>
+  \x3cp id="pp-sign-msg" class="pp-dlg-sub" role="status" aria-live="polite">\x3c/p>
+  \x3cdiv id="pp-sign-host" class="pp-sign-host">\x3c/div>
 \x3c/dialog>
 \x3cscript>
 "use strict";
@@ -7568,15 +7599,19 @@ window.teckelShell = (function () {
     txt(row.res, ok ? "It is open in the form viewer below." : "This form could not be shown here.");
     if (ok) { onScreen(f.instance_id, f.form_name, "view"); revealViewer(); }
   }
-  // The signing page opens in a NEW TAB (it needs the whole screen, as the e-mailed link does). The
-  // tab is opened inside the click — the only moment a browser allows it — and pointed at the page
-  // once the server has answered; if the browser blocked it, a link is offered instead.
+  // (2.2.433, G7) The signing page opens INSIDE this page, in the signing panel (« SIGNING INSIDE THE PAGE »): a new tab
+  // in front dropped a phone's conversation. The panel closes by itself once the signing page says every signature on
+  // the form is given. The NEW TAB is the fallback only — the panel not available (opened inside the click, as before),
+  // or the panel could not load the signing page (opened then; a browser that blocks it gets a link).
   async function onSign(f, row){
+    const inPage = sgAvailable();
     let w = null;
-    try { w = window.open("", "_blank"); } catch(e) { w = null; }
-    if (w) {
-      try { w.opener = null; } catch(e) {}
-      try { w.document.title = "Opening…"; if (w.document.body) w.document.body.textContent = "Opening the signing page…"; } catch(e) {}
+    if (!inPage) {
+      try { w = window.open("", "_blank"); } catch(e) { w = null; }
+      if (w) {
+        try { w.opener = null; } catch(e) {}
+        try { w.document.title = "Opening…"; if (w.document.body) w.document.body.textContent = "Opening the signing page…"; } catch(e) {}
+      }
     }
     rowBusy(row, true, "Opening the signing page…");
     const r = await P.action("sign_link", { instance_id: f.instance_id });
@@ -7589,12 +7624,33 @@ window.teckelShell = (function () {
       return;
     }
     onScreen(f.instance_id, f.form_name, "sign");
+    if (inPage) {
+      let h = null;
+      h = sgOpen(r.url, {
+        hint: "Sign below, then press Save signature. This closes by itself once every signature is given.",
+        onSaved: function (i) {
+          if (i.required && i.signed !== null && i.signed >= i.required) {
+            if (h) h.close();
+            txt(row.res, "Every signature on this form is given.");
+          }
+        },
+        onClose: function (why) { if (why === "user") txt(row.res, ""); },
+        onFail: function () { signTab(row, r.url, null, true); }
+      });
+      if (h) { txt(row.res, "The signing page is open on this screen."); return; }
+    }
+    signTab(row, r.url, w, false);
+  }
+  // the fallback: the tab opened inside the click, or (now: the panel could not load) one opened now; a browser that
+  // blocks it gets a link
+  function signTab(row, url, w, now){
     if (w && !w.closed) {
-      try { w.location.replace(r.url); txt(row.res, "The signing page is open in a new tab."); return; }
+      try { w.location.replace(url); txt(row.res, "The signing page is open in a new tab."); return; }
       catch(e) { /* fall through to the link */ }
     }
+    if (now === true && sgTab(url)) { txt(row.res, "The signing page is open in a new tab."); return; }
     const a = document.createElement("a");
-    a.href = r.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open the signing page";
+    a.href = url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open the signing page";
     row.res.textContent = "Your browser blocked the new tab. ";
     row.res.appendChild(a);
   }
@@ -7788,6 +7844,121 @@ window.teckelShell = (function () {
   }
   if (st.btn) st.btn.addEventListener("click", function () { openSettings(); });
 
+  /* ══ SIGNING INSIDE THE PAGE (26 Oct 2026, page 2.2.433 G7 — tcc's runs 46 and 51; Yusuf, in DA CC's session: "YES TO
+        BOTH") ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+     On a phone the signing page in a NEW TAB, in front for a minute or more, suspended this page and the conversation
+     dropped ("Disconnected" while the user signed). window.teckelSignInPage opens the signing page INSIDE this page: a
+     frame in a modal panel over the form. Nothing behind it changes — the conversation socket, the microphone, the walk,
+     the form in the viewer — so the conversation carries on and the walk is where it was.
+       · open(url, opts): a signing-page link of a trusted origin only (window.teckelPageLink, the same check as before). The
+         panel is READY when the signing page says so ({type:"teckel-sign-ready"} from that frame, a trusted origin) or, on
+         this page's own origin, when the document loaded IS the signing page (its own elements). A document that is not (an
+         error page), or no word within SIGN_READY_MS from another origin, is "cannot load": the panel closes and
+         opts.onFail() runs — the caller's FALLBACK, the new tab (or its link). Returns a handle {close()}, or null when the
+         panel is not available (the caller then opens the tab as before).
+       · {type:"teckel-sign-saved", signed, required} from that frame (the signing page, after a signature was saved and its
+         session read again): opts.onSaved({signed, required}). A CUE ONLY — a caller asks the server (form_fields,
+         submit_preview) before its walk moves; the counts decide nothing but whether My forms' panel can close.
+       · Close, Escape, a lapse or a sign-out closes it: opts.onClose(why, saved) — why "user" | "done" | "lapse" |
+         "replaced"; saved = how many saves the signing page reported while it was open.
+       · A message from anywhere else (another frame, this page itself, an untrusted origin) is ignored.
+     ⚠ The signing page carries its own opaque link token, exactly as the e-mailed link does; this page never reads it and
+       stores nothing. The frame is removed when the panel closes. tab(url): the fallback's new tab, opened now. */
+  const SIGN_READY_MS = 8000;
+  const sgx = { dlg: $("pp-sign"), host: $("pp-sign-host"), msg: $("pp-sign-msg"), close: $("pp-sign-close") };
+  let sgCur = null;
+  function sgLog(why){ try { console.info("[teckel-sign] " + why); } catch(e) {} }   /* never a value */
+  function sgAvailable(){ return !!(sgx.dlg && sgx.host && typeof sgx.dlg.showModal === "function"); }
+  // an origin this page trusts: the same list every link check uses (teckelPageLink's)
+  function sgTrusted(origin){ return typeof origin === "string" && origin !== "null" && SIGN_PAGE.test(origin + "/sign.html?x=1"); }
+  function sgClose(why){
+    const g = sgCur;
+    if (!g) return;
+    sgCur = null;
+    clearTimeout(g.timer);
+    try { if (g.frame) g.frame.remove(); } catch(e) {}
+    txt(sgx.msg, "");
+    closeDlg(sgx.dlg);
+    sgLog("the signing panel closed (" + why + ")");
+    const cb = why === "fail" ? g.opts.onFail : g.opts.onClose;
+    try { if (typeof cb === "function") cb(why, g.saved); } catch(e) {}
+  }
+  function sgReady(g){
+    if (sgCur !== g || g.ready) return;
+    g.ready = true; clearTimeout(g.timer);
+    txt(sgx.msg, g.hint);
+  }
+  function sgLoaded(g){
+    if (sgCur !== g || g.ready) return;
+    let d = null;
+    try { d = g.frame.contentDocument; } catch(e) { d = null; }
+    if (!d) return;                                  /* another origin: its own word decides (or the wait runs out) */
+    let href = "";
+    try { href = String(d.location.href || ""); } catch(e) { href = ""; }
+    if (!href || href === "about:blank") return;
+    if (d.getElementById("slots") && d.getElementById("sub")) { sgReady(g); return; }
+    sgLog("the frame did not load the signing page");
+    sgClose("fail");                                 /* this origin, and not the signing page: an error page */
+  }
+  function sgOpen(url, opts){
+    if (!sgAvailable() || typeof url !== "string" || !SIGN_PAGE.test(url)) return null;
+    if (sgCur) sgClose("replaced");
+    const o = (opts && typeof opts === "object") ? opts : {};
+    const g = { opts: o, ready: false, saved: 0, frame: null, timer: null,
+                hint: shown(o.hint) ? String(o.hint) : "Sign below, then press Save signature." };
+    const f = document.createElement("iframe");
+    f.className = "pp-sign-frame"; f.id = "pp-sign-frame"; f.title = "Signing page";
+    f.setAttribute("referrerpolicy", "no-referrer");
+    f.addEventListener("load", function () { sgLoaded(g); });
+    f.src = url;                                     /* set before it is placed: no load of a blank first document */
+    g.frame = f;
+    sgCur = g;
+    txt(sgx.msg, "Opening the signing page…");
+    sgx.host.textContent = "";
+    sgx.host.appendChild(f);
+    openDlg(sgx.dlg);
+    g.timer = setTimeout(function () {
+      if (sgCur === g && !g.ready) { sgLog("the signing page did not say it was ready"); sgClose("fail"); }
+    }, SIGN_READY_MS);
+    sgLog("the signing panel is open");
+    return Object.freeze({ close: function () { if (sgCur === g) sgClose("done"); },
+                           open: function () { return sgCur === g; } });
+  }
+  window.addEventListener("message", function (e) {
+    try {
+      const g = sgCur;
+      if (!g || !g.frame || e.source !== g.frame.contentWindow || !sgTrusted(e.origin)) return;
+      const d = (e.data && typeof e.data === "object") ? e.data : null;
+      if (!d) return;
+      if (d.type === "teckel-sign-ready") { sgReady(g); return; }
+      if (d.type !== "teckel-sign-saved") return;
+      sgReady(g);
+      g.saved++;
+      const n = function (v) { return (typeof v === "number" && isFinite(v) && v >= 0) ? Math.floor(v) : null; };
+      const info = Object.freeze({ signed: n(d.signed), required: n(d.required) });
+      sgLog("the signing page saved a signature");
+      if (typeof g.opts.onSaved === "function") g.opts.onSaved(info);
+    } catch(err) { /* a message that cannot be read does nothing */ }
+  });
+  if (sgx.close) sgx.close.addEventListener("click", function () { sgClose("user"); });
+  if (sgx.dlg) sgx.dlg.addEventListener("close", function () { if (sgCur) sgClose("user"); });   /* Escape */
+  // the fallback's new tab, opened now (after the panel could not load: a browser may block it — then false)
+  function sgTab(url){
+    if (typeof url !== "string" || !SIGN_PAGE.test(url)) return false;
+    let w = null;
+    try { w = window.open(url, "_blank"); } catch(e) { w = null; }
+    if (!w) return false;
+    try { w.opener = null; } catch(e) {}
+    return true;
+  }
+  Object.defineProperty(window, "teckelSignInPage", { configurable: false, enumerable: false, writable: false,
+    value: Object.freeze({
+      available: function () { return sgAvailable(); },
+      open: function (url, opts) { try { return sgOpen(url, opts); } catch(e) { sgLog("the signing panel failed"); return null; } },
+      active: function () { return !!sgCur; },
+      tab: function (url) { return sgTab(url); }
+    }) });
+
   /* ══ THE DOOR'S EVENTS ═════════════════════════════════════════════════════════════════ */
   async function onSignIn(){
     fm.card.hidden = false;
@@ -7813,6 +7984,7 @@ window.teckelShell = (function () {
     //   the panel closes (a dialog that cannot close fires no close event)
     rwEnd("closed"); rwForget(); prevId = null;
     sending = false; sub = null; current = null;
+    sgClose("lapse");                             /* (2.2.433, G7) the signing panel goes with the page */
     closeDlg(sb.dlg); closeDlg(rv.dlg);
     rvFirstLoad = false; reportPanel();           /* off screen (also where a dialog has no close event) */
     clearForms();                                 /* paused for privacy: the list goes, and comes back */
@@ -7824,7 +7996,7 @@ window.teckelShell = (function () {
   }
   function onMode(m){
     // (23 Oct 2026) the portal off: Settings has no door to ask, so it stays greyed, "Settings — coming soon".
-    if (m === "legacy") { rwEnd("closed"); rwForget(); fm.card.hidden = true; setBadge(0); closeDlg(rv.dlg); closeDlg(sb.dlg);
+    if (m === "legacy") { rwEnd("closed"); rwForget(); sgClose("lapse"); fm.card.hidden = true; setBadge(0); closeDlg(rv.dlg); closeDlg(sb.dlg);
                           rvFirstLoad = false; reportPanel(); settingsOff(); return; }
     if (m === "door") {
       fm.card.hidden = false;
@@ -9241,9 +9413,10 @@ window.teckelShell = (function () {
          question_number} (kev drops the field and stops speaking it), then the next question. A refusal: the server's
          line and its check; "Save as typed" only when the server says overridable.
        · THE ACTION STEPS, once the questions run out: submit_preview. Sign first, ONLY while the preview says signatures
-         are outstanding (the Sign button highlighted; it opens sign_link exactly as My forms' Sign does: a new tab, or a
-         link if the browser blocks it); then Submit — GREEN only when the preview says can_submit, RED otherwise, with the
-         server's own \`say\` beside it — and Upload. Each step is sent as
+         are outstanding (the Sign button highlighted; it opens sign_link exactly as My forms' Sign does — since 2.2.433 in
+         this page's signing panel, a new tab only as the fallback, or a link if the browser blocks it); then Submit —
+         GREEN only when the preview says can_submit, RED otherwise, with the server's own \`say\` beside it — and Upload.
+         Each step is sent as
            {kind:"walk_step", step:"action", instance_id, speak, say: \x3cthe preview's say>, payload:{action, ready}}
          A click on GREEN is the confirmation: submit with the preview's confirm_token (previewed again first if the token
          has run out). A click on RED checks again and sends nothing. After "Sent", the walk ends.
@@ -9740,11 +9913,21 @@ window.teckelShell = (function () {
       doSubmit();
     }, COUNTDOWN_MS);
   }
+  // (2.2.433, G7) Sign: the signing page in this page's signing panel (window.teckelSignInPage, « SIGNING INSIDE THE PAGE »
+  // in the portal controls) — a new tab in front dropped a phone's conversation. When the signing page says a signature
+  // was saved, the form is checked again (submit_preview, the server's word) and, no signatures outstanding, the panel
+  // closes and the Submit step goes as Check again sends it. The panel not available: a new tab inside the click, as
+  // before; the panel cannot load the signing page: the tab now (by voice, a link).
+  function signerOn(){
+    try { const S = window.teckelSignInPage; return !!S && typeof S.open === "function" && S.available() === true; }
+    catch(e) { return false; }
+  }
   async function doSign(fromVoice){
     const mine = walk;
     if (!mine || mine.mode !== "act" || mine.busy) return;
+    const inPage = signerOn();
     let tab = null;
-    if (!fromVoice) {                                       /* opened inside the click — the only moment a browser allows it */
+    if (!fromVoice && !inPage) {                            /* opened inside the click — the only moment a browser allows it */
       try { tab = window.open("", "_blank"); } catch(e) { tab = null; }
       if (tab) { try { tab.opener = null; } catch(e) {} try { tab.document.title = "Opening…"; } catch(e) {} }
     }
@@ -9762,12 +9945,41 @@ window.teckelShell = (function () {
       return;
     }
     try { if (typeof window.teckelScreenForm === "function") window.teckelScreenForm(mine.iid, mine.name, "sign"); } catch(e) {}
+    const url = r.url;
+    if (inPage && walk === mine) {
+      const s = { h: null, checking: false, again: false };
+      const saved = async function () {
+        if (walk !== mine || mine.mode !== "act") return;
+        if (s.checking) { s.again = true; return; }
+        s.checking = true;
+        try { const pv = await preview(false); if (walk === mine && pv && !pv.sign && s.h) s.h.close(); }
+        finally { s.checking = false; if (s.again) { s.again = false; saved(); } }
+      };
+      try {
+        s.h = window.teckelSignInPage.open(url, {
+          hint: "Sign below, then press Save signature — Submit is checked again by itself.",
+          onSaved: function () { saved(); },
+          onClose: function (why, n) { if (why === "user" && n > 0) saved(); },
+          onFail: function () { if (walk === mine) signFallback(url, null, !fromVoice); }
+        });
+      } catch(e) { s.h = null; }
+      if (s.h) { mine.signH = s.h; txt(res, "Sign on the screen — Submit is checked again once the signature is saved."); return; }
+    }
+    signFallback(url, tab, false);
+  }
+  // the fallback: the tab opened inside the click, or (now: the panel could not load, after a press) one opened now;
+  // otherwise — by voice, or a browser that blocks it — a link
+  function signFallback(url, tab, now){
+    const res = $("pp-walk-result");
     if (tab && !tab.closed) {
-      try { tab.location.replace(r.url); txt(res, "The signing page is open in a new tab. Then press Check again."); return; }
+      try { tab.location.replace(url); txt(res, "The signing page is open in a new tab. Then press Check again."); return; }
       catch(e) { /* fall through to the link */ }
     }
+    let opened = false;
+    try { opened = now === true && !!window.teckelSignInPage && window.teckelSignInPage.tab(url) === true; } catch(e) { opened = false; }
+    if (opened) { txt(res, "The signing page is open in a new tab. Then press Check again."); return; }
     const a = document.createElement("a");
-    a.href = r.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open the signing page";
+    a.href = url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open the signing page";
     if (res) { res.textContent = "Open the signing page in a new tab, then press Check again. "; res.appendChild(a); }
   }
   async function doUpload(){
@@ -9859,6 +10071,7 @@ window.teckelShell = (function () {
     const mine = walk;
     if (mine) {
       clearTimeout(mine.timer); clearTimeout(mine.countdown); mine.countdown = null;
+      if (mine.signH) { try { mine.signH.close(); } catch(e) {} mine.signH = null; }   /* (2.2.433, G7) its signing panel */
       if (mine.sentAny && why !== "kev" && why !== "restart" && mine.mode !== "done") control("stop");   /* only after a step went out */
     }
     walk = null; last = null;
@@ -9967,8 +10180,8 @@ window.teckelShell = (function () {
          speak:true, once, so the question is read at once; "Back to the questions" goes to the FIRST unanswered question;
          a line names the spoken commands that work ("skip this one", "go back", "say that again" — bare single words are
          lost by the recogniser); and a copy that is GONE (a reply's NOT_FOUND, NOT_YOURS for a copy that was open, or this
-         page's own discard) is dropped: the live form closes, the viewer empties, "This form has been removed from your
-         list." And (server 2.2.422) submit_preview's practice_details_say, when practice_details_missing, sits beside Submit
+         page's own discard) is dropped: the live form closes, the viewer empties, "That form was deleted." (the
+         line since 2.2.433). And (server 2.2.422) submit_preview's practice_details_say, when practice_details_missing, sits beside Submit
          as a prompt with "Settings" linked to the header's Settings button — never a block.
        · (25 Oct 2026, PHASE 3 — server 2.2.426, R426_WALK_COMMANDS; Yusuf: "we must get these 5 phases built and deployed";
          the contract agreed with Yusuf CC) EVERY STEP SAYS WHAT WORKS ON IT: a question's say_help (form_fields) and the
@@ -9979,7 +10192,7 @@ window.teckelShell = (function () {
          as the end's Sign opens it) and Next, its step {step:"action", payload:{action:"sign", ready, slot, label,
          signed}} with the server's say ("Please sign on the screen, then say 'next'."). The walk never moves past an
          UNSIGNED box: Next, or kev's walk_control "next" / "skip", re-reads form_fields and, still unsigned, shows and
-         sends kev "That box still needs a signature — sign on the screen, then say 'next'." (the same step, refused:
+         sends kev "That box still needs a signature — sign on the screen, then say 'next, please'." (the same step, refused:
          "next" | "skip"); signed, the cursor moves on. Never signed by voice (kev's walk_result there is ignored), never
          skipped by voice; "go back", "say that again" and "sign" act on it. kev's "next" (STEP_OPS, beside the walk's
          allowlist) on a question moves on as Skip does; on the end's Sign step it re-checks the form, and still owed says
@@ -10035,6 +10248,21 @@ window.teckelShell = (function () {
          user's first words route as they are — until the user is at the form again (a press or key in it, Voice on, kev's
          walk / speak). This replaces "a conversation that connects later gets the cursor's step" above for a new
          conversation. See « G3 — A NEW CONVERSATION » beside stepIsCurrent.
+       · ⭐ (26 Oct 2026, page 2.2.433 — tcc's battery 5, run 51; Yusuf, in DA CC's session: "YES TO BOTH") G5 NO GHOST FORM
+         AFTER A DELETE: a copy discarded BY VOICE left its live form on screen, its answers "✓ Saved", and the walk went on
+         ("12.50" → "Cost?" again, unsaved). Two cues now ask the server whether the copy on screen still exists (ONE
+         form_fields read; never the cue's word alone): Benedict's own removal line ("I've removed … from your forms." —
+         the transport's "teckel-said-removed", which carries no words) and kev's refused walk_result for this copy whose
+         reason is the not-found family. The server says it is gone: dropped exactly as before (the walk ends, kev hears
+         stop and that no form is on screen, the viewer empties) with ONE line, "That form was deleted." — now the line
+         of every gone path. G6 THE SIGNATURE STEP TEACHES THE LONG FORM: the page's own sign lines say "then say 'next,
+         please'" (the server's own "Please sign on the screen, then say 'next'." is the server's, and changes there).
+         G7 SIGNING INSIDE THE PAGE: Sign — the box's, the end's, and kev's "sign" — opens the signing page in this page's
+         signing panel (window.teckelSignInPage, in the portal controls), never a new tab: on a phone a tab in front for a
+         minute suspended this page and dropped the conversation (runs 46 and 51). The conversation and the walk stay as
+         they are behind it; when the signing page says a signature was saved, form_fields is read and, the box signed by
+         the server's word, the panel closes and the walk moves on exactly as Next does. The new tab is only the fallback
+         when the panel cannot load the signing page. See « SIGNING INSIDE THE PAGE ».
      ⚠ Every request goes through window.teckelPortal.action, which adds the pass; this script never holds it. Every server
        string is written as TEXT; nothing is stored in the browser; the console never carries a value. The live form closes,
        and empties, on a lapse, a sign-out, the user's Stop, kev's close_form and when the form leaves the viewer.
@@ -10073,7 +10301,8 @@ window.teckelShell = (function () {
   // the laptop, 0 of 28 single words on the S21 — while these phrases arrive 8-10 of 10); shown while a question form walks
   const SAYS_SPOKEN = "To move on by voice, say “skip this one, please”, “go back, please” or “say that again, please”.";
   // (F-GB) the copy is GONE — discarded, by voice or on this page: the live form drops it and says so, once
-  const SAYS_REMOVED = "This form has been removed from your list.";
+  // (2.2.433, G5 — the brief's words) one line for every gone path
+  const SAYS_REMOVED = "That form was deleted.";
   // the server's codes for a copy that no longer exists. NOT_YOURS joins them only for a copy this live form had OPEN: the
   // door answers NOT_YOURS for a deleted copy (teckel__r391_portal_v1_0.py _owns), and a copy that was this practice's a
   // moment ago cannot have become another's — at the first open it keeps its own line ("not on this practice's account").
@@ -10081,13 +10310,17 @@ window.teckelShell = (function () {
   // ── (2.2.426, PHASE 3) A SIGNATURE BOX IS A STEP OF THE WALK (form_fields' \`signatures\`, only when the server sends them):
   //    signed on the signing page, never by voice; the walk never moves past one that is not signed. The page's own line
   //    when it refuses (shown beside the box, and sent to kev as the same step with refused:"next" | "skip"):
-  const SAYS_UNSIGNED = "That box still needs a signature — sign on the screen, then say 'next'.";
+  //    (2.2.433, G6) the LONG FORM is taught — "next, please": a bare single word is lost by the recogniser (phase 1)
+  const SAYS_UNSIGNED = "That box still needs a signature — sign on the screen, then say 'next, please'.";
   // …and when the box could not be checked (the re-read failed): never moved past, said honestly
-  const SAYS_SIGN_UNCHECKED = "The signature couldn't be checked just now — sign on the screen, then say 'next' again.";
+  const SAYS_SIGN_UNCHECKED = "The signature couldn't be checked just now — sign on the screen, then say 'next, please' again.";
   const SAYS_SIGN_OWED = "Needs a signature — press Sign and sign on the screen.";
   const SAYS_SIGNED = "✓ Signed";
   const SAYS_SIGN_OPEN = "The signing page is open in a new tab — sign there, then press Next.";
-  const SAYS_SIGN_LINK = "Open the signing page in a new tab, sign there, then say 'next'. ";
+  const SAYS_SIGN_LINK = "Open the signing page in a new tab, sign there, then say 'next, please'. ";
+  // (2.2.433, G7) the signing page open in this page's signing panel: the walk moves on by itself once it is saved
+  const SAYS_SIGN_PANEL = "Sign on the screen — the form carries on once the signature is saved.";
+  const SAYS_SIGN_PANEL_END = "Sign on the screen — Submit is checked again once the signature is saved.";
   // kev's walk_control ops of this build, beside the walk's allowlist (LIVE_OPS stays the walk's eleven): "next" — advance
   // if allowed (a signature box only once it is signed; a question as Skip; the end's Sign step re-checked)
   const STEP_OPS = Object.freeze(["next"]);
@@ -10156,8 +10389,9 @@ window.teckelShell = (function () {
   let speak = true;       /* Voice on / off: the mode; "again" never changes it */
   let conv = 0;           /* the conversations whose opening run (client_ready) this page has seen */
   let lastEnv = null;     /* the last walk_step sent: { step, say, payload } */
-  let goneNote = "";      /* (phase 1, F-GB) "This form has been removed from your list." until the next form is shown */
+  let goneNote = "";      /* (phase 1, F-GB) "That form was deleted." (2.2.433) until the next form is shown */
   let pressing = null, uid = 0, syncing = false;
+  let signing = null;     /* (2.2.433, G7) {me, row (null: the end's Sign step), h, checking, again}: the signing panel open */
 
   function codeOf(r){ return String((r && r.error_code) || "").trim().toUpperCase(); }
   function lapsed(r){ const c = codeOf(r); return LAPSE.indexOf(c) !== -1 || c === "NO_PASS"; }
@@ -11153,10 +11387,13 @@ window.teckelShell = (function () {
     txt($("pp-lf-result"), "Not sent.");                    /* Cancel, or the cursor moved away: nothing was sent */
     actsBusy(false);
   }
+  // (2.2.433, G7) the end's Sign: the signing page in this page's signing panel (« SIGNING INSIDE THE PAGE »); the panel
+  // not available, a new tab opened inside the click as before; the panel cannot load it, the tab now (by voice a link)
   async function doSign(me, fromVoice){
     if (lf !== me || me.mode !== "act" || me.busy) return;
+    const inPage = signerOn();
     let tab = null;
-    if (!fromVoice) {                                       /* opened inside the click — the only moment a browser allows it */
+    if (!fromVoice && !inPage) {                            /* opened inside the click — the only moment a browser allows it */
       try { tab = window.open("", "_blank"); } catch(e) { tab = null; }
       if (tab) { try { tab.opener = null; } catch(e) {} try { tab.document.title = "Opening…"; } catch(e) {} }
     }
@@ -11175,12 +11412,22 @@ window.teckelShell = (function () {
       return;
     }
     try { if (typeof window.teckelScreenForm === "function") window.teckelScreenForm(me.iid, me.name, "sign"); } catch(e) {}
+    const url = r.url;
+    if (inPage && lf === me && signInPage(me, null, url, function () { endFallback(url, null, !fromVoice); })) {
+      txt(res, SAYS_SIGN_PANEL_END);
+      return;
+    }
+    endFallback(url, tab, false);
+  }
+  function endFallback(url, tab, now){
+    const res = $("pp-lf-result");
     if (tab && !tab.closed) {
-      try { tab.location.replace(r.url); txt(res, "The signing page is open in a new tab. Then press Check again."); return; }
+      try { tab.location.replace(url); txt(res, "The signing page is open in a new tab. Then press Check again."); return; }
       catch(e) { /* fall through to the link */ }
     }
+    if (now === true && signerTab(url)) { txt(res, "The signing page is open in a new tab. Then press Check again."); return; }
     const a = document.createElement("a");
-    a.href = r.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open the signing page";
+    a.href = url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open the signing page";
     if (res) { res.textContent = "Open the signing page in a new tab, then press Check again. "; res.appendChild(a); }
   }
   async function doUpload(me){
@@ -12374,6 +12621,7 @@ window.teckelShell = (function () {
       if (!isCursor(me, row) || me.seq !== at) return;      /* moved meanwhile: only the box's own line changed */
       if (!fresh || row.sign.signed !== true) { refuseSign(me, row, via, fresh ? SAYS_UNSIGNED : SAYS_SIGN_UNCHECKED); return; }
     }
+    signClose(me, row);                                     /* (2.2.433, G7) its signing panel, if still open, goes first */
     next(me, "saved");
   }
   // the refusal: shown beside the box, and — a step of this conversation's — sent to kev as the same step with the line as
@@ -12383,12 +12631,14 @@ window.teckelShell = (function () {
     if (me.held || me.voiceless || !ready() || !stepIsCurrent(me)) return;
     emit(me, Object.assign({}, signEnv(row), { say: line, refused: via === "skip" ? "skip" : "next" }), via !== "button");
   }
-  // Sign on a signature box: the signing page (sign_link), in a new tab opened inside the click — by voice ("sign") only a
-  // link to it; nothing is ever signed here
+  // Sign on a signature box: the signing page (sign_link) — (2.2.433, G7) in this page's signing panel, by a press or by
+  // voice ("sign"), « SIGNING INSIDE THE PAGE »; the panel not available: a new tab opened inside the click (by voice
+  // only a link to it), as before. Nothing is ever signed here.
   async function signRow(me, row, fromVoice){
     if (lf !== me || !row.sign || row.busy) return;
+    const inPage = signerOn();
     let tab = null;
-    if (!fromVoice) {
+    if (!fromVoice && !inPage) {
       try { tab = window.open("", "_blank"); } catch(e) { tab = null; }
       if (tab) { try { tab.opener = null; } catch(e) {} try { tab.document.title = "Opening…"; } catch(e) {} }
     }
@@ -12406,13 +12656,119 @@ window.teckelShell = (function () {
       return;
     }
     try { if (typeof window.teckelScreenForm === "function") window.teckelScreenForm(me.iid, me.name, "sign"); } catch(e) {}
+    const url = r.url;
+    if (inPage && lf === me && signInPage(me, row, url, function () { boxFallback(row, url, null, !fromVoice); })) {
+      say(row.st, SAYS_SIGN_PANEL, null);
+      return;
+    }
+    boxFallback(row, url, tab, false);
+  }
+  // the box's fallback: the tab opened inside the click, or (now: the panel could not load, after a press) one opened now;
+  // otherwise — by voice, or a browser that blocks it — a link
+  function boxFallback(row, url, tab, now){
     if (tab && !tab.closed) {
-      try { tab.location.replace(r.url); say(row.st, SAYS_SIGN_OPEN, null); return; }
+      try { tab.location.replace(url); say(row.st, SAYS_SIGN_OPEN, null); return; }
       catch(e) { /* fall through to the link */ }
     }
+    if (now === true && signerTab(url)) { say(row.st, SAYS_SIGN_OPEN, null); return; }
     const a = document.createElement("a");
-    a.href = r.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open the signing page";
+    a.href = url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open the signing page";
     if (row.st) { row.st.className = "pp-lf-status"; row.st.textContent = SAYS_SIGN_LINK; row.st.appendChild(a); }
+  }
+
+  /* ══ SIGNING INSIDE THE PAGE (2.2.433, G7 — tcc's runs 46 and 51: on the phone the signing page in a NEW TAB, in front
+        for a minute or more, suspended this page and the conversation dropped) ═══════════════════════════════════════════
+     Sign opens the signing page in this page's signing panel (window.teckelSignInPage, in the portal controls): a frame in
+     a modal panel over the form. The conversation, the walk and this live form stay exactly as they are behind it. When
+     the signing page says a signature was saved (a CUE, never the verdict), the server is asked: for a box, form_fields —
+     the box SIGNED by the server's word closes the panel and the walk moves on exactly as Next does (the next step goes to
+     kev); still owed (another person signs that box) the panel stays. For the end's Sign step, submit_preview — signatures
+     no longer outstanding closes the panel, and the Submit step goes out as Check again sends it. Close on a box asks the
+     same (an older signing page never says "saved"): signed, the walk moves on; not signed, nothing moves and NOTHING is
+     sent to kev — no refusal, the user did not ask to move on. Close on the end's step checks again only after a save.
+     The panel cannot load the signing page: the caller's fallback, the new tab (its link by voice). The live form closing
+     closes the panel. */
+  // (the panel open for this live form: \`signing\`, with the state above)
+  function signerOn(){
+    try { const S = window.teckelSignInPage; return !!S && typeof S.open === "function" && S.available() === true; }
+    catch(e) { return false; }
+  }
+  function signerTab(url){
+    try { const S = window.teckelSignInPage; return !!S && typeof S.tab === "function" && S.tab(url) === true; }
+    catch(e) { return false; }
+  }
+  function signInPage(me, row, url, fallback){
+    const mine = { me: me, row: row, h: null, checking: false, again: false };
+    try {
+      mine.h = window.teckelSignInPage.open(url, {
+        hint: row ? "Sign below, then press Save signature — the form carries on by itself."
+                  : "Sign below, then press Save signature — Submit is checked again by itself.",
+        onSaved: function () { signSaved(mine); },
+        onClose: function (why, saved) {
+          if (signing === mine) signing = null;
+          if (why !== "user") return;
+          // Close: a box is asked about (an older signing page never says "saved"); the end's step only after a save
+          if (row || saved > 0) signSaved(mine);
+        },
+        onFail: function () {
+          if (signing === mine) signing = null;
+          if (lf === me && typeof fallback === "function") fallback();
+        }
+      });
+    } catch(e) { mine.h = null; }
+    if (!mine.h) return false;
+    if (signing && signing !== mine && signing.h) { const old = signing; signing = null; try { old.h.close(); } catch(e) {} }
+    signing = mine;
+    return true;
+  }
+  function signClose(me, row){
+    const s = signing;
+    if (!s || s.me !== me || (row !== undefined && s.row !== row)) return;
+    signing = null;
+    try { if (s.h) s.h.close(); } catch(e) {}
+  }
+  // the server's signature boxes, as form_fields gives them now: every box on this live form takes its state (a box the
+  // copy no longer has has nothing to sign, as signNext reads it); the box whose panel is open keeps the panel's line
+  function applySigns(me, fresh){
+    me.rows.forEach(function (x) {
+      if (!x.sign) return;
+      const s = fresh.find(function (y) { return !!y && y.slot === x.sign.slot; });
+      x.sign = Object.assign({}, x.sign, { signed: !s || s.signed === true });
+      x.saved = x.sign.signed ? "signed" : "";
+      me.known[x.num] = x.saved;
+      if (x.sign.signed || !signing || signing.row !== x) paintSign(x);
+    });
+  }
+  async function signSaved(mine){
+    const me = mine.me, row = mine.row;
+    if (lf !== me) return;
+    if (mine.checking) { mine.again = true; return; }       /* a save while one is being checked: checked once more after */
+    mine.checking = true;
+    try {
+      if (!row) {                                           /* the end's Sign step: Submit is checked again */
+        if (me.mode !== "act") return;
+        const pv = await preview(me, false);
+        if (lf === me && pv && !pv.sign) signClose(me, null);
+        return;
+      }
+      let r = null;
+      try { r = await P.action("form_fields", { instance_id: me.iid }); } catch(e) { r = null; }
+      if (lf !== me) return;
+      if (lapsed(r) || goneIf(me, r)) return;
+      const now = (r && r.success === true && Array.isArray(r.signatures)) ? r.signatures : null;   /* the server's boxes now */
+      if (!now) {                                           /* not checked: the panel stays; closed, the box's own line */
+        log("the signature could not be checked");
+        if (signing !== mine) paintSign(row);
+        return;
+      }
+      applySigns(me, now);
+      if (row.sign.signed !== true) return;                 /* still owed: the panel stays */
+      signClose(me, row);                                   /* closed BEFORE the cursor moves: the focus it hands back is this box's */
+      if (isCursor(me, row) && me.mode === "q") next(me, "saved");
+    } finally {
+      mine.checking = false;
+      if (mine.again) { mine.again = false; signSaved(mine); }
+    }
   }
   // kev's "edit" / "walk": the live form on the form on screen (open it if Stop closed it); "walk" also turns Voice on
   function voiceOpen(op, m){
@@ -12433,6 +12789,7 @@ window.teckelShell = (function () {
   }
   function frame(m){
     if (!m || typeof m !== "object" || !liveOn()) return false;   /* off: the walk script's, as 2.2.420 */
+    if (goneCue(m)) probeGone("kev's result: not found");   /* (2.2.433, G5) the server decides; the result is shown as ever */
     if (m.kind === "walk_result") onResult(m);
     else if (m.kind === "walk_control") onControl(m);
     return true;
@@ -12513,6 +12870,7 @@ window.teckelShell = (function () {
   function closeLive(why){
     const me = lf;
     if (me) {
+      signClose(me);                                        /* (2.2.433, G7) its signing panel goes with it */
       clearTimeout(me.timer); clearTimeout(me.calcTimer); stopCountdown(me);
       if (me.sentAny && me.mode !== "done") control("stop");   /* after a step went out — kev's stop included */
       if (me.viewDirty && (why === "user" || why === "kev")) refreshView(me);    /* the read-only view shows what was saved */
@@ -12577,6 +12935,42 @@ window.teckelShell = (function () {
   }
   try { if (window.teckelPortalForms && typeof window.teckelPortalForms.onList === "function") window.teckelPortalForms.onList(probeListed); }
   catch(e) { /* no My forms on this page: nothing to follow */ }
+  // ⭐ (2.2.433, G5 — tcc's battery 5, B8: "I've removed …" and the live form stayed, its answers "✓ Saved", the walk asking
+  //   "Cost?" again) A CUE THAT THE COPY ON SCREEN MAY BE GONE: Benedict's own removal line (the transport's
+  //   "teckel-said-removed" — no words ride on it), or kev's refused walk_result for this copy with a not-found reason. A
+  //   cue is never the verdict: ONE form_fields read of the copy on screen, and only the server's answer (the NOT_FOUND
+  //   family, or NOT_YOURS for a copy this page had open) drops it — exactly as every gone path drops it. A copy the server
+  //   still has (Benedict removed ANOTHER one) stays as it is. One read at a time per copy.
+  let probing = "";
+  async function probeGone(why){
+    try {
+      const me = lf || opening;
+      const c = me ? null : (editableCopy() || voiceAny());
+      const iid = me ? me.iid : (c ? String(c.instance_id || "").trim() : "");
+      if (!iid || !P.held() || probing === iid) return;
+      probing = iid;
+      log("is the copy on screen still there? (" + String(why || "").slice(0, 40) + ")");
+      let r;
+      try { r = await P.action("form_fields", { instance_id: iid }); } catch(e) { r = null; }
+      finally { if (probing === iid) probing = ""; }
+      if (me) { if (opening === me || lf === me) goneIf(me, r); return; }   /* only the server's word drops it */
+      const c2 = editableCopy() || voiceAny();
+      if (goneReply(r, true) && c2 && String(c2.instance_id) === iid) goneScreen();
+    } catch(e) { log("gone probe failed"); }
+  }
+  window.addEventListener("teckel-said-removed", function () { probeGone("Benedict said it was removed"); });
+  // kev's refused result naming this copy (or none) whose reason is the not-found family — a cue for probeGone
+  function goneCue(m){
+    if (!m || m.kind !== "walk_result" || m.ok === true) return false;
+    const me = lf || opening;
+    const said = (m.instance_id === undefined || m.instance_id === null) ? "" : String(m.instance_id).trim();
+    if (!me || (said && said !== me.iid)) return false;
+    return [m.reason, m.code, m.error_code].some(function (v) {
+      if (typeof v !== "string") return false;
+      const s = v.trim();
+      return GONE_CODES.indexOf(s.toUpperCase()) !== -1 || /^not[_ ]found\\b/i.test(s) || /\\binstance not found\\b/i.test(s);
+    });
+  }
   // the strip's Edit (its script asks): the live form is on, not showing, and the copy on screen can be typed into
   function offersEdit(){
     if (!liveOn() || lf || opening || !P.held()) return false;
