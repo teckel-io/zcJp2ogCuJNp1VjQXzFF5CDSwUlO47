@@ -7,14 +7,14 @@
   allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
   any file carrying it.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/canary/portal.991360ea48f9.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/canary/portal.8fdfc44e3836.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/canary/portal.991360ea48f9.js
+      https://teckel-io.github.io/practice_portal_core/canary/portal.8fdfc44e3836.js
   (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -52,7 +52,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="991360ea48f9">/* =====================================================================================================================
+<script data-teckel-core="8fdfc44e3836">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -4050,6 +4050,11 @@ window.teckelShell = (function () {
          step_id it answers; review_panel says walks:true while the page walks the panel (« THE REVIEW WALK »). Inert until
          a review_next reply carries \`walk\`. (Yusuf, 25 Oct: "ADD MUTE TO THE PANEL") the panel — a modal dialog — carries
          copies of the conversation's own Mute, typing box and End, the same controls (« THE PANEL'S CONVERSATION CONTROLS »).
+       · (26 Oct 2026, page 2.2.431 — Yusuf's "yes please"; tcc's run 49, F-HH) « ONE SOCKET »: connect() lets go of a
+         socket still closing before it opens the next, and each socket's handlers act only while it is the page's own
+         (G2); and a "teckel-turn-end" event (no detail) when Benedict finishes a line, so the live form re-reads the entry
+         it walks (G1); and (Yusuf: "YES TO G3") window.teckelConversationReady() holds until "teckel-hello" has gone, so no
+         walk step reaches a NEW conversation before the walks have decided whether they re-arm there (G3).
      ===================================================================== -->
 \x3cscript>
 "use strict";
@@ -4335,6 +4340,9 @@ window.teckelShell = (function () {
       if (i !== -1) { pendingTyped.splice(i, 1); return; }
     }
     addLine(m.role === "bot" ? "bot" : "user", m.text || "");
+    // (2.2.431, G1) Benedict finished a line: the live form may re-read the entry it walks (« THE ENTRY FOLLOWS A SAVE
+    //   BENEDICT MADE HIMSELF »). The event carries nothing — never the words, which are no receipt of anything.
+    if (m.role === "bot") { try { window.dispatchEvent(new Event("teckel-turn-end")); } catch(e) {} }
   }
   function clearTranscript(){ const b = $("lv-transcript"); if (b) b.textContent = ""; botPartial = ""; pendingTyped = []; }
 
@@ -5178,6 +5186,7 @@ window.teckelShell = (function () {
   const HELLO_POLL_MS = 50;
   let hello = null;                      /* the conversation still waiting to say client_ready: {sock, t0, mic, timer} */
   let helloSent = false;                 /* client_ready has gone out in the conversation now open */
+  let helloHeard = false;                /* (2.2.431, G3) …and "teckel-hello" has gone: only now may a walk step go */
   let reviewSentKey = null;              /* what the last review_panel said in this conversation */
   const review = { settled: true, shown: false, open_items: 0, walks: false };   /* what the panel reports; nothing of an item */
   function audioOutRunning(){ return !!(outCtx && outCtx.state === "running"); }
@@ -5230,7 +5239,7 @@ window.teckelShell = (function () {
   }
   function stopHello(){ if (hello) { clearInterval(hello.timer); hello = null; } }
   function startHello(s){
-    stopHello(); helloSent = false; reviewSentKey = null;
+    stopHello(); helloSent = false; helloHeard = false; reviewSentKey = null;
     hello = { sock: s, t0: Date.now(), mic: false, timer: setInterval(tryHello, HELLO_POLL_MS) };
     tryHello();
   }
@@ -5257,13 +5266,18 @@ window.teckelShell = (function () {
     // mic_state (« MUTE »).
     const heard = sock;
     setTimeout(function () {
-      if (helloSent && sock === heard && isOpen()) { try { window.dispatchEvent(new Event("teckel-hello")); } catch(e) {} }
+      if (helloSent && sock === heard && isOpen()) {
+        helloHeard = true;                 /* (2.2.431, G3) the listeners decide what a new conversation gets, now */
+        try { window.dispatchEvent(new Event("teckel-hello")); } catch(e) {}
+      }
     }, 0);
   }
   // (2.2.421) true while a conversation is open AND has said client_ready: before that, a walk_step would reach kev ahead
-  // of the page's own opening run (and of the screen_form it carries).
+  // of the page's own opening run (and of the screen_form it carries). (2.2.431, G3) …AND "teckel-hello" has gone: in the
+  // one task between client_ready and that event a step could otherwise slip into a NEW conversation before the walk has
+  // decided whether it re-arms there (« G3 — A NEW CONVERSATION », the live form).
   Object.defineProperty(window, "teckelConversationReady", { configurable: false, enumerable: false, writable: false,
-    value: function () { return !!(helloSent && isOpen()); } });
+    value: function () { return !!(helloSent && helloHeard && isOpen()); } });
   Object.defineProperty(window, "teckelReviewPanel", { configurable: false, enumerable: false, writable: false,
     value: function (state) {
       try {
@@ -6462,8 +6476,37 @@ window.teckelShell = (function () {
 
   const wsBase = wsEndpoint();
 
+  /* ══ ONE SOCKET (26 Oct 2026, page 2.2.431 G2 — tcc's run 49, F-HH: after End → Start the probe saw TWO flow sockets
+        open; Yusuf CC, from kev's flow.py: kev builds a FRESH PIPELINE PER CONNECTION, so two open sockets are two live
+        pipelines, each with its own pending state) ══════════════════════════════════════════════════════════════════
+     The page holds ONE socket, \`sock\`, and only that socket may touch the conversation:
+       · every handler is bound to its OWN socket and does nothing once that socket is not \`sock\` (its open, its frames,
+         its error, its close) — so a socket the page has let go can never null the new one, stop its microphone, forget
+         its conversation id, re-show Start over it, or deliver its frames into it;
+       · connect() LETS GO of any socket it still holds BEFORE the new one is made: its four handlers dropped, closed when
+         it is not closed yet, and its own close-time tidy-up (its onclose) run for it at once. The one window this matters in:
+         End has sent its close and kev has not answered yet (the socket CLOSING, so isOpen() is false), when anything
+         re-shows Start (a sign-in's unlockAll, the review panel's wiring — each calls setButtons);
+       · what opens a socket at all: Start (onStartClick) and the code accepted (autoStart) — both refuse while one is open
+         or starting (\`connecting\`, set before the first await, so two quick Starts open one). Nothing reconnects by itself:
+         a dropped socket says "press Start conversation to reconnect"; the shell's watchdog is the core's load timer; the
+         visibility change renews the pass. */
+  function letGo(s){
+    if (!s) return;
+    s.onopen = null; s.onmessage = null; s.onerror = null; s.onclose = null;
+    try { if (s.readyState === WebSocket.CONNECTING || s.readyState === WebSocket.OPEN) s.close(1000, "user"); } catch(e) {}
+  }
+
   async function connect(){
     if (connecting || isOpen()) return;
+    if (sock) {                              /* « ONE SOCKET »: still closing — let it go first, its tidy-up now */
+      const old = sock, gone = old.onclose;
+      letGo(old);
+      log("the previous socket was let go before the new one opened (it was still closing)");
+      if (typeof gone === "function") { try { gone({ code: 1000 }); } catch(e) { log("tidy-up failed: " + e.message); } }
+      sock = null;                           /* whatever its tidy-up did, it is not this page's socket any more */
+      if (connecting || !doorAllowsStart()) { setButtons(); return; }   /* a sign-out that waited for it ran */
+    }
     connecting = true; everOpened = false; endingByUser = false; muted = false; droppingFrames = false;
     holdReset();                             /* « THE FIRST WORDS »: this conversation's first audio is held afresh */
     setButtons(); newConversation();
@@ -6485,19 +6528,20 @@ window.teckelShell = (function () {
       return;
     }
     let url = wsBase + (wsBase.indexOf("?") === -1 ? "?" : "&") + "t=" + encodeURIComponent(token);
-    try { sock = new WebSocket(url); }
+    let s = null;
+    try { s = new WebSocket(url); }
     catch(e){ log("socket failed: " + e.message); sock = null; connecting = false; setButtons();
               setConn("off", "Could not connect — press Start conversation to try again"); return; }
+    sock = s;                                /* « ONE SOCKET »: this socket's handlers act only while it is \`sock\` */
     url = null;                              /* the token is single use; nothing keeps it */
-    sock.binaryType = "arraybuffer";
-    sock.onopen = async () => {
-      if (droppingFrames) return;            /* signed out while it was connecting: End's close is on its way */
+    s.binaryType = "arraybuffer";
+    s.onopen = async () => {
+      if (s !== sock || droppingFrames) return;   /* let go, or signed out while connecting: End's close is on its way */
       everOpened = true; connecting = false;
       live(true);                            /* taps on forms now reach kev */
       setButtons(); setConn("on", "Connected"); setMic("starting the microphone…");
       volumeLine(true);                      /* (phase 1) "Can't hear Benedict? Turn up your media volume." */
       log("connected");
-      const s = sock;
       startHello(s);                         /* « THE PAGE TELLS KEV IT IS READY »: client_ready, review_panel, screen_form */
       if (dbg.health) health();
       try { await startMic(); }
@@ -6505,8 +6549,8 @@ window.teckelShell = (function () {
                 showMsg("The microphone is not available here, so type to Benedict instead."); }
       helloMicSettled(s);                    /* capturing or refused: client_ready can say which */
     };
-    sock.onmessage = (ev) => {
-      if (droppingFrames) return;            /* signed out: nothing more from kev reaches this screen */
+    s.onmessage = (ev) => {
+      if (s !== sock || droppingFrames) return;   /* let go, or signed out: nothing more from it reaches this screen */
       if (typeof ev.data === "string") { log("unexpected text frame"); return; }
       let f; try { f = decodeFrame(ev.data); } catch(e){ log("decode failed: " + e.message); return; }
       if (f.interruption) flushPlayback();
@@ -6529,7 +6573,8 @@ window.teckelShell = (function () {
         else log("message ignored: " + String(m.kind).slice(0, 40));
       } catch(e) { log("message handling failed: " + e.message); }
     };
-    sock.onclose = (e) => {
+    s.onclose = (e) => {
+      if (s !== sock) return;                /* « ONE SOCKET »: a socket already let go touches nothing */
       const wasOpen = everOpened, byUser = endingByUser;
       sock = null; connecting = false; endingByUser = false; muted = false;
       stopHello(); helloSent = false; reviewSentKey = null;   /* the next conversation says client_ready afresh */
@@ -6547,7 +6592,7 @@ window.teckelShell = (function () {
       log("closed, code " + e.code);
       afterConversationEnded();              /* « SIGN-OUT »: a rule that waited for the conversation applies now */
     };
-    sock.onerror = () => log("socket error");
+    s.onerror = () => { if (s === sock) log("socket error"); };
   }
 
   // END: kev cleans up when the socket CLOSES. So End is a clean close after a short "Ending…" state.
@@ -7305,6 +7350,7 @@ window.teckelShell = (function () {
     // pressing Voice on reads the item at once: the SAME envelope again with speak:true, once (kev's own "speak" is not echoed)
     const st = rw.step;
     if (tell && on && !was && st && st.conv === rwConv && !st.spent && !rvBusy) rwSend(Object.assign({}, st.env, { speak: true }));
+    else if (tell && on && !was && (!st || st.conv !== rwConv) && !rvBusy && current) rwShow("", null);   /* (2.2.431, G3) none went in this conversation */
   }
   // "go back": the item before this one, only if it was left for later in this pass and is still open
   async function rwBack(){
@@ -7350,7 +7396,10 @@ window.teckelShell = (function () {
   }
   window.addEventListener("teckel-hello", function () {   /* a conversation heard the page's opening run */
     rwHeard = true; rwConv++;
-    if (rwOn() && current && !rvBusy) rwShow("", null);   /* the item on screen, once, for THIS conversation */
+    // (2.2.431, G3) a NEW conversation: the item on screen goes again ONLY while the walk runs AND is spoken (Voice on) —
+    //   then read aloud; with Voice off NOTHING goes (never a silent held step: the user's first words route as they are),
+    //   and Voice on reads it then
+    if (rwOn() && current && !rvBusy) { if (rw.voice === true) rwShow("", null); else rw.step = null; }
   });
   if (rv.voice) rv.voice.addEventListener("click", function () { if (rw) rwSetVoice(!rw.voice, true); });
 
@@ -9908,6 +9957,20 @@ window.teckelShell = (function () {
          2.2.428) while the review panel walks its items by voice (window.teckelReviewWalking), the live form HOLDS: no
          walk_step goes and none is marked sent. When the review walk ends ("teckel-review-walk"), the current step goes
          again (the Voice-on re-send path) — kev's held step was the review's — or, when none had gone, the cursor's step.
+       · (26 Oct 2026, page 2.2.431 G1 — tcc's run 49, F-HH; Yusuf's "yes please") A LOG ENTRY OR A RESPONDENT BENEDICT SAVED
+         HIMSELF (kev's own finalise, not the page's save_entry) shows as saved: the entry's draft is re-read on kev's frame
+         for the entry as a whole, on any result at its commit step, and when Benedict finishes a line while it is walked in
+         the open conversation; when the server's entry number has moved past the one on screen and the draft the page saw is
+         now empty, the boxes empty, the next number and the saved entries show, and the cursor goes to the next entry's
+         first field with no walk_step (Benedict's own question is waiting). See « THE ENTRY FOLLOWS A SAVE BENEDICT MADE
+         HIMSELF » in applyDraft.
+       · ⭐ (26 Oct 2026, page 2.2.431 G3 — kev's log; Yusuf, in DA CC's session: "YES TO G3") ON A NEW CONVERSATION (the
+         first after the form is on screen, or after End or a drop) THE WALK RE-ARMS ONLY WHEN THE USER IS WALKING THIS
+         FORM BY VOICE: a question at the cursor, Voice on and not paused, the copy on screen and in its typing view — and
+         then its step goes with speak:true (Benedict asks again). Otherwise NOTHING goes — never a silent held step, so the
+         user's first words route as they are — until the user is at the form again (a press or key in it, Voice on, kev's
+         walk / speak). This replaces "a conversation that connects later gets the cursor's step" above for a new
+         conversation. See « G3 — A NEW CONVERSATION » beside stepIsCurrent.
      ⚠ Every request goes through window.teckelPortal.action, which adds the pass; this script never holds it. Every server
        string is written as TEXT; nothing is stored in the browser; the console never carries a value. The live form closes,
        and empties, on a lapse, a sign-out, the user's Stop, kev's close_form and when the form leaves the viewer.
@@ -10598,7 +10661,9 @@ window.teckelShell = (function () {
     if (!target || typingElsewhere() || ui.shell.classList.contains("pp-live-ro")) return;
     try { target.focus({ preventScroll: true }); } catch(e) {}
   }
-  function moveTo(me, i, how){
+  // quiet (2.2.431, G1 — the next entry after Benedict saved one himself): the cursor moves, no box is focused and no step
+  //   goes; the next move sends its step as usual
+  function moveTo(me, i, how, quiet){
     const row = me.rows[i];
     if (lf !== me || !walkable(me, row)) return;
     clearTimeout(me.timer); me.timer = null;
@@ -10607,6 +10672,7 @@ window.teckelShell = (function () {
     paintCursor(me);
     stepLine(me);
     keepInView(row.el);
+    if (quiet === true) return;
     if (how !== "focus") focusIn(row.ctl);
     stepOut(me);                                            /* the ONE walk_step of this move */
   }
@@ -10642,6 +10708,7 @@ window.teckelShell = (function () {
   /* ══ THE ONE ENVELOPE: exactly one walk_step per cursor move, and only into a conversation that is ready ═══════════ */
   function stepOut(me){
     if (lf !== me || !walksNow(me) || me.voiceless || me.held || !ready()) return false;   /* (Phase 4) every lane that walks */
+    if (me.cold === conv) return false;                     /* (2.2.431, G3) not re-armed in this conversation: waits for the user */
     // (2.2.428, phase 5) « THE REVIEW WALK » runs: the live form HOLDS — nothing goes, nothing is marked sent; when the walk
     //   ends its current step goes again (below, "teckel-review-walk")
     if (reviewHolds()) { log("held: the review walk is running"); return false; }
@@ -10688,7 +10755,7 @@ window.teckelShell = (function () {
     }
     me.lastOut = outKey;
     me.sent = { seq: me.seq, conv: conv }; me.sentAny = true; lastEnv = env;
-    return emit(me, env, false);
+    return emit(me, env, me.loudOnce === conv);             /* (2.2.431, G3) loudOnce: the re-armed step is asked again */
   }
   // the action step's envelope: the preview's say, and (2.2.426) its say_help when the server gives one
   function actEnv(me){
@@ -10719,6 +10786,44 @@ window.teckelShell = (function () {
                                    ...(env.refused ? { refused: env.refused } : {}) });
   }
   function stepIsCurrent(me){ return !!(me && me.sent && me.sent.seq === me.seq && me.sent.conv === conv); }
+  /* ⭐ « G3 — A NEW CONVERSATION » (26 Oct 2026, page 2.2.431; Yusuf, in DA CC's session: "YES TO G3"). kev's log, a FRESH
+       pipeline: 1.1 s after its socket opened this page sent {walk_step, field, type "date", speak:false} for a log copy tcc
+       had on screen only to VIEW (End → Start, the copy in read-only view), so the next typed request ("Start a new copy of
+       the Practice Cleaning Specification - FR2 Surgeries") went in as that date — refused, nothing written, the grid never
+       opened, the conversation looked hung. kev's 30 s step TTL cannot reach it: the step came from the page, new.
+       ON EVERY NEW CONVERSATION (the first, a reconnect after End or a drop) the walk RE-ARMS — its current step, sent with
+       speak:true so Benedict asks the question again — ONLY when ALL hold (rearms):
+         · the live form is walking a QUESTION (the cursor on a field or a signature box — not loading, not the commit or
+           action step, not done) and the walk is spoken: Voice on and not paused (held);
+         · the form on screen is THIS walk's copy, editable, in its typing view (never the read-only view);
+         · the lane walks in this conversation (walksNow) and the field at the cursor can be walked.
+       Otherwise NOTHING goes: never a silent held step on a new conversation. The walk then waits for the user: a press or a
+       key in the live form, Voice on (which sends the cursor's step aloud) or kev's "walk" / "speak" ends the wait, and the
+       next move sends its step as every move does (silent while Voice is off — a walk the user is typing, inside a
+       conversation, as before). The gate is per conversation (me.cold = that conversation's number), so the conversation's
+       own frame (an entry joining it, its entry_draft read) cannot slip a step in either; and the transport's ready
+       (teckelConversationReady) now holds until "teckel-hello" has gone, so nothing reaches a new conversation before this
+       decision is made. */
+  function rearms(me){
+    if (!me || me.mode !== "q" || me.held || me.voiceless || !speak) return false;
+    if (ui.shell.classList.contains("pp-live-ro")) return false;              /* a read-only view: only being viewed */
+    const c = editableCopy();
+    if (!c || keyOf(c) !== me.key || !liveOn()) return false;                 /* the walk's own copy, on screen */
+    const row = curRow(me);
+    return walksNow(me) && !!row && (walkable(me, row) || !!row.sign);
+  }
+  // the cursor's step, sent with speak:true ONCE (stepOut's own rules otherwise: nothing is forced past them)
+  function stepAloud(me){
+    me.cold = -1; me.loudOnce = conv;
+    try { return stepOut(me); } finally { me.loudOnce = -1; }
+  }
+  function coldWhy(me){
+    if (ui.shell.classList.contains("pp-live-ro")) return "a read-only view";
+    if (me.held) return "the walk is paused";
+    if (!speak || me.voiceless) return "Voice is off";
+    if (me.mode !== "q") return "not at a question";
+    return "not this walk's copy, or not walked in this conversation";
+  }
   function control(op){
     // (2.2.428) while the review walk runs, kev's held step is the review's: a stop / speak / quiet of the live form's would
     //   land on it, so none goes (the live form's own step goes again when the walk ends)
@@ -10735,6 +10840,7 @@ window.teckelShell = (function () {
     const was = voiceOnNow();
     speak = !!on;
     const me = lf, starts = !!(speak && me && me.held);
+    if (speak && me) me.cold = -1;                          /* (2.2.431, G3) Voice on: the user asks for the walk */
     if (starts) {
       me.held = false; me.noCursor = false;
       if (me.kind === "qa" && !me.completed) { me.baseMsg = SAYS_QA; txt(ui.msg, SAYS_QA); }
@@ -10749,6 +10855,9 @@ window.teckelShell = (function () {
     if (tell && speak && !was && !starts && me && me.mode !== "load" && me.mode !== "done" && lastEnv && stepIsCurrent(me)) {
       emit(me, lastEnv, true);
     }
+    // (2.2.431, G3) none went into this conversation yet (a new conversation the walk was not re-armed in): Voice on sends
+    //   the cursor's step now, aloud
+    else if (tell && speak && !was && !starts && me && me.mode !== "load" && me.mode !== "done") stepAloud(me);
   }
   function tellChanged(me, num, more){
     try {
@@ -11328,6 +11437,7 @@ window.teckelShell = (function () {
     me.typed = {}; me.draft = {}; me.ready = false; me.blank = []; me.rowSay = ""; me.cv = null; me.convLine = "";
     me.entryCount = num0(r.entry_count);
     me.entryNo = num0(isLog ? r.entry_number : r.respondent) || me.entryCount + 1;
+    me.shownNo = me.entryNo; me.sawDraft = false;           /* (2.2.431, G1) the entry on screen, and whether its draft was seen */
     const list = el("div", "pp-lf-list");
     (isLog ? r.columns : r.questions).forEach(function (q) {
       if (!q || typeof q !== "object") return;
@@ -11507,7 +11617,52 @@ window.teckelShell = (function () {
     if (typeof r.row_say === "string") me.rowSay = r.row_say;
     const n = num0(me.kind === "log" ? r.entry_number : r.respondent);
     if (n) me.entryNo = n;
+    entryMoved(me);                                         /* (2.2.431, G1) saved meanwhile — by Benedict, or elsewhere */
     paintLane(me);
+  }
+  // ⭐ (2.2.431, G1 — tcc's run 49, F-HH; Yusuf's "yes please") « THE ENTRY FOLLOWS A SAVE BENEDICT MADE HIMSELF ». kev's
+  //   own "save this entry" (finalise_log_entry — not the page's save_entry) saved entry 1 at 01:47:09Z ("Saved — 4 of 5
+  //   fields filled") while this form still read "Entry 1 — not saved yet" and "0 saved entries" until it was reopened.
+  //   The page never sees kev's calls, so every read of the entry's draft (entry_draft, form_fields, a write's reply) asks
+  //   one question of the server's own numbers: has the entry number moved past the one on screen (shownNo)?
+  //     · moved, and the draft this page last saw with something in it is now EMPTY: the entry on screen was SAVED — its
+  //       boxes empty (anything being typed stays), the next number, the saved entries listed again (log_entries), the
+  //       server's count beside Save entry, and the cursor on the next entry's first field WITHOUT a walk_step and without
+  //       focusing a box: Benedict has just asked his own question ("shall I submit it now…?"), and a step now would talk
+  //       over it or catch its answer as a value (K7). The next step goes with the next move, as every step does;
+  //     · moved with the draft still held (or never seen): another session's entry — the number and the list only.
+  //   The reads come at the moments kev can have saved it, never on a timer: kev's frame for the entry as a whole (row /
+  //   entry_count, or any result at the commit step), and the end of each line Benedict says while this entry is walked
+  //   in the open conversation ("teckel-turn-end", below) — at most one entry_draft per line, read only, never billed.
+  //   The page's own commit (committed) moves shownNo itself, so it is never mistaken for one of Benedict's.
+  function draftHeld(me){ return Object.keys(me.draft || {}).some(function (k) { return shown(me.draft[k]); }); }
+  function entryMoved(me){
+    if (lf !== me || !laneRows(me) || me.kind === "grid" || me.committing) return;   /* the page's own commit decides */
+    const held = draftHeld(me);
+    if (!(me.entryNo > me.shownNo)) { if (held && me.entryNo === me.shownNo) me.sawDraft = true; return; }
+    const saved = me.sawDraft === true && !held;
+    me.shownNo = me.entryNo; me.sawDraft = held;
+    const isLog = me.kind === "log", n = Math.max(0, me.entryNo - 1);
+    me.entryCount = n;
+    if (isLog) loadSaved(me);
+    else if (me.saved && me.saved.count) txt(me.saved.count, n === 1 ? "1 response recorded." : n + " responses recorded.");
+    if (!saved) { log("another entry was saved meanwhile: the number and the list follow the server"); return; }
+    log("the entry on screen was saved by voice: the next one is shown");
+    me.typed = {};
+    me.rows.forEach(function (x) { if (!x.ctl) return; x.tried = null; x.asTyped = false; if (!dirty(x)) say(x.st, ""); });
+    const bl = $("pp-lf-commit-blank"); if (bl) bl.hidden = true;
+    me.viewDirty = true;
+    txt($("pp-lf-row-result"), isLog ? "Saved — the log now has " + n + (n === 1 ? " entry." : " entries.")
+                                     : "Recorded — " + n + (n === 1 ? " response so far." : " responses so far."));
+    const first = seekUnanswered(me, 0);
+    if (first !== -1 && !(me.mode === "q" && me.cur === first)) moveTo(me, first, "voice", true);   /* quiet: no step */
+  }
+  // one entry_draft at a time for the turn ends; one more after it when another line ended meanwhile
+  function turnRead(me){
+    if (me.turnBusy) { me.turnAgain = true; return; }
+    me.turnBusy = true; me.turnAgain = false;
+    const done = function () { me.turnBusy = false; if (me.turnAgain && lf === me) turnRead(me); };
+    readDraft(me).then(done, done);
   }
   function lists(r){ return !!r && Array.isArray(r.recorded) && Array.isArray(r.skipped) && Array.isArray(r.unchanged); }
   function itemOf(r, f){
@@ -11722,6 +11877,7 @@ window.teckelShell = (function () {
     if (me.cv && C && C.now() !== me.cv) { C.release(me.cv); if (binds.get(me.iid) === me.cv) binds.delete(me.iid); me.cv = null; }
     me.typed = {}; me.draft = {}; me.ready = false; me.blank = []; me.rowSay = "";
     me.entryNo = num0(isLog ? r.next_entry_number : r.next_respondent) || me.entryCount + 1;
+    me.shownNo = me.entryNo; me.sawDraft = false;           /* (2.2.431, G1) the page's own commit: never read as Benedict's */
     me.rows.forEach(function (x) {
       if (!x.ctl) return;
       x.saved = ""; x.tried = null; x.asTyped = false; x.spoken = false; me.known[x.num] = "";
@@ -11958,7 +12114,14 @@ window.teckelShell = (function () {
     if (said && said !== me.iid) { ignore("another copy's, not the one on screen", m); return; }
     if (String(m.lane === undefined ? "" : m.lane) !== me.lane) { ignore("not this form's lane", m); return; }
     if (m.row === true || (m.entry_count !== undefined && m.field === undefined)) {   /* kev touched the entry as a whole */
-      readDraft(me); if (me.kind === "log") loadSaved(me);
+      const at = me.shownNo;
+      readDraft(me).then(function () { if (lf === me && me.kind === "log" && me.shownNo === at) loadSaved(me); });
+      return;
+    }
+    // (2.2.431, G1) a result at the entry's commit step — the row step names no field, so kev's echo of it names none:
+    //   the entry is re-read, never trusted (« THE ENTRY FOLLOWS A SAVE BENEDICT MADE HIMSELF »)
+    if (me.mode === "row" && laneRows(me) && me.kind !== "grid" && (m.field === undefined || m.field === null)) {
+      readDraft(me);
       return;
     }
     if (!row || me.mode !== "q") { ignore("no field at the cursor", m); return; }
@@ -12383,6 +12546,8 @@ window.teckelShell = (function () {
   ui.ro.addEventListener("click", function () { if (lf) setRo(!ui.shell.classList.contains("pp-live-ro")); });
   ui.stop.addEventListener("click", onStop);
   [ui.voice, ui.ro, ui.stop].forEach(function (x) { x.addEventListener("pointerdown", function () { press(x.id); }); });
+  // (2.2.431, G3) a press or a key in the live form: the user is at the form again — its next move sends its step
+  ["pointerdown", "keydown"].forEach(function (k) { ui.sec.addEventListener(k, function () { if (lf) lf.cold = -1; }, true); });
   // (« MUTE ») the conversation's Mute beside Voice: the transport owns it; pressing it saves nothing here
   { const mu = $("pp-live-mute"); if (mu) mu.addEventListener("pointerdown", function () { press(mu.id); }); }
   document.addEventListener("pointerup", function () { setTimeout(function () { pressing = null; }, 0); }, true);
@@ -12390,7 +12555,14 @@ window.teckelShell = (function () {
   window.addEventListener("teckel-viewer", sync);
   window.addEventListener("teckel-hello", function () {     /* a conversation heard the page's opening run */
     conv++;
-    if (lf && lf.mode !== "load") stepOut(lf);              /* the cursor's step, once, for THIS conversation */
+    const me = lf;
+    if (!me) return;
+    // ⭐ (2.2.431, G3) a NEW conversation: the walk re-arms ONLY when the user is walking this form by voice now
+    //   (rearms) — and then Benedict asks the question again (speak:true). Otherwise NOTHING goes: no held step, so the
+    //   user's first words route as they are, and the walk waits for the user (« G3 — A NEW CONVERSATION »)
+    if (me.mode !== "load" && rearms(me)) { me.cold = -1; stepAloud(me); return; }
+    me.cold = conv;
+    log("a new conversation: no walk step re-armed (" + (me.mode === "load" ? "still loading" : coldWhy(me)) + ")");
   });
   // (2.2.428, phase 5) « THE REVIEW WALK » ended: the live form takes the conversation back — its current step again (the
   //   Voice-on re-send path), since kev's held step was the review's; one that never went out goes as usual (stepOut)
@@ -12416,6 +12588,13 @@ window.teckelShell = (function () {
     const C = CV();
     if (me.cv && (!C || !C.known(me.cv))) { if (binds.get(me.iid) === me.cv) binds.delete(me.iid); me.cv = null; }
     if (!me.cv) bindEntry(me); else paintLane(me);
+  });
+  // (2.2.431, G1) Benedict finished a line (the transport's "teckel-turn-end" — no words): an entry walked in the open
+  //   conversation is re-read once, so a save he made himself shows (« THE ENTRY FOLLOWS A SAVE BENEDICT MADE HIMSELF »)
+  window.addEventListener("teckel-turn-end", function () {
+    const me = lf;
+    if (!me || me.mode === "load" || me.mode === "done" || !laneRows(me) || me.kind === "grid" || !walksNow(me)) return;
+    turnRead(me);
   });
   P.on("mode", sync);
   setVoice(true, false);
