@@ -7,14 +7,14 @@
   allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
   any file carrying it.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/canary/portal.de30e355082f.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/canary/portal.f56f5b70e6b6.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/canary/portal.de30e355082f.js
+      https://teckel-io.github.io/practice_portal_core/canary/portal.f56f5b70e6b6.js
   (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -52,7 +52,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="de30e355082f">/* =====================================================================================================================
+<script data-teckel-core="f56f5b70e6b6">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -486,6 +486,11 @@ window.teckelShell = (function () {
         .lv-list-n { flex: 0 0 auto; min-width: 2.2em; color: var(--gold); font-variant-numeric: tabular-nums; }
         .lv-list-label { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
         .lv-list-sub { display: block; margin-top: 2px; font-size: 12px; color: var(--steel); }
+        /* 2.2.435 D: each row ends with a visible "Open" (decoration: the row is the button) */
+        .lv-list-open {
+            flex: 0 0 auto; align-self: center; margin-left: auto; padding: 2px 10px; border: 1px solid var(--gold);
+            border-radius: 4px; font-size: 12px; font-weight: 600; color: var(--gold); white-space: nowrap;
+        }
         /* ?debug=1 only: built by script, so the production page carries none of it. */
         .lv-debug {
             margin-top: 12px; padding: 8px; border: 1px dashed var(--card-border); border-radius: 4px;
@@ -4442,10 +4447,14 @@ window.teckelShell = (function () {
   //     ignored, as \`type\` is. So {kind, title} and {kind, title, list_token} are unchanged, with the new fields after.
   const PICK_SOURCES = Object.freeze(["directory", "list", "search", "review"]);
   const PICK_KEY_MAX = 200;
+  // 2.2.435 D (26 Oct 2026): a list's token goes back WHOLE. It was cut at 80 characters, which a browse token ("bl_" + 16
+  // hex) never reached — but 2.2.403's SIGNED token ("bl_s" + the list itself, signed) is hundreds of characters, and kev's
+  // stale-tap guard compares the token a tap sends back with the list on show. 2.2.403's own ceiling (MAX_TOKEN_CHARS).
+  const LIST_TOKEN_MAX = 16384;
   window.teckelLocalPick = function (title, listToken, opts) {
     const m = { kind: "pick_form", title: String(title || "").slice(0, 300) };
     if (!m.title) return false;
-    if (listToken) m.list_token = String(listToken).slice(0, 80);
+    if (listToken) m.list_token = String(listToken).slice(0, LIST_TOKEN_MAX);
     const o = (opts && typeof opts === "object") ? opts : {};
     const sk = (typeof o.storage_key === "string") ? o.storage_key.replace(/[\\u0000-\\u001f\\u007f]/g, "").trim().slice(0, PICK_KEY_MAX) : "";
     if (sk) m.storage_key = sk;
@@ -5095,6 +5104,9 @@ window.teckelShell = (function () {
      pick and never trusts the page's words as a key.
      · CLEARED by: an empty items list, a form opening in the viewer (kev's display_form, or the page's own View), the
        conversation ending, a new conversation, and Sign out.
+     · "Open" (2.2.435 D, 26 Oct 2026 — tap to open; Yusuf: "GO AHEAD"): every row ends with a visible "Open" label, so a
+       row reads as something to tap. The row stays the ONE button and the tap is the pick above, unchanged: no new kind,
+       no new message, no new row field (the label is decoration, aria-hidden; the row's name stays its label).
      ⚠ TEXT ONLY: every string is written as a text node (never markup). Nothing is kept in storage. */
   const LIST_MAX = 200;
   function clearList(){
@@ -5108,7 +5120,7 @@ window.teckelShell = (function () {
     const items = Array.isArray(m.items) ? m.items : [];
     const box = $("lv-list"), ol = $("lv-list-items"), h = $("lv-list-h");
     if (!items.length || !box || !ol || !h) { clearList(); return; }
-    const token = itemText(m.list_token, 80);
+    const token = itemText(m.list_token, LIST_TOKEN_MAX);   /* 2.2.435 D: whole (it was cut at 80) */
     ol.textContent = "";
     items.slice(0, LIST_MAX).forEach(function (it, i) {
       if (!it || typeof it !== "object") return;
@@ -5124,6 +5136,8 @@ window.teckelShell = (function () {
       const txt = document.createElement("span"); txt.className = "lv-list-label"; txt.textContent = label;
       b.appendChild(num); b.appendChild(txt);
       if (sub) { const s = document.createElement("span"); s.className = "lv-list-sub"; s.textContent = sub; txt.appendChild(s); }
+      const op = document.createElement("span"); op.className = "lv-list-open"; op.textContent = "Open";
+      op.setAttribute("aria-hidden", "true"); b.appendChild(op);
       b.addEventListener("click", function () { pickFromList(b, label, token); });
       li.appendChild(b); ol.appendChild(li);
     });
