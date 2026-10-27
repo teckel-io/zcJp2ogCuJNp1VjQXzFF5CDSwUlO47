@@ -7,14 +7,14 @@
   allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
   any file carrying it.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/canary/portal.22d570d6ce1d.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/canary/portal.aa85a02d8f2d.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/canary/portal.22d570d6ce1d.js
+      https://teckel-io.github.io/practice_portal_core/canary/portal.aa85a02d8f2d.js
   (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -52,7 +52,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="22d570d6ce1d">/* =====================================================================================================================
+<script data-teckel-core="aa85a02d8f2d">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -2611,8 +2611,8 @@ window.teckelShell = (function () {
                 var hay = (f.name || '').toLowerCase();
                 return words.every(function (w) { return hay.indexOf(w) >= 0; });
             }).slice(0, 12);
-            if (!formsIndex.length && benedictLive) {   // LOCAL V2: no list yet — Enter asks Benedict
-                out.innerHTML = '\x3cdiv class="fs-empty">Press Enter and Benedict will look for that form.\x3c/div>';
+            if (!formsIndex.length) {   // LOCAL V2 (V26): no list yet — Enter opens the directory filtered by the words
+                out.innerHTML = '\x3cdiv class="fs-empty">Press Enter to find it in your document directory.\x3c/div>';
                 out.style.display = 'block';
                 return;
             }
@@ -2674,8 +2674,9 @@ window.teckelShell = (function () {
                         meta.textContent = msg;
                         setTimeout(function () { meta.textContent = restore; }, 1600);
                     }
-                    if (askBenedictToFill(name, { source: 'search' })) {   // LOCAL V2 (phase 2, V24)
-                        flash('sent to Benedict');
+                    // LOCAL V2 (27 Oct 2026, V26): a hit opens the directory at that form — never words for Benedict
+                    if (window.teckelDirSearch && window.teckelDirSearch(name)) {
+                        flash('shown in the directory');
                         var outBox = document.getElementById('form-search-results');
                         setTimeout(function () { if (outBox) outBox.style.display = 'none'; }, 900);
                         return;
@@ -2715,14 +2716,24 @@ window.teckelShell = (function () {
             // list rides display_form's resolve, so a directory-first start had none): Enter asks
             // Benedict for the typed name. With no conversation and no list it is off again.
             if (box && !formsIndex.length) {
-                box.disabled = !benedictLive;
-                box.placeholder = benedictLive
-                    ? 'Type a form name and press Enter \\u2014 Benedict will look for it'
-                    : 'Search your forms \\u2014 available once a conversation starts';
+                box.disabled = false;   // LOCAL V2 (V26): the box works without a conversation
+                box.placeholder = 'Search your forms \\u2014 type a word and press Enter';
             }
             if (box) renderSearchResults(box.value);   // the hint follows the state
         }
         window.setBenedictLive = setBenedictLive;   // 20 Oct: the local chain's socket script (another scope) sets it
+        // LOCAL V2 (27 Oct 2026, V26): the search box and its hits open the DOCUMENT DIRECTORY filtered by the words —
+        // the page's own list, no conversation needed, nothing to Benedict. False when the directory control is absent.
+        window.teckelDirSearch = function (q) {
+            var dq = document.getElementById('pp-t-dir-q');
+            var go = document.getElementById('pp-t-dir-open');
+            if (!dq || !go || go.disabled) return false;
+            var det = dq.closest('details');
+            if (det) det.open = true;
+            dq.value = String(q || '').replace(/\\s+/g, ' ').trim().slice(0, 120);
+            go.click();
+            return true;
+        };
         function askBenedictToFill(name, pick) {
             name = String(name || '').replace(/\\s+/g, ' ').trim().slice(0, 200);
             if (!name || !benedictLive) return false;
@@ -2790,18 +2801,42 @@ window.teckelShell = (function () {
                 markActivity();
                 renderSearchResults(box.value);
             });
-            // LOCAL V2: Enter with no list yet sends the typed name as the user's own words.
+            // LOCAL V2 (27 Oct 2026, V26): Enter opens the DOCUMENT DIRECTORY filtered by the typed words — never Benedict.
+            box.disabled = false;
+            box.placeholder = 'Search your forms \\u2014 type a word and press Enter';
             box.addEventListener('keydown', function (e) {
-                if (e.key !== 'Enter' || formsIndex.length) return;
-                var q = String(box.value || '').replace(/\\s+/g, ' ').trim().slice(0, 200);
-                if (!q || !benedictLive || typeof window.teckelLocalSay !== 'function') return;
+                if (e.key !== 'Enter') return;
+                var q = String(box.value || '').replace(/\\s+/g, ' ').trim().slice(0, 120);
+                if (!q) return;
                 e.preventDefault();
                 markActivity();
-                if (window.teckelLocalSay('Find the form "' + q + '".')) {
-                    box.value = '';
-                    renderSearchResults('');
+                if (window.teckelDirSearch && window.teckelDirSearch(q)) {
+                    var outBox = document.getElementById('form-search-results');
+                    if (outBox) outBox.style.display = 'none';
                 }
             });
+            // LOCAL V2 (V26): ON A PHONE (\x3c 700 px) a form or the directory loading in the viewer comes into view, and a fixed
+            // "Back to the top" button shows while the page is scrolled down (the viewer sits under the whole My forms list).
+            (function () {
+                function narrow() { return window.innerWidth \x3c 700; }
+                var fv = document.getElementById('form-viewer');
+                if (fv) fv.addEventListener('load', function () {
+                    var src = String(fv.getAttribute('src') || '');
+                    if (!narrow() || !src || src === 'about:blank') return;
+                    try { fv.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e2) { /* old browser: stay */ }
+                });
+                var up = document.createElement('button');
+                up.type = 'button';
+                up.id = 'pp-phone-top';
+                up.className = 'lv-btn pp-small';
+                up.textContent = '\\u2191 Back to the top';
+                up.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:60;display:none';
+                up.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+                document.body.appendChild(up);
+                function place() { up.style.display = (narrow() && window.scrollY > 1200) ? 'block' : 'none'; }
+                window.addEventListener('scroll', place, { passive: true });
+                window.addEventListener('resize', place);
+            })();
         });
 
         // -----------------------------------------------------------------
@@ -9280,7 +9315,21 @@ window.teckelShell = (function () {
     try { held = !!(window.teckelPortalViewer && window.teckelPortalViewer.held()); } catch(e) { held = false; }
     const vc = (c && held) ? null : voiceOnScreen();
     if (vc) return vc;
-    return (c && held && shown(c.instance_id)) ? c : null;
+    return (c && held && shown(c.instance_id)) ? c : viewerCopy();
+  }
+  // (27 Oct 2026, V26; Steven on his phone: after Benedict showed the form there was no way back into typing) else the
+  // in-progress copy the VIEWER itself shows — its id and view mode are in the address the page drew — so Edit is offered
+  // however the form got there. The server's form_fields still decides: a copy this practice may not type into is refused
+  // with the server's own line, nothing written.
+  function viewerCopy(){
+    try {
+      if (!(window.teckelPortalViewer && window.teckelPortalViewer.formShown())) return null;
+      const f = document.getElementById("form-viewer");
+      const src = f ? String(f.getAttribute("src") || "") : "";
+      if (!/[?&]view_mode=in_progress(&|$)/.test(src)) return null;
+      const m = /[?&]instance_id=([0-9a-fA-F-]{36})(&|$)/.exec(src);
+      return m ? { instance_id: m[1], editable: true } : null;
+    } catch(e) { return null; }
   }
   // (2.2.419) the walk script (after this one) offers its Walk button for the SAME copy Edit is offered for.
   Object.defineProperty(window, "teckelEditableCopy", { configurable: false, enumerable: false, writable: false,
