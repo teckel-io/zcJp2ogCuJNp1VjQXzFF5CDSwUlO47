@@ -7,14 +7,14 @@
   allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
   any file carrying it.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/canary/portal.f56f5b70e6b6.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/canary/portal.22d570d6ce1d.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/canary/portal.f56f5b70e6b6.js
+      https://teckel-io.github.io/practice_portal_core/canary/portal.22d570d6ce1d.js
   (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -52,7 +52,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="f56f5b70e6b6">/* =====================================================================================================================
+<script data-teckel-core="22d570d6ce1d">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -1365,13 +1365,17 @@ window.teckelShell = (function () {
                        aria-label="Conversation with Benedict">\x3c/div>
                   \x3c!-- A NUMBERED LIST BENEDICT IS READING (21 Oct 2026, contract §7; kev's
                        {"kind":"display_numbered_list"}). One button per item, numbered as the server
-                       numbered it; a tap is the same pick as saying the number. Filled by the voice
+                       numbered it; a tap on an area is the same pick as saying the number, and a tap
+                       on a form opens it on the page (27 Oct 2026). Filled by the voice
                        transport as TEXT only; hidden until a list arrives, and cleared when a form
                        opens, the conversation ends or the page signs out. -->
                   \x3csection class="lv-list" id="lv-list" aria-labelledby="lv-list-h" hidden>
                     \x3ch3 class="lv-list-h" id="lv-list-h">\x3c/h3>
                     \x3cp class="lv-list-hint">Tap one, or say its number.\x3c/p>
                     \x3col class="lv-list-items" id="lv-list-items">\x3c/ol>
+                    \x3c!-- (27 Oct 2026) a tapped FORM row opens on the page: the server's answer to it, as text
+                         ("View that copy" / "Start a fresh copy anyway" when a copy is in progress). -->
+                    \x3cdiv class="pp-result lv-list-res" id="lv-list-res" role="status" aria-live="polite">\x3c/div>
                   \x3c/section>
                 \x3c/div>
                 \x3cscript>
@@ -1541,6 +1545,12 @@ window.teckelShell = (function () {
                     \x3c/details>
                 \x3c/div>
             \x3c/section>
+
+            \x3c!-- LOCAL V2 (27 Oct 2026; Yusuf: "YES. THIS IS ESSENTIAL") — THE PAGE'S OWN ANSWER when a form chosen in the
+                 viewer (a row of the document directory) or in the review panel once it has closed opens ON THE PAGE:
+                 "Opening…", the server's refusal as text, or "View that copy" / "Start a fresh copy anyway". Above the
+                 search box and the viewer; empty (and so not shown) otherwise; cleared when the page pauses or signs out. -->
+            \x3cdiv class="pp-result pp-open-res" id="pp-open-res" role="status" aria-live="polite">\x3c/div>
             \x3c!-- v2.2.235 (C7) — find a form without spending turns on it. Disabled until
                  the index arrives with the first form the agent displays; the placeholder
                  says so rather than looking broken. -->
@@ -2754,6 +2764,13 @@ window.teckelShell = (function () {
                 var d = e.data || {};
                 if (d.type !== 'teckel-fill-form') return;
                 // LOCAL V2 (25 Oct 2026, phase 2, V24): a directory row says so, with its key as a hint
+                // LOCAL V2 (27 Oct 2026, V25): a row WITH its key opens ON THE PAGE, by the portal's own door — nothing
+                // to Benedict, and no reply (the page's own line answers). No key, or no door: as before.
+                if (typeof d.storage_key === 'string' && d.storage_key.length \x3c 200
+                    && typeof window.teckelOpenByKey === 'function'
+                    && window.teckelOpenByKey(d.storage_key, d.name, document.getElementById('pp-open-res'))) {
+                    return;
+                }
                 var ok = askBenedictToFill(d.name, { source: 'directory', storage_key: d.storage_key });
                 e.source.postMessage({ type: 'teckel-fill-form-result', ok: ok,
                                        name: String(d.name || '').slice(0, 200) }, e.origin);
@@ -5107,12 +5124,25 @@ window.teckelShell = (function () {
      · "Open" (2.2.435 D, 26 Oct 2026 — tap to open; Yusuf: "GO AHEAD"): every row ends with a visible "Open" label, so a
        row reads as something to tap. The row stays the ONE button and the tap is the pick above, unchanged: no new kind,
        no new message, no new row field (the label is decoration, aria-hidden; the row's name stays its label).
+     · ⭐ A FORM ROW OPENS ON THE PAGE (27 Oct 2026; Yusuf, in DA CC's session: "why cannot you not simply load the form on
+       the page" — tcc's run 53: taps registered 5 of 5, forms opened 0 of 5; kev took the pick as the user SAYING the title
+       and, with a "Do you mean X?" pending, offered it again). A row whose item carries a storage_key (a form) is opened by
+       the page's own door — window.teckelOpenByKey, the Practice tools' new-copy route (new_copy {storage_key}, then View)
+       — with the item's OWN key, never its text; the server's answer is written under the list (#lv-list-res): a copy in
+       progress gives "View that copy" / "Start a fresh copy anyway", a refusal its message only. NO pick goes to kev for a
+       form row: kev learns of the form as it learns of any View (screen_form, then the live form's walk_step). A row with
+       no storage_key (an area) is the pick, unchanged; so is every row while the portal is switched off (legacy mode, the
+       page before the door). The list clears when the form opens (the page's own View, above).
+     · A LIST OF COPIES (27 Oct 2026): a list whose every item names an instance_id (kev, when a form chosen by voice has
+       several unfinished copies) is drawn by the page's own list of copies (window.teckelCopiesList: Open / Delete per
+       copy, on the page — the same list the page shows when a form chosen on the page has several). No pick goes.
      ⚠ TEXT ONLY: every string is written as a text node (never markup). Nothing is kept in storage. */
   const LIST_MAX = 200;
   function clearList(){
-    const box = $("lv-list"), ol = $("lv-list-items"), h = $("lv-list-h");
+    const box = $("lv-list"), ol = $("lv-list-items"), h = $("lv-list-h"), res = $("lv-list-res");
     if (ol) ol.textContent = "";
     if (h) h.textContent = "";
+    if (res) res.textContent = "";
     if (box) box.hidden = true;
   }
   function itemText(v, max){ return (v === undefined || v === null) ? "" : String(v).replace(/\\s+/g, " ").trim().slice(0, max); }
@@ -5122,10 +5152,22 @@ window.teckelShell = (function () {
     if (!items.length || !box || !ol || !h) { clearList(); return; }
     const token = itemText(m.list_token, LIST_TOKEN_MAX);   /* 2.2.435 D: whole (it was cut at 80) */
     ol.textContent = "";
+    { const res = $("lv-list-res"); if (res) res.textContent = ""; }   /* (27 Oct 2026) the last list's answer goes with it */
+    // (27 Oct 2026) a list of COPIES — every item names its instance_id (a form chosen BY VOICE with several unfinished
+    //   copies): the SAME list of copies the page shows itself (window.teckelCopiesList, the tier-2/3 script: Open and
+    //   Delete per copy, on the page), under the list's title. No door (the portal off, or paused): the rows below.
+    if (items.every(isCopyItem) && doorMode !== "legacy" && typeof window.teckelCopiesList === "function"
+        && window.teckelCopiesList($("lv-list-res"), items.slice(0, LIST_MAX))) {
+      h.textContent = itemText(m.title, 200) || "Benedict's list";
+      box.hidden = false;
+      log("list of copies on screen: " + items.length + " item(s)");
+      return;
+    }
     items.slice(0, LIST_MAX).forEach(function (it, i) {
       if (!it || typeof it !== "object") return;
-      const label = itemText(shownText(it.label) ? it.label : it.title, 300);
+      const label = itemText(shownText(it.label) ? it.label : (shownText(it.title) ? it.title : it.form_name), 300);
       if (!label) return;
+      const key = (typeof it.storage_key === "string") ? it.storage_key : "";   /* (27 Oct 2026) a FORM row: its own key */
       const n = (typeof it.n === "number" && isFinite(it.n) && it.n > 0) ? Math.floor(it.n) : (i + 1);
       let sub = itemText(it.sub, 120);
       if (!sub && typeof it.count === "number" && isFinite(it.count)) sub = it.count + (it.count === 1 ? " form" : " forms");
@@ -5138,7 +5180,7 @@ window.teckelShell = (function () {
       if (sub) { const s = document.createElement("span"); s.className = "lv-list-sub"; s.textContent = sub; txt.appendChild(s); }
       const op = document.createElement("span"); op.className = "lv-list-open"; op.textContent = "Open";
       op.setAttribute("aria-hidden", "true"); b.appendChild(op);
-      b.addEventListener("click", function () { pickFromList(b, label, token); });
+      b.addEventListener("click", function () { pickFromList(b, label, token, key); });
       li.appendChild(b); ol.appendChild(li);
     });
     if (!ol.children.length) { clearList(); return; }
@@ -5147,10 +5189,22 @@ window.teckelShell = (function () {
     log("list on screen: " + ol.children.length + " item(s)");
   }
   function shownText(v){ return v !== undefined && v !== null && String(v).trim() !== ""; }
-  function pickFromList(b, label, token){
+  function isCopyItem(it){ return !!it && typeof it === "object" && typeof it.instance_id === "string" && SCREEN_ID_OK.test(it.instance_id); }
+  function pickFromList(b, label, token, key){
+    // (27 Oct 2026) a FORM row opens on the page, by the page's own door — no pick to kev (« A FORM ROW OPENS ON THE PAGE »)
+    if (shownText(key) && doorMode !== "legacy") { openFromList(b, label, key); return; }
     const ok = typeof window.teckelLocalPick === "function" && window.teckelLocalPick(label, token, { source: "list" });
     if (!ok) { showMsg("That was not sent — the conversation is not connected. Start a conversation first."); return; }
     showMsg("");
+    markPicked(b);
+  }
+  function openFromList(b, label, key){
+    const ok = typeof window.teckelOpenByKey === "function" && window.teckelOpenByKey(key, label, $("lv-list-res"));
+    if (!ok) { showMsg("That form could not be opened here just now — say its number to Benedict instead."); return; }
+    showMsg("");
+    markPicked(b);
+  }
+  function markPicked(b){
     document.querySelectorAll("#lv-list-items .lv-list-item.picked").forEach(function (x) { x.classList.remove("picked"); });
     b.classList.add("picked");
   }
@@ -7223,6 +7277,18 @@ window.teckelShell = (function () {
                         : "Accepted. The document directory could not be opened just now: open it from Practice tools.");
       return;
     }
+    // ⭐ (27 Oct 2026; Yusuf: "YES. THIS IS ESSENTIAL") open_form names the FORM by its storage key (r392: {storage_key}):
+    //   it opens ON THE PAGE through the portal's own door (window.teckelOpenByKey — new_copy, then View, the route a tapped
+    //   list row takes), never handed to Benedict as words. The answer goes under the panel's result while the panel is open
+    //   ("behind this panel"); once it has closed (accepted by voice), to the page's own line. No key, or no door: as before.
+    if (shown(open.storage_key) && typeof window.teckelOpenByKey === "function") {
+      const inPanel = !!rv.dlg.open;
+      let res = $("pp-open-res");
+      if (inPanel) { txt(rv.result, "Accepted. "); res = document.createElement("span"); rv.result.appendChild(res); }
+      if (window.teckelOpenByKey(String(open.storage_key), s.form_name,
+                                 res, inPanel ? "It is open in the form viewer, behind this panel." : "")) return;
+      txt(rv.result, "");
+    }
     const asked = P.live() && shown(s.form_name) && typeof window.teckelLocalPick === "function"
                   && window.teckelLocalPick(String(s.form_name), null, { source: "review" });
     txt(rv.result, asked ? ("Accepted. Benedict has been asked to open " + name + ".")
@@ -8037,6 +8103,8 @@ window.teckelShell = (function () {
          Evidence library (rename, remove), Ask the guidance (and the passage on screen), Reference library,
          Document directory, Status report.
        · A section asks the server only when it is opened (nothing is read, or billed, before it is wanted).
+       · (27 Oct 2026) a tapped FORM row of kev's numbered list opens on the page through the SAME route as Start a new
+         copy (copyByKey, via window.teckelOpenByKey), straight into the viewer. See « ONE ROUTE FROM A FORM'S KEY ».
      ⚠⚠ THE CONFIRM RULE. The twelve actions that remove, discard, reopen, switch a question off, add one,
         change a schedule or e-mail anything are called through twoStep() and nowhere else. The first call
         carries no confirmation: the server changes nothing, sends nothing and answers what WILL happen; the
@@ -8229,7 +8297,7 @@ window.teckelShell = (function () {
     cf.confirm.disabled = !p || !p.token || p.sending || p.done;
     cf.cancel.disabled = !!(p && p.sending); cf.close.disabled = !!(p && p.sending);
   }
-  // o: { action, args, title, sub, outward, confirmLabel, onDone }
+  // o: { action, args, title, sub, outward, confirmLabel, cancelLabel, onDone }
   async function twoStep(o){
     if (!P.held() || TWO_STEP.indexOf(o.action) === -1) return;
     if (pend && pend.sending) return;
@@ -8239,7 +8307,7 @@ window.teckelShell = (function () {
     txt(cf.h, o.title || "Please confirm"); txt(cf.sub, o.sub || ""); txt(cf.words, ""); txt(cf.to, "");
     cf.toWrap.hidden = true; cf.note.hidden = false; cf.again.hidden = true;
     cf.confirm.hidden = false; txt(cf.confirm, o.confirmLabel || (o.outward ? "Confirm and send" : "Confirm"));
-    txt(cf.cancel, "Cancel"); txt(cf.result, "Checking…");
+    txt(cf.cancel, o.cancelLabel || "Cancel"); txt(cf.result, "Checking…");   /* (27 Oct 2026) "No" for a copy's Delete */
     cfSync(); openDlg(cf.dlg);
     // ⚠ THE FIRST CALL CARRIES NO CONFIRMATION: the server says what would happen, and nothing happens.
     const r = await P.action(mine.action, clone(mine.args));
@@ -8323,14 +8391,17 @@ window.teckelShell = (function () {
     say(msgOf(r, "This form's details could not be read just now. Please try again."));
     return null;
   }
-  async function viewCopy(iid, say, name){
+  // line: (27 Oct 2026) the words for "it is open" where "below" is not true (the review panel: "behind this panel");
+  // resolves true when the copy is on screen
+  async function viewCopy(iid, say, name, line){
     txt(say, "Opening…");
     const r = await P.action("view_link", { instance_id: iid });
-    if (lapsed(r)) return;
-    if (!r || r.success !== true || !r.url) { txt(say, msgOf(r, "It could not be opened just now.")); return; }
+    if (lapsed(r)) return false;
+    if (!r || r.success !== true || !r.url) { txt(say, msgOf(r, "It could not be opened just now.")); return false; }
     const ok = await show("form", r.url, r.expires_at);   /* (2.2.417) the view's expiry, for a typed save's redraw */
-    txt(say, ok ? "It is open in the form viewer below." : "It could not be shown here.");
+    txt(say, ok ? (shown(line) ? String(line) : "It is open in the form viewer below.") : "It could not be shown here.");
     if (ok) { onScreen(iid, name, "view"); revealViewer(); }
+    return !!ok;
   }
   async function reloadThenSay(text){
     await F.reload();
@@ -8723,26 +8794,61 @@ window.teckelShell = (function () {
     const res = tl.startRes;
     const key = await formKey(f, function (t) { txt(res, t); });
     if (!key) return;
+    return copyByKey(key, String(f.form_name || ""), res, { confirmedNew: confirmedNew === true });
+  }
+  /* ══ ONE ROUTE FROM A FORM'S KEY TO ITS COPY (27 Oct 2026; Yusuf, in DA CC's session: "why cannot you not simply load the
+     form on the page" — tcc's run 53: a tapped row of kev's numbered list reached kev as the user SAYING its title, and 0 of
+     5 taps opened a form). Practice tools' "Start a new copy" (above: the key learnt from a copy) and a tapped FORM row of
+     the numbered list (window.teckelOpenByKey below: the row's own storage_key, as kev's list gave it — never text, never a
+     title) both come here, so the two cannot drift: new_copy {storage_key} (confirmed_new only after "Start a fresh copy
+     anyway"), the server's answer written into \`res\` as TEXT —
+       · a refusal: its message, nothing else — plus "View that copy" when it names a copy in progress (instance_id) and
+         "Start a fresh copy anyway" when the server says confirmed_new would help;
+       · a machine log: one "View the log for …" per machine;
+       · started, resumed or reused: My forms reloads; then "View it" (Practice tools), or — opts.open, the list — the copy
+         opened in the viewer at once by viewCopy, My forms' own View route, so the live form opens on it exactly as on View.
+     Nothing here is sent to kev: what kev hears is what a View already tells it (screen_form, then the live form's walk).
+     (27 Oct 2026, Yusuf: "YES. THIS IS ESSENTIAL") EVERY place on the page where a person chooses a form by its key comes
+     here: the list, the document directory's rows (V25 in the builder) and the review panel's "open the form". opts.line
+     is the "it is open" words where "below" is not true; an answer that needs the user (a refusal, a choice) is brought
+     into view when it is off screen (the directory's answer line sits above the viewer). */
+  function seeRes(res){
+    try {
+      const b = res.getBoundingClientRect();
+      if (b.height > 0 && (b.top \x3c 0 || b.bottom > window.innerHeight)) res.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch(e) {}
+  }
+  async function copyByKey(key, formName, res, opts){
+    const o = opts || {};
     const args = { storage_key: key };
-    if (confirmedNew) args.confirmed_new = true;
-    txt(res, "Starting…");
+    if (o.confirmedNew) args.confirmed_new = true;
+    txt(res, o.open === true ? "Opening…" : "Starting…");
     const r = await P.action("new_copy", args);
     if (lapsed(r)) return;
+    const name = shown(r && r.form_name) ? String(r.form_name) : (shown(formName) ? String(formName) : "the form");
+    // (27 Oct 2026) a copy in progress: are there MORE unfinished copies of this form? (« MORE THAN ONE UNFINISHED COPY »)
+    const more = (r && r.success !== true && shown(r.instance_id) && r.confirmed_new_would_help === true)
+      ? await unfinishedCopies(String(r.instance_id)) : null;
+    if (more === false) return;                             /* the read lapsed: the door has greyed the page */
     res.textContent = "";
-    const name = shown(r && r.form_name) ? String(r.form_name) : String(f.form_name || "the form");
+    if (more && more.length > 1) { showCopies(res, more, key, formName, o); if (o.open === true) seeRes(res); return; }
     if (!r || r.success !== true) {
       res.appendChild(document.createTextNode(msgOf(r, "A new copy could not be started just now.") + " "));
-      if (r && shown(r.instance_id)) res.appendChild(button("View that copy", function () { viewCopy(String(r.instance_id), res, name); }));
-      if (r && r.confirmed_new_would_help === true) res.appendChild(button("Start a fresh copy anyway", function () { newCopy(f, true); }));
+      if (r && shown(r.instance_id)) res.appendChild(button("View that copy", function () { viewCopy(String(r.instance_id), res, name, o.line); }));
+      if (r && r.confirmed_new_would_help === true) res.appendChild(button("Start a fresh copy anyway", function () {
+        copyByKey(key, formName, res, Object.assign({}, o, { confirmedNew: true }));
+      }));
+      if (o.open === true) seeRes(res);
       return;
     }
     if (r.needs_choice === true) {           // a machine log: one log per machine
       res.appendChild(document.createTextNode(msgOf(r, "This log is kept one per machine. Which machine is it for?") + " "));
       (Array.isArray(r.machines) ? r.machines : []).forEach(function (m) {
         if (m && shown(m.instance_id)) res.appendChild(button("View the log for " + (shown(m.label) ? m.label : "this machine"),
-                                                             function () { viewCopy(String(m.instance_id), res, name); }));
+                                                             function () { viewCopy(String(m.instance_id), res, name, o.line); }));
       });
       res.appendChild(el("p", { cls: "pp-hint", text: "To start the log for another machine, open Machines under this form in My forms." }));
+      if (o.open === true) seeRes(res);
       return;
     }
     let said;
@@ -8753,9 +8859,123 @@ window.teckelShell = (function () {
     else if (r.reused === true) said = "An empty copy of " + quoted(name) + " was already there, so that one is kept. It is in My forms.";
     else said = msgOf(r, "It is in My forms.");
     await F.reload();
+    if (o.open === true && shown(r.instance_id)) { await viewCopy(String(r.instance_id), res, name, o.line); return; }
     txt(res, said + " ");
     if (shown(r.instance_id)) res.appendChild(button("View it", function () { viewCopy(String(r.instance_id), res, name); }));
   }
+  /* ══ MORE THAN ONE UNFINISHED COPY (27 Oct 2026; Yusuf: "YES. WE WANT THE FULL SUITE OF FORM-OPENING POSSIBILITIES
+     ASAP") ══════════════════════════════════════════════════════════════════════════════════════════════════════════
+     The server's in-progress answer to new_copy names ONE copy (r394 act_new_copy: DUPLICATE_HAS_IN_PROGRESS /
+     DUPLICATE_HAS_UNSENT_COMPLETE, instance_id = its own pick). The practice's other unfinished copies of that form come
+     from my_forms (get_my_instances: the SERVER's order, last changed first — kept exactly as it comes, never sorted here):
+     the rows whose storage_key is THAT copy's own (so an edition the server moved to is followed) and whose status is
+     in_progress (complete-not-sent included, as my_forms reports it). Two or more: a list, each row the form's name and
+     when it was last changed, with Open (THAT copy, by its id — viewCopy, never new_copy) and Delete (the portal's discard
+     through twoStep: the server's own preview, then "Yes, delete it" — nothing is removed without it; done, the row goes;
+     refused, the server's message in the sheet); under the list "Start a fresh copy" (new_copy with confirmed_new). One,
+     or a read that fails: the two buttons as before. ⚠ my_forms carries neither when a copy was STARTED nor how far it is
+     filled, so a row says when it was last changed and nothing more. One extra listing read, only on this answer. */
+  // source 1's read (its rows are drawn by renderCopies, « ONE LIST OF COPIES, TWO SOURCES »)
+  async function unfinishedCopies(iid){
+    const m = await P.action("my_forms", { days: 90 });
+    if (lapsed(m)) return false;
+    if (!m || m.success !== true || !Array.isArray(m.forms)) return null;
+    const mine = m.forms.find(function (f) { return f && String(f.instance_id || "") === iid; });
+    if (!mine || !shown(mine.storage_key)) return null;
+    const sk = String(mine.storage_key);
+    return m.forms.filter(function (f) {
+      return f && shown(f.instance_id) && String(f.storage_key || "") === sk && f.status === "in_progress";
+    });
+  }
+  // source 1, the page's own: the copies my_forms named, its order; a heading, the list, then "Start a fresh copy"
+  function showCopies(res, copies, key, formName, o){
+    const nm0 = shown(copies[0].form_name) ? String(copies[0].form_name) : (shown(formName) ? String(formName) : "this form");
+    res.appendChild(el("p", { cls: "pp-sec-text", text: "You have " + copies.length + " unfinished copies of " + quoted(nm0)
+                                                         + ", the most recently changed first." }));
+    const note = renderCopies(res, copies.map(function (f) {
+      return { iid: String(f.instance_id), name: shown(f.form_name) ? String(f.form_name) : nm0, edited: f.last_updated };
+    }), o);
+    res.insertBefore(button("Start a fresh copy", function () {
+      copyByKey(key, formName, res, Object.assign({}, o, { confirmedNew: true }));
+    }), note);
+  }
+  /* ══ ONE LIST OF COPIES, TWO SOURCES (27 Oct 2026; the coordinator: "One component, two sources") ══════════════════
+     rows [{iid, name, n?, started?, edited?, answered?, total?}], in the order given — never sorted here. Each row: its
+     name (its number first when the list is numbered), what is known of it — when it was started, when it was last
+     changed, how far it is filled — then Open (THAT copy, by its id: viewCopy, never new_copy) and Delete (the portal's
+     discard through twoStep: the server's own preview, then "Yes, delete it" — nothing is removed without it; done, the
+     row goes; refused, the server's message in the sheet). Source 1: the copies my_forms names (showCopies, above).
+     Source 2: a numbered list kev puts on screen whose items name copies (window.teckelCopiesList, below). Returns the
+     line under the list (Open's own answer). */
+  function copyMeta(c){
+    const bits = [];
+    const st = fmtWhen(c.started, true), ed = fmtWhen(c.edited, true);
+    if (st) bits.push("started " + st);
+    if (ed) bits.push("last changed " + ed);
+    if (Number.isInteger(c.answered) && Number.isInteger(c.total) && c.total > 0 && c.answered >= 0 && c.answered \x3c= c.total) {
+      bits.push(c.answered + " of " + c.total + " answered");
+    }
+    return { line: bits.join(" · "), started: st, edited: ed };
+  }
+  function renderCopies(res, rows, o){
+    const note = el("div", { cls: "pp-hint", role: "status" });
+    const ul = list(rows.map(function (c) {
+      const fid = c.iid, nm = c.name, meta = copyMeta(c);
+      const it = item((c.n ? c.n + ". " : "") + nm, meta.line, []);
+      addButtons(it, [
+        button("Open", async function () {
+          if (await viewCopy(fid, note, nm, o.line)) txt(res, note.textContent);   /* open: the list has done its job */
+        }, { describedBy: it.id }),
+        button("Delete", function () {
+          twoStep({ action: "discard", args: { instance_id: fid }, title: "Delete " + quoted(nm)
+                      + (meta.started ? ", started " + meta.started : (meta.edited ? ", last changed " + meta.edited : ""))
+                      + "?", sub: "It will be removed from your forms.",   /* the discard is a soft delete (r394) */
+                    confirmLabel: "Yes, delete it", cancelLabel: "No", onDone: function () {
+                      it.li.remove();
+                      try { if (typeof window.teckelCopyGone === "function") window.teckelCopyGone(fid); } catch(e) {}
+                      F.reload();
+                    } });
+        }, { describedBy: it.id })]);
+      return it.li;
+    }));
+    res.appendChild(ul);
+    res.appendChild(note);
+    return note;
+  }
+  // source 2: kev's numbered list naming COPIES (each item an instance_id — a form chosen BY VOICE with several unfinished
+  // copies; the server's items {n, instance_id, form_name, started, last_edited, answered, total}). The transport hands
+  // the items and the line under its list; only items with a plain copy id are shown (the server checks every one on Open
+  // and Delete); false — nothing drawn — without the pass or without one such item, and the transport draws its rows.
+  const COPY_ID = /^[A-Za-z0-9-]{1,64}$/;
+  Object.defineProperty(window, "teckelCopiesList", { configurable: false, enumerable: false, writable: false,
+    value: function (res, items) {
+      if (!P.held() || !res || typeof res.appendChild !== "function" || !Array.isArray(items)) return false;
+      const rows = [];
+      items.slice(0, 50).forEach(function (it) {
+        if (!it || typeof it !== "object" || typeof it.instance_id !== "string" || !COPY_ID.test(it.instance_id)) return;
+        const nm = [it.form_name, it.title, it.label].find(shown);
+        rows.push({ iid: it.instance_id, name: nm ? String(nm).replace(/\\s+/g, " ").trim().slice(0, 300) : "A copy of a form",
+                    n: (typeof it.n === "number" && isFinite(it.n) && it.n > 0) ? Math.floor(it.n) : null,
+                    started: it.started, edited: it.last_edited, answered: it.answered, total: it.total });
+      });
+      if (!rows.length) return false;
+      res.textContent = "";
+      renderCopies(res, rows, { line: "" });
+      return true;
+    } });
+  // The page's door to copyByKey for a form chosen by its key — a FORM row of kev's numbered list (the voice transport's
+  // pickFromList), a row of the document directory (V25), the review panel's "open the form": the key, the shown name, the
+  // line to answer in and, optionally, the "it is open" words. false — and nothing asked — when the door is not open (no
+  // pass) or the key is not one plain key; the caller then does what it did before. Hands over no pass and no other request.
+  const OPEN_KEY_MAX = 1024;
+  Object.defineProperty(window, "teckelOpenByKey", { configurable: false, enumerable: false, writable: false,
+    value: function (storageKey, formName, res, line) {
+      if (!P.held() || !res || typeof res.appendChild !== "function" || typeof storageKey !== "string") return false;
+      const key = storageKey.trim();
+      if (!key || key.length > OPEN_KEY_MAX || /[\\u0000-\\u001f\\u007f]/.test(key)) return false;
+      copyByKey(key, String(formName || ""), res, { open: true, line: shown(line) ? String(line).slice(0, 200) : "" });
+      return true;
+    } });
   tl.newBtn.addEventListener("click", function () {
     if (!P.held()) return;
     const f = picked();
@@ -8940,7 +9160,7 @@ window.teckelShell = (function () {
   function resetTools(){
     document.querySelectorAll("#pp-tools details").forEach(function (d) { d.open = false; });
     evLib.reset(); refLib.reset();
-    [tl.startRes, tl.guidRes, tl.dirRes, tl.reportRes].forEach(function (e) { e.textContent = ""; });
+    [tl.startRes, tl.guidRes, tl.dirRes, tl.reportRes, $("pp-open-res")].forEach(function (e) { if (e) e.textContent = ""; });
     tl.q.value = ""; tl.dirQ.value = "";
     fillPicker([]);
   }
