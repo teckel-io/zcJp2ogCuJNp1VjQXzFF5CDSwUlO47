@@ -7,14 +7,14 @@
   allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
   any file carrying it.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/canary/portal.aa85a02d8f2d.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/canary/portal.5203b122f327.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/canary/portal.aa85a02d8f2d.js
+      https://teckel-io.github.io/practice_portal_core/canary/portal.5203b122f327.js
   (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -52,7 +52,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="aa85a02d8f2d">/* =====================================================================================================================
+<script data-teckel-core="5203b122f327">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -1535,9 +1535,10 @@ window.teckelShell = (function () {
                     \x3cdetails class="pp-sec" id="pp-t-report">
                         \x3csummary>Status report\x3c/summary>
                         \x3cdiv class="pp-sec-body">
-                            \x3cp class="pp-sec-text">Your compliance status report, as a PDF and a spreadsheet. It is
-                                e-mailed to the practice&rsquo;s address on file.\x3c/p>
+                            \x3cp class="pp-sec-text">Your compliance status: open it on screen as the traffic light, or have
+                                the report e-mailed, as a PDF and a spreadsheet, to the practice&rsquo;s address on file.\x3c/p>
                             \x3cdiv class="pp-actions">
+                                \x3cbutton type="button" id="pp-t-report-open" class="lv-btn pp-small">Open on screen\x3c/button>
                                 \x3cbutton type="button" id="pp-t-report-send" class="lv-btn pp-small">E-mail the status report\x3c/button>
                             \x3c/div>
                             \x3cdiv class="pp-result" id="pp-t-report-res" role="status" aria-live="polite">\x3c/div>
@@ -8806,7 +8807,7 @@ window.teckelShell = (function () {
   const tl = { card: $("pp-tools"), msg: $("pp-tools-msg"), sel: $("pp-t-form"), newBtn: $("pp-t-new"), blank: $("pp-t-blank"),
                startRes: $("pp-t-start-res"), q: $("pp-t-q"), ask: $("pp-t-ask"), guidRes: $("pp-t-guid-res"),
                dirQ: $("pp-t-dir-q"), dirOpen: $("pp-t-dir-open"), dirRes: $("pp-t-dir-res"),
-               report: $("pp-t-report-send"), reportRes: $("pp-t-report-res") };
+               report: $("pp-t-report-send"), reportRes: $("pp-t-report-res"), reportOpen: $("pp-t-report-open") };
 
   // ── Start or send a form: the forms in My forms, by name ──
   let picks = [];
@@ -9182,6 +9183,22 @@ window.teckelShell = (function () {
     if (ok) { onScreen(null, null, "closed"); revealViewer(); }
   }
   tl.dirOpen.addEventListener("click", openDirectory);
+  // (28 Oct 2026, V26b; Yusuf: "an easy path to it … definitely an 'open' as well as email"; Steven: never by default)
+  // STATUS REPORT → OPEN ON SCREEN: the document directory, unfiltered, in the viewer — on its traffic light (the "On this
+  // device" choice decides the tab; the traffic light by default). The same door as Open the directory; nothing to Benedict.
+  async function openReport(){
+    if (!P.held() || !tl.reportOpen) return;
+    tl.reportOpen.disabled = true; txt(tl.reportRes, "Opening…");
+    let r;
+    try { r = await P.action("directory_link", {}); }
+    finally { tl.reportOpen.disabled = false; }
+    if (lapsed(r)) return;
+    if (!r || r.success !== true || !r.url) { txt(tl.reportRes, msgOf(r, "The status could not be opened just now.")); return; }
+    const ok = await show("directory", r.url);
+    txt(tl.reportRes, ok ? "Your status is open in the viewer below." : "The status could not be shown here.");
+    if (ok) { onScreen(null, null, "closed"); revealViewer(); }
+  }
+  if (tl.reportOpen) tl.reportOpen.addEventListener("click", openReport);
   tl.dirQ.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); openDirectory(); } });
 
   // ── Status report: e-mailed to the address on file (two steps) ──
