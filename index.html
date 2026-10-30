@@ -7,14 +7,14 @@
   allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
   any file carrying it.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/canary/portal.b950e652ba8a.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/canary/portal.47ff9082becb.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/canary/portal.b950e652ba8a.js
+      https://teckel-io.github.io/practice_portal_core/canary/portal.47ff9082becb.js
   (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -52,7 +52,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="b950e652ba8a">/* =====================================================================================================================
+<script data-teckel-core="47ff9082becb">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -12280,6 +12280,35 @@ window.teckelShell = (function () {
     const done = function () { me.turnBusy = false; if (me.turnAgain && lf === me) turnRead(me); };
     readDraft(me).then(done, done);
   }
+  // ⭐ « THE ENTRY FOLLOWS THE CONVERSATION THAT WRITES IT » (tcc's run 65 pass C). The server walks a fresh entry in each
+  //   conversation, so an entry still bound to an earlier one showed that one's draft while the open conversation recorded
+  //   and saved three values into its own. Bound elsewhere, one read of the open conversation's draft: a value in it, or an
+  //   entry it saved, and the entry rebinds to it; nothing there, and the earlier entry stays to be finished here.
+  function boundElsewhere(me){
+    const C = CV(), now = C ? C.now() : null;
+    return !!(me && (me.kind === "log" || me.kind === "survey") && me.lane && me.cv && now && now !== me.cv);
+  }
+  async function followOpen(me){
+    if (lf !== me || me.following || !boundElsewhere(me)) return null;
+    const C = CV(), now = C.now();
+    me.following = true;
+    let r = null;
+    try { r = await P.action("entry_draft", { instance_id: me.iid, conversation: now }); } catch(e) { r = null; }
+    me.following = false;
+    if (lf !== me || lapsed(r) || goneIf(me, r) || !r || r.success !== true || !boundElsewhere(me) || C.now() !== now) return null;
+    const dv = (r.draft_values && typeof r.draft_values === "object" && !Array.isArray(r.draft_values)) ? r.draft_values : {};
+    const wrote = Object.keys(dv).some(function (k) { return shown(dv[k]); });
+    if (!wrote && !(num0(me.kind === "log" ? r.entry_number : r.respondent) > me.shownNo)) return null;
+    if (!C.bind(now)) return null;
+    C.release(me.cv);
+    if (binds.get(me.iid) === me.cv) binds.delete(me.iid);
+    me.cv = now; binds.set(me.iid, now);
+    log("the open conversation wrote this copy: the entry follows it");
+    applyDraft(me, r);
+    const j = seekUnanswered(me, 0);
+    if (j !== -1 && !(me.mode === "q" && me.cur === j)) moveTo(me, j, "voice", true);   /* quiet: no step */
+    return r;
+  }
   function lists(r){ return !!r && Array.isArray(r.recorded) && Array.isArray(r.skipped) && Array.isArray(r.unchanged); }
   function itemOf(r, f){
     const ks = ["recorded", "unchanged", "skipped"];
@@ -12730,6 +12759,7 @@ window.teckelShell = (function () {
     const said = (m.instance_id === undefined || m.instance_id === null) ? "" : String(m.instance_id).trim();
     if (said && said !== me.iid) { ignore("another copy's, not the one on screen", m); return; }
     if (String(m.lane === undefined ? "" : m.lane) !== me.lane) { ignore("not this form's lane", m); return; }
+    if (boundElsewhere(me)) { followOpen(me); return; }    /* the read shows what the open conversation holds */
     if (m.row === true || (m.entry_count !== undefined && m.field === undefined)) {   /* kev touched the entry as a whole */
       const at = me.shownNo;
       readDraft(me).then(function () { if (lf === me && me.kind === "log" && me.shownNo === at) loadSaved(me); });
@@ -13359,7 +13389,9 @@ window.teckelShell = (function () {
   //   conversation is re-read once, so a save he made himself shows (« THE ENTRY FOLLOWS A SAVE BENEDICT MADE HIMSELF »)
   window.addEventListener("teckel-turn-end", function () {
     const me = lf;
-    if (!me || me.mode === "load" || me.mode === "done" || !laneRows(me) || me.kind === "grid" || !walksNow(me)) return;
+    if (!me || me.mode === "load" || me.mode === "done" || !laneRows(me) || me.kind === "grid") return;
+    if (boundElsewhere(me)) { followOpen(me); return; }
+    if (!walksNow(me)) return;
     turnRead(me);
   });
   P.on("mode", sync);
