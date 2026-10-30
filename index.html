@@ -7,14 +7,14 @@
   allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
   any file carrying it.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/canary/portal.e52eb09b7e9c.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/canary/portal.b950e652ba8a.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/canary/portal.e52eb09b7e9c.js
+      https://teckel-io.github.io/practice_portal_core/canary/portal.b950e652ba8a.js
   (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -52,7 +52,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="e52eb09b7e9c">/* =====================================================================================================================
+<script data-teckel-core="b950e652ba8a">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -4990,6 +4990,7 @@ window.teckelShell = (function () {
       // ⛔ (Phase 4) A CONSENT FORM IS NEVER FILLED IN BY VOICE: speak is false whatever the step said — Voice on and "again"
       //   included. Forced here as well as on the page.
       if (lane === "consent") env.speak = false;
+      if (typeof m.why === "string" && /^[a-z0-9_/=-]{1,80}$/.test(m.why)) env.why = m.why;   // which sender, and why its voice is on or off
       // (2.2.426, phase 3) the step's own help line (say_help: what works on THIS step, the server's words) — only when the
       // page has one — and, on the page's reply to an op it refused at a signature box, which op ("next" | "skip")
       if (typeof m.say_help === "string" && m.say_help.trim()) env.say_help = capText(m.say_help, 600);
@@ -9895,7 +9896,8 @@ window.teckelShell = (function () {
   function sendLast(forceSpeak){
     if (!walk || !last || typeof window.teckelWalkSend !== "function") return false;
     return window.teckelWalkSend({ kind: "walk_step", step: last.step, instance_id: walk.iid,
-                                   speak: forceSpeak === true ? true : speak, say: last.say, payload: last.payload });
+                                   speak: forceSpeak === true ? true : speak, say: last.say, payload: last.payload,
+                                   why: "walk" + (forceSpeak === true ? "/loud" : "") + "/mode=" + (speak ? "on" : "off") });
   }
   function control(op){
     try { return (typeof window.teckelWalkSend === "function") ? window.teckelWalkSend({ kind: "walk_control", op: op }) : false; }
@@ -11380,6 +11382,8 @@ window.teckelShell = (function () {
     return window.teckelWalkSend({ kind: "walk_step", step: env.step, instance_id: me.iid,
                                    // ⛔ (Phase 4) a consent form is never spoken — Voice on and "again" included
                                    speak: me.kind === "consent" ? false : (loud === true ? true : speak),
+                                   why: "live/" + me.openedBy + (loud === true ? "/loud" : "") + "/mode=" + (speak ? "on" : "off")
+                                        + (me.held ? "/held" : ""),
                                    say: env.say, payload: freshAnswers(me, env.payload),
                                    ...((typeof env.say_help === "string" && env.say_help) ? { say_help: env.say_help } : {}),
                                    ...(env.refused ? { refused: env.refused } : {}) });
