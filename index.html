@@ -7,14 +7,14 @@
   allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
   any file carrying it.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/canary/portal.47ff9082becb.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/canary/portal.a82faaab5f23.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/canary/portal.47ff9082becb.js
+      https://teckel-io.github.io/practice_portal_core/canary/portal.a82faaab5f23.js
   (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -52,7 +52,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="47ff9082becb">/* =====================================================================================================================
+<script data-teckel-core="a82faaab5f23">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -2826,6 +2826,21 @@ window.teckelShell = (function () {
                     if (!narrow() || !src || src === 'about:blank') return;
                     try { fv.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e2) { /* old browser: stay */ }
                 });
+                // A phone draws the form instead of loading it in the frame, so the frame's load never fires there: the
+                // first drawing of a view brings the viewer into view (a redraw as answers land never does), unless the
+                // user is typing elsewhere.
+                var shell = document.querySelector('.form-viewer-shell');
+                if (shell && typeof MutationObserver === 'function') new MutationObserver(function (ms) {
+                    for (var i = 0; i \x3c ms.length; i++) {
+                        var t = ms[i].target;
+                        if (t.id !== 'pdf-mobile-host' || !t.classList.contains('shown')) continue;
+                        if (/(^|\\s)shown(\\s|$)/.test(ms[i].oldValue || '')) continue;
+                        var a = document.activeElement;
+                        if (!narrow() || (a && !shell.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return;
+                        try { shell.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e2) { /* old browser: stay */ }
+                        return;
+                    }
+                }).observe(shell, { subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
                 var up = document.createElement('button');
                 up.type = 'button';
                 up.id = 'pp-phone-top';
@@ -10834,6 +10849,15 @@ window.teckelShell = (function () {
 
   /* ══ OPEN: form_fields ═════════════════════════════════════════════════════════════════════════════════════════ */
   // how: "auto" (the form arrived in the viewer) | "press" (the strip's Edit) | "kev" (kev's own "walk")
+  // On a phone the viewer sits far below the list: a form opened by voice or the walk is brought on screen (a tap reveals the
+  // viewer itself), unless the user is typing elsewhere.
+  function revealLive(me){
+    if (me.openedBy === "button" || typingElsewhere()) return;
+    const r = ui.shell.getBoundingClientRect();
+    if (r.top > window.innerHeight * 0.6 || r.bottom \x3c 0) {
+      try { ui.shell.scrollIntoView({ behavior: "smooth", block: "start" }); } catch(e) { ui.shell.scrollIntoView(); }
+    }
+  }
   async function openLive(c, how){
     const iid = String(c.instance_id);
     // (Yusuf, 24 Oct) the voice default follows how it was opened: Benedict's display — voice; kev's walk — voice; a button
@@ -10858,6 +10882,7 @@ window.teckelShell = (function () {
     ui.shell.classList.add("pp-live-on");                   /* the viewer area IS the live form from this moment */
     ui.sec.hidden = false;
     tellStrip();
+    revealLive(me);
     opening = me;
     let r;
     try { r = await P.action("form_fields", { instance_id: iid }); }
@@ -12027,6 +12052,7 @@ window.teckelShell = (function () {
     ui.shell.classList.add("pp-live-on");
     ui.sec.hidden = false;
     tellStrip();
+    revealLive(me);
     me.kind = lane;
     me.completed = String(r.status || "").toLowerCase().trim() === "completed";   /* every answer in, not submitted */
     if (!dispatchLane(me, r)) { closeLive("not"); keepNote(me.key, SAYS_KIND); }
