@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sign this form</title>
 <!--
-    sign.html — the SIGNING PAGE (digital signatures layer 4b, analyser 2.2.306).
+    sign.html — the SIGNING PAGE.
 
     Opened with ?token=<opaque session handle>&instance_id=<id>, from the link
     open_signature_session returns. ⚠ There is deliberately NO client tool named here: a
@@ -33,7 +33,7 @@
     it is what the record stores. Do not word anything on this page to imply otherwise —
     "verified", "authenticated" and "identity confirmed" are all false here.
 
-    ⭐ INSIDE THE PORTAL (26 Oct 2026, page 2.2.433 G7): the practice's portal opens this page in a frame of its own
+    ⭐ INSIDE THE PORTAL: the practice's portal opens this page in a frame of its own
     signing panel, so a phone's conversation is not dropped by a new tab in front. In a frame (and only there) this page
     tells its parent two things, by postMessage, and nothing else — no name, no token, no path data:
       {type:"teckel-sign-ready", ok}                 once, when the first read of the session has answered (ok: it loaded)
@@ -81,6 +81,12 @@
 </style>
 </head>
 <body>
+<style>
+#tk-back-benedict{display:none;align-self:flex-start;margin:10px 12px 0;padding:8px 14px;border-radius:8px;border:1px solid #d8e0ec;background:#fff;color:#12203a;font:600 14px/1.2 system-ui,-apple-system,'Segoe UI',sans-serif;text-decoration:none}
+</style>
+<a id="tk-back-benedict" href="./">&larr; Back to Benedict</a>
+<script>(function(){var a=document.getElementById('tk-back-benedict'),f=false;try{f=window.parent!==window;}catch(e){f=true;}if(f)return;a.style.display='inline-block';})();</script>
+
 <div class="wrap">
   <h1 id="hd">Sign this form</h1>
   <p class="sub" id="sub">Loading…</p>
@@ -106,7 +112,7 @@
   }
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 
-  // (2.2.433, G7) the portal around this page, when it opened it in its signing panel: told the two cues above, nothing
+  // The portal around this page, when it opened it in its signing panel: told the two cues above, nothing
   // more. Opened on its own (no parent), nothing is ever posted.
   var inPortal = false;
   try { inPortal = window.parent && window.parent !== window; } catch (e) { inPortal = false; }
