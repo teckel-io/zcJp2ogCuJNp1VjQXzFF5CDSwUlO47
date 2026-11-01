@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  teckel Document Analyser — ACCOUNT SETTINGS page (Phase 4b, v2.2.175).
+  teckel Document Analyser — ACCOUNT SETTINGS page.
   Post-authentication practice settings menu, opened via the signed settings link
   minted by get_settings_link (scope="settings", wallet-bound, short TTL).
 
@@ -13,13 +13,12 @@
 
   Self-contained: no external assets, everything inline, all dynamic text escaped.
   Deployed as settings.html to each tenant's GitHub Pages repo (this MASTER is the source).
-  Degrades gracefully when the server predates 2.2.175 (reader/asset endpoints 404 →
-  the page still allows the admin-email change, which is live since 2.2.173).
+  Degrades gracefully when the server lacks the reader/asset endpoints (404): the page
+  still allows the admin-email change.
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
-    <!-- teckel default favicon -->
     <link rel="icon" href="favicon.png" sizes="any">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
@@ -106,6 +105,12 @@
 </style>
 </head>
 <body>
+<style>
+#tk-back-benedict{display:none;align-self:flex-start;margin:10px 12px 0;padding:8px 14px;border-radius:8px;border:1px solid #f0d060;background:#f0d060;color:#002349;font:600 14px/1.2 system-ui,-apple-system,'Segoe UI',sans-serif;text-decoration:none}
+</style>
+<a id="tk-back-benedict" href="./">&larr; Back to Benedict</a>
+<script>(function(){var a=document.getElementById('tk-back-benedict'),f=false;try{f=window.parent!==window;}catch(e){f=true;}if(f)return;a.style.display='inline-block';})();</script>
+
 <header class="site-header">
   <div class="eyebrow">teckel &middot; document analyser</div>
   <div class="practice-info">
@@ -131,7 +136,7 @@
 
   <div class="card" id="detailsCard">
     <h2>Practice details</h2>
-    <!-- 28 Jul 2026 (2.2.194): precise strings are safest TYPED — dictation is the weakest
+    <!-- Precise strings are safest TYPED — dictation is the weakest
          channel for digit runs (phone, CQC, GDC). These five write the letterhead profile
          via the settings token; the practice NAME stays a voice action (its rename also
          updates the portal pages, which the voice flow owns). Rows are EDITABILITY-GATED on
@@ -184,7 +189,7 @@
 
   <div class="card" id="transcriptsCard">
     <h2>Session transcripts</h2>
-    <!-- v2.2.263 (19 Aug 2026): text-transcripts opt-in. Provisioning defaults this
+    <!-- Text-transcripts opt-in. Provisioning defaults this
          OFF; the checkbox stays disabled until the server lists text_transcripts as
          editable, so an older server or a disabled deployment greys it out (same
          deploy-order rule as the practice details). A failed save REVERTS the box —
@@ -197,12 +202,7 @@
 
   <div class="card" id="signaturesCard">
     <h2>Who signs your forms</h2>
-    <!-- 20 Sep 2026 (Steven, after a practice asked for staff signatures). ⚠ THE FEATURE WAS
-         ALREADY LIVE AND UNREACHABLE. Every signature route, signatures.html and sign.html
-         had been served on all 8 tenants since August, and the database held 0 staff,
-         0 slots and 0 signatures — because nothing anywhere linked to the page and the
-         guide did not mention it. A practice asked us for a feature it already had.
-         ⚠ WHY THIS LINK IS BUILT IN JS AND NOT HARD-CODED: signatures.html is authorised
+    <!-- ⚠ WHY THIS LINK IS BUILT IN JS AND NOT HARD-CODED: signatures.html is authorised
          by the SAME signed settings token this page carries (`_verify_settings_token`
          server-side — NOT a Bearer, NOT the sign.html session token). A hard-coded link
          straight to signatures.html lands on a page that cannot authenticate and shows an
@@ -221,11 +221,9 @@
 
   <div class="card" id="nameCard">
     <h2>Practice name</h2>
-    <!-- 27 Jul 2026 (U7b, analyser 2.2.193): renames DO reach the portal website now —
-         the sync anchors on the name the page itself displays as well as the previous
-         DB name, so a diverged page self-heals on the next rename. "Coming soon" is
-         retired; say what actually happens. Changing the name stays a VOICE action. -->
-    <!-- v2.2.239 (D21, Steven 4 Aug): typeable here as well as by voice. Both doors
+    <!-- Renames reach the portal website: the sync anchors on the name the page itself
+         displays as well as the previous DB name, so a diverged page self-heals on the
+         next rename. Typeable here as well as by voice. Both doors
          run the SAME server handler, so both update the letterhead, the submitted forms
          and the name on this portal website. The row stays read-only until the server
          lists practice_name as editable, so an older server just greys it out. -->
@@ -240,7 +238,7 @@
 
   <div class="card" id="deviceCard">
     <h2>On this device</h2>
-    <!-- 25 Oct 2026 (phase 2, "finding and resuming work"; Yusuf: "YES ALL THREE PLEASE"). A PER-DEVICE preference,
+    <!-- A PER-DEVICE preference,
          unlike every other card on this page: it is kept in THIS BROWSER (localStorage) and never sent to the server,
          so it works with or without this page's link and changes nothing for the rest of the practice. The key is the
          practice's own (teckel.directoryView__ + this page's folder: every practice's pages share one origin), and the
@@ -339,7 +337,7 @@ function loadCurrent(){
         ed = resp.editable || [];
       } catch (e) {}
       if (s.admin_email) el("adminEmail").value = s.admin_email;
-      // v2.2.239 — into .value, not just .placeholder: the field is editable now, and a
+      // Into .value, not just .placeholder: the field is editable now, and a
       // user must be able to see and amend what is there rather than retype it blind.
       if (s.practice_name) { el("practiceName").value = s.practice_name;
                              el("practiceName").placeholder = s.practice_name;
@@ -347,11 +345,11 @@ function loadCurrent(){
       if (s.logo_ref){ el("logoThumb").src = s.logo_ref; el("logoThumb").style.display = "block"; }
       el("logoOnForms").checked  = (s.logo_on_forms  !== false);
       el("logoOnBanner").checked = (s.logo_on_banner !== false);
-      // v2.2.263 — transcripts toggle: default-off mirror; enabled ONLY when the server
+      // Transcripts toggle: default-off mirror; enabled ONLY when the server
       // lists it (older server / disabled deployment keeps the row greyed out).
       el("textTranscripts").checked  = (s.text_transcripts === true);
       el("textTranscripts").disabled = (ed.indexOf("text_transcripts") === -1);
-      // 2.2.194 — practice details: populate, and enable each row ONLY when the server
+      // Practice details: populate, and enable each row ONLY when the server
       // says it is editable (deploy-order safety: an older server keeps these read-only).
       var pd = { address: "pdAddress", phone: "pdPhone", email: "pdEmail",
                  cqc_registration: "pdCqc", gdc_registration: "pdGdc",
@@ -421,7 +419,7 @@ el("saveEmail").addEventListener("click", function(){
   xhr.send(JSON.stringify({ settings_token: token, setting: "admin_email", value: v }));
 });
 
-// --- Practice details (2.2.194): one generic handler for the five profile rows. The
+// --- Practice details: one generic handler for the five profile rows. The
 // server does the real validation (email shape, regulator label-strip, wrong-box refusal)
 // and may return a cleaned value — echo it back into the box so what you SEE is what was
 // STORED. Soft-gates arrive as 200 + success:false + a user_message; style those as errors.
@@ -430,7 +428,7 @@ document.querySelectorAll('#detailsCard .btn[data-setting], #nameCard .btn[data-
     var field = btn.getAttribute("data-setting");
     var input = el(btn.getAttribute("data-input"));
     var v = (input && input.value || "").trim();
-    // 29 Jul 2026 (Steven): each row reports under ITS OWN Save button — the shared
+    // Each row reports under ITS OWN Save button — the shared
     // card-bottom message meant a phone save reported under the GDC button.
     var msgId = btn.getAttribute("data-input") + "Msg";
     ["pdAddressMsg","pdPhoneMsg","pdEmailMsg","pdCqcMsg","pdGdcMsg","practiceNameMsg"].forEach(hideMsg);
@@ -528,7 +526,7 @@ function saveToggle(setting, checked, msgId){
 }
 el("logoOnForms").addEventListener("change", function(){ saveToggle("logo_on_forms",  el("logoOnForms").checked,  "logoMsg"); });
 el("logoOnBanner").addEventListener("change", function(){ saveToggle("logo_on_banner", el("logoOnBanner").checked, "logoMsg"); });
-// v2.2.263 — transcripts toggle saves like the display toggles but REVERTS on failure:
+// Transcripts toggle saves like the display toggles but REVERTS on failure:
 // the box must never show a state the backend flag doesn't hold.
 el("textTranscripts").addEventListener("change", function(){
   if (suppressToggleEvents) return;
@@ -550,7 +548,7 @@ el("textTranscripts").addEventListener("change", function(){
   };
   xhr.send(JSON.stringify({ settings_token: token, setting: "text_transcripts", value: wanted ? "true" : "false" }));
 });
-// --- On this device: where the document directory opens (25 Oct 2026, phase 2) -----------------------
+// --- On this device: where the document directory opens -----------------------
 // Kept in this browser only and never sent anywhere; works with no settings link at all. The key is the practice's
 // own (its folder), which directory.html in the same folder reads. Storage that throws: the default (the traffic
 // light) stands and the card says so.
