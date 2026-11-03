@@ -7,14 +7,14 @@
   allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
   any file carrying it.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/canary/portal.7f40e8f62e80.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/canary/portal.fec4b1c22568.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/canary/portal.7f40e8f62e80.js
+      https://teckel-io.github.io/practice_portal_core/canary/portal.fec4b1c22568.js
   (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -52,7 +52,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="7f40e8f62e80">/* =====================================================================================================================
+<script data-teckel-core="fec4b1c22568">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -5080,6 +5080,7 @@ window.teckelShell = (function () {
     value: function (m) {
       try {
         const msg = walkMessage(m);
+        if (msg && window.teckelVoice) window.teckelVoice.out(msg);
         if (!msg) { log("walk message refused: not one the walk sends, or not a copy this page was given"); return false; }
         const ok = sendJSON(msg);
         log(msg.kind + (msg.step ? " " + msg.step : "") + (msg.op ? " " + msg.op : "") + (ok ? " sent" : " (no conversation)"));
@@ -5125,6 +5126,8 @@ window.teckelShell = (function () {
     ["field", "lane", "row", "entry_count", "set_aside"].forEach(function (k) {
       if (m[k] !== undefined && m[k] !== null && typeof m[k] !== "object") out[k] = typeof m[k] === "string" ? m[k].slice(0, FIELD_MAX) : m[k];
     });
+    if (typeof m.next === "string") out.next = m.next.slice(0, FIELD_MAX);
+    if (m.cursor === false) out.cursor = false;
     // the review step an op answers — the page's own id shape only, else none (the review walk then treats the op as stale:
     //   nothing goes to the server)
     if (typeof m.step_id === "string" && RV_STEP_OK.test(m.step_id)) out.step_id = m.step_id;
@@ -6793,6 +6796,7 @@ window.teckelShell = (function () {
       let m; try { m = JSON.parse(f.msg); } catch(e){ log("non-JSON message"); return; }
       if (!m || typeof m !== "object") return;
       try {
+        try { if (window.teckelVoice) window.teckelVoice.heard(m); } catch(e) {}
         if (m.kind === "transcript") { activity(); addTranscript(m); }
         else if (m.kind === "status") { activity(); showStatus(m); }
         else if (m.kind === "recorded") { activity(); onRecorded(m); }
@@ -6801,6 +6805,7 @@ window.teckelShell = (function () {
         else if (m.kind === "show_band") { activity(); showBand(m); }
         else if (m.kind === "conversation") { activity(); onConversation(m); }
         else if (m.kind === "walk_control" && reviewTakes(m)) activity();
+        else if (m.kind === "report_open") { activity(); try { window.dispatchEvent(new Event("teckel-report-open")); } catch(e) {} }
         else if (m.kind === "walk_control" && m.op === "close_form") { activity(); closeForm(); }   /* « CLOSE THE FORM » */
         else if (m.kind === "walk_result" || m.kind === "walk_control") { activity(); walkFrame(m); }
         else if (m.kind === "session_end") { activity(); sessionEnd(m); }   /* « END THE CONVERSATION » */
@@ -8884,7 +8889,7 @@ window.teckelShell = (function () {
   /* ══ ONE ROUTE FROM A FORM'S KEY TO ITS COPY ═══════════════════════════════════════════════════════════════════════
      Practice tools' "Start a new copy" (above: the key learnt from a copy) and a tapped FORM row of the numbered list
      (window.teckelOpenByKey below: the row's own storage_key, as kev's list gave it — never text, never a title) both come
-     here, so the two cannot drift: new_copy {storage_key} (confirmed_new only after "Start a fresh copy anyway"), the
+     here, so the two cannot drift: new_copy {storage_key} (confirmed_new from "Start a new copy" and "Start a fresh copy anyway"), the
      server's answer written into \`res\` as TEXT —
        · a refusal: its message, nothing else — plus "View that copy" when it names a copy in progress (instance_id) and
          "Start a fresh copy anyway" when the server says confirmed_new would help;
@@ -9063,7 +9068,7 @@ window.teckelShell = (function () {
     if (!P.held()) return;
     const f = picked();
     if (!f) { txt(tl.startRes, "Choose a form first."); tl.sel.focus(); return; }
-    newCopy(f, false);
+    newCopy(f, true);
   });
   tl.blank.addEventListener("click", async function () {
     if (!P.held()) return;
@@ -9243,6 +9248,12 @@ window.teckelShell = (function () {
     const ok = await show("directory", r.url);
     txt(tl.reportRes, ok ? "Your status is open in the viewer below." : "The status could not be shown here.");
     if (ok) { onScreen(null, null, "closed"); revealViewer(); }
+    const n = (ok && typeof r.review_open === "number" && r.review_open > 0) ? Math.floor(r.review_open) : 0;
+    if (n) {
+      const badge = $("pp-review-badge");
+      tl.reportRes.appendChild(line(n + " open review " + (n === 1 ? "item" : "items") + " waiting for you."));
+      if (badge) tl.reportRes.appendChild(button("Review them", function () { badge.click(); }));
+    }
   }
   if (tl.reportOpen) tl.reportOpen.addEventListener("click", openReport);
   tl.dirQ.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); openDirectory(); } });
@@ -9251,7 +9262,8 @@ window.teckelShell = (function () {
   tl.report.addEventListener("click", function () {
     if (!P.held()) return;
     txt(tl.reportRes, "");
-    twoStep({ action: "status_report_send", args: {}, outward: true, title: "E-mail the status report?" });
+    twoStep({ action: "status_report_send", args: {}, outward: true, title: "E-mail the status report?",
+      onDone: function (r) { try { window.dispatchEvent(new CustomEvent("teckel-report-sent", { detail: r })); } catch (e) {} } });
   });
 
   /* ══ THE DOOR'S EVENTS ═════════════════════════════════════════════════════════════════════ */
@@ -10559,6 +10571,8 @@ window.teckelShell = (function () {
   const STEP_OPS = Object.freeze(["next"]);
   // kev's op for questions the server set aside while the page walks (several may arrive in a row); not a LIVE_OPS member
   const ASIDE_OPS = Object.freeze(["set_aside"]);
+  // kev's op to put the cursor on a named row; not a LIVE_OPS member
+  const GOTO_OPS = Object.freeze(["goto"]);
   const SLOT_OK = /^[A-Za-z0-9_-]{1,64}$/;
   // every form type walkable: read only when the server names a lane
   const NEW_LANES = Object.freeze(["log", "survey", "grid", "consent"]);
@@ -10844,6 +10858,7 @@ window.teckelShell = (function () {
     // this page's buttons nor the server named was put there by Benedict: voice, not a tap.
     const openedBy = how === "kev" ? "kev" : ((how === "auto" && c.by_voice === true && c.by_typed !== true) ? "voice"
                    : ((how === "auto" && c.by_viewer === true) ? "benedict" : "button"));
+    if (window.teckelVoice) window.teckelVoice.opened(openedBy);
     const me = { iid: iid, key: keyOf(c), name: shown(c.form_name) ? String(c.form_name) : "", kind: "", rows: [], byNum: {},
                  cur: -1, mode: "load", seq: 0, sent: null, sentAny: false, pv: null, step: "", busy: false, timer: null,
                  countdown: null, viewDirty: false, known: {}, voiceless: false, stopArmed: false, baseMsg: "",
@@ -12902,14 +12917,14 @@ window.teckelShell = (function () {
     if (!stepIsCurrent(me)) { ignore("its field was not sent in this conversation", m); return; }
     if (m.ok === true) {
       row.tried = null; row.asTyped = false;
-      say(row.st, me.kind === "grid" ? gridWord(row, String(m.value_saved || "")) : (me.kind === "log" ? SAYS_IN_ENTRY : SAYS_IN_RESP), true);
+      say(row.st, savedWord(me, row, m), true);
       const t = $("pp-lf-typed"); if (t) t.hidden = true;
       me.viewDirty = true;
       const at = me.seq;
       clearTimeout(me.timer);
       const read = me.kind === "grid" ? rereadGrid(me) : readDraft(me);
       const wait = new Promise(function (res) { me.timer = setTimeout(res, VOICE_ADVANCE_MS); });
-      Promise.all([read, wait]).then(function () { if (lf === me && me.seq === at && isCursor(me, row)) next(me); });
+      Promise.all([read, wait]).then(function () { if (lf === me && me.seq === at && isCursor(me, row)) advance(me, m); });
       return;
     }
     if (m.set_aside === true) { setAsideRow(me, row, m); return; }
@@ -12930,12 +12945,63 @@ window.teckelShell = (function () {
     markAside(row);
     const t = $("pp-lf-typed"); if (t) t.hidden = true;
     log("set aside by the server: the walk moves on");
-    next(me, "skip");
+    advance(me, m, "skip");
   }
   function markAside(row){
     row.tried = null; row.asTyped = false; row.setAside = true;
     say(row.st, SAYS_SET_ASIDE, null);
     if (row.el) row.el.setAttribute("data-set-aside", "true");
+  }
+  function otherCopy(me, m){
+    const said = (m.instance_id === undefined || m.instance_id === null) ? "" : String(m.instance_id).trim();
+    return said !== "" && said !== me.iid;
+  }
+  function rowNamed(me, m){
+    const said = (laneRows(me) && m.field !== undefined && m.field !== null) ? m.field : m.number;
+    const key = (said === undefined || said === null) ? "" : String(said);
+    return key === "" ? null : (me.rows.find(function (x) { return x.num === key; }) || null);
+  }
+  // the row the server's \`next\` names, when the walk can stand on it; -1 leaves the choice to the page
+  function nextIndex(me, m){
+    const row = typeof m.next === "string" ? rowNamed(me, { number: m.next, field: m.next }) : null;
+    return row && walkable(me, row) ? row.i : -1;
+  }
+  function advance(me, m, via){
+    const j = nextIndex(me, m);
+    if (j === -1) { next(me, via); return; }
+    if (lf === me && me.mode === "q") moveTo(me, j, via === "skip" ? "skip" : "next");
+  }
+  function onGoto(m){
+    const me = lf;
+    if (!me || me.mode === "load" || me.mode === "done") { ignore("no live form", m); return; }
+    if (!walksNow(me)) { ignore("this form is not walked here", m); return; }
+    if (otherCopy(me, m)) { ignore("not the copy on screen", m); return; }
+    const row = rowNamed(me, m);
+    if (!row || !walkable(me, row)) { ignore("not a row this form walks", m); return; }
+    moveTo(me, row.i, "goto");
+  }
+  // a box other than the cursor's, saved by kev (a correction or a batch): shown, the cursor stays
+  function offCursor(me, m){
+    if (me.mode === "load" || me.mode === "done") { ignore("no live form", m); return; }
+    if (otherCopy(me, m)) { ignore("not the copy on screen", m); return; }
+    if (me.kind === "consent") { ignore("a consent form is typed on the screen, never filled in by voice", m); return; }
+    if (me.lane && m.lane !== undefined && String(m.lane) !== me.lane) { ignore("not this form's lane", m); return; }
+    const row = rowNamed(me, m);
+    if (!row || row.sign) { ignore("not a box kev fills on this form", m); return; }
+    me.viewDirty = true;
+    if (me.lane) {
+      say(row.st, savedWord(me, row, m), true);
+      if (me.kind === "grid") rereadGrid(me); else readDraft(me);
+      return;
+    }
+    setSaved(me, row, shown(m.value_saved) ? String(m.value_saved) : "", null);
+    row.tried = null; row.asTyped = false;
+    say(row.st, "✓ Saved", true);
+    afterInputs(me, row.num, null);
+    rereadStored(me, row.num);
+  }
+  function savedWord(me, row, m){
+    return me.kind === "grid" ? gridWord(row, String(m.value_saved || "")) : (me.kind === "log" ? SAYS_IN_ENTRY : SAYS_IN_RESP);
   }
   // kev's walk_control set_aside: one question (number) or lane field (field) the server left for now. kev speaks the
   // server's next line itself, so the step this move sends goes silent.
@@ -12980,6 +13046,7 @@ window.teckelShell = (function () {
   function onResult(m){
     const me = lf, row = curRow(me);
     if (me && me.once && onceTake(me, m, false)) return;
+    if (me && m.cursor === false && m.ok === true) { offCursor(me, m); return; }
     if (me && me.lane) { laneResult(me, row, m); return; }
     if (!me || me.kind !== "qa" || !row) { ignore("no question at the cursor", m); return; }
     if (row.sign) { ignore("a signature is given on the screen, never by voice", m); return; }   /* (2.2.426) */
@@ -12998,7 +13065,7 @@ window.teckelShell = (function () {
       rereadStored(me, row.num);                            /* (2.2.426, D2) the box then shows what the server stored */
       const at = me.seq;
       clearTimeout(me.timer);
-      me.timer = setTimeout(function () { if (lf === me && me.seq === at) next(me); }, VOICE_ADVANCE_MS);
+      me.timer = setTimeout(function () { if (lf === me && me.seq === at) advance(me, m); }, VOICE_ADVANCE_MS);
       return;
     }
     if (m.set_aside === true) { setAsideRow(me, row, m); return; }   /* (D9) the server set it aside: on, like a skip */
@@ -13026,6 +13093,7 @@ window.teckelShell = (function () {
     if (STEP_OPS.indexOf(op) !== -1) { onNext(m); return; }
     if (ENTRY_OPS.indexOf(op) !== -1) { onSaveEntry(m); return; }
     if (ASIDE_OPS.indexOf(op) !== -1) { onAside(m); return; }
+    if (GOTO_OPS.indexOf(op) !== -1) { onGoto(m); return; }
     if (LIVE_OPS.indexOf(op) === -1) { ignore("not an op a conversation may drive", m); return; }
     if (op === "quiet" || op === "speak") { setVoice(op === "speak", false); return; }
     if (op === "edit" || op === "walk") { voiceOpen(op, m); return; }
@@ -13539,6 +13607,69 @@ window.teckelShell = (function () {
   P.on("mode", sync);
   setVoice(true, false);
   sync();
+})();
+\x3c/script>
+
+\x3cscript>
+/* The page's one voice state. Every walk step leaves through teckelWalkSend, which asks this before sending; a step to be
+   spoken goes out silent while Voice is off or while a tap-opened form waits for the user's first words. */
+(function () {
+  "use strict";
+  let on = true, tapSilent = false;
+  function out(msg) {
+    if (!msg) return msg;
+    if (msg.kind === "walk_control") {
+      if (msg.op === "speak") { on = true; tapSilent = false; }
+      else if (msg.op === "quiet") { on = false; tapSilent = false; }
+    } else if (msg.kind === "walk_step" && msg.speak === true && !(on && !tapSilent)) msg.speak = false;
+    return msg;
+  }
+  function heard(m) {
+    if (!m || typeof m !== "object") return;
+    if (m.kind === "transcript" && m.role !== "bot") tapSilent = false;
+    else if (m.kind === "walk_control") {
+      if (m.op === "speak" || m.op === "walk") on = true;
+      else if (m.op === "quiet") on = false;
+      if (m.op !== "quiet" && m.op !== "stop") tapSilent = false;
+    }
+  }
+  function opened(by) { tapSilent = by === "button"; if (by !== "button") on = true; }
+  Object.defineProperty(window, "teckelVoice", { configurable: false, enumerable: false, writable: false,
+    value: Object.freeze({ out: out, heard: heard, opened: opened, allows: function () { return on && !tapSilent; } }) });
+})();
+\x3c/script>
+\x3cscript>
+(function () {
+  "use strict";
+  const CLS = "pp-report-open-here";
+  function openReport() {
+    const sheet = document.getElementById("pp-confirm"), close = document.getElementById("pp-cf-cancel");
+    if (sheet && sheet.open && close) close.click();
+    const sec = document.getElementById("pp-t-report"), btn = document.getElementById("pp-t-report-open");
+    if (sec) sec.open = true;
+    if (btn) btn.click();
+  }
+  function button() {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "lv-btn pp-small " + CLS; b.textContent = "Open on screen";
+    b.addEventListener("click", openReport);
+    return b;
+  }
+  window.addEventListener("teckel-report-open", function () {
+    const box = document.getElementById("lv-transcript");
+    if (!box) return;
+    box.querySelectorAll(".pp-report-open-row").forEach(function (e) { e.remove(); });
+    const row = document.createElement("div");
+    row.className = "l bot pp-report-open-row";
+    row.appendChild(button());
+    box.appendChild(row);
+    box.scrollTop = 1e9;
+  });
+  window.addEventListener("teckel-report-sent", function (ev) {
+    const result = document.getElementById("pp-cf-result");
+    if (!result || !(ev.detail && ev.detail.offer_open_report === true) || result.querySelector("." + CLS)) return;
+    result.appendChild(button());
+  });
 })();
 \x3c/script>`;
 
