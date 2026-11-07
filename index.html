@@ -4,14 +4,14 @@
   from localportal_blocks/v2/lv2_shell.html. ⚠ DO NOT HAND-EDIT: change the block and rebuild (--write); --check fails
   when this file is stale.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/stable/portal.548ba18675b5.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/stable/portal.21b03dabd869.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/stable/portal.548ba18675b5.js
+      https://teckel-io.github.io/practice_portal_core/stable/portal.21b03dabd869.js
   (channel "stable"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -49,7 +49,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="548ba18675b5">/* =====================================================================================================================
+<script data-teckel-core="21b03dabd869">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -1830,30 +1830,24 @@ window.teckelShell = (function () {
 
         function formatBreakdownLine(it) {
             var n     = it.n_events || 0;
-            var tc    = Math.ceil(it.tc_cost || 0).toLocaleString('en-GB',
-                          { maximumFractionDigits: 0 });
             var label = EVENT_TYPE_LABEL[it.event_type]
                         || (it.event_type || '').replace(/_/g, ' ');
-            return n + ' ' + label + ' (' + tc + ' tc)';
+            return n + ' ' + label;
         }
 
         function setCostMeter(totals, n_events, items) {
             try {
                 totals = totals || {};
                 items  = items  || [];
-                var tcStr   = Math.ceil(totals.tc || 0).toLocaleString('en-GB',
-                              { maximumFractionDigits: 0 });
                 var costStr = formatCostUnit(tcToGbp(totals));
                 var totalEl     = document.getElementById('cost-total');
                 var breakdownEl = document.getElementById('cost-breakdown');
-                if (totalEl)     totalEl.textContent     = tcStr + ' tc · ' + costStr;
+                if (totalEl)     totalEl.textContent     = costStr;
                 if (!breakdownEl) return;
                 if (!n_events || !items.length) {
                     breakdownEl.textContent = 'no billable events yet';
                     return;
                 }
-                // Format matches Benedict's spoken _session_summary
-                // verbatim: "{n} {label} ({tc} tc)" joined by "; ".
                 breakdownEl.textContent = items.map(formatBreakdownLine)
                                                .join('; ');
             } catch (e) {
@@ -1892,10 +1886,7 @@ window.teckelShell = (function () {
                     return;
                 }
                 var total = payload.cost_total_in_tc         || 0;
-                var totalStr = Math.ceil(total).toLocaleString('en-GB',
-                                  { maximumFractionDigits: 0 }) + ' tc';
-                var totalGbp = formatCostUnit(total / TC_PER_GBP);
-                totalEl.textContent = totalStr + ' · ' + totalGbp;
+                totalEl.textContent = formatCostUnit(total / TC_PER_GBP);
                 block.style.display = 'block';
                 lastFinalConversationId = payload.conversation_id || lastFinalConversationId;
             } catch (e) {
