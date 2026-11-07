@@ -3,19 +3,16 @@
   index.html — THE PRACTICE PORTAL (V2): A THIN SHELL. A GENERATED FILE, built by teckel__build_localportal_v2_0.py
   from localportal_blocks/v2/lv2_shell.html. ⚠ DO NOT HAND-EDIT: change the block and rebuild (--write); --check fails
   when this file is stale.
-  DO NOT DEPLOY — HELD (24 Oct 2026): a held build, for the TEST sites only (teckel__tenant_page_publish_one_v1_0.py
-  allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
-  any file carrying it.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/canary/portal.fec4b1c22568.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/stable/portal.548ba18675b5.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/canary/portal.fec4b1c22568.js
-  (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
+      https://teckel-io.github.io/practice_portal_core/stable/portal.548ba18675b5.js
+  (channel "stable"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
 
@@ -48,11 +45,11 @@ window.teckelShell = (function () {
     var b = box(); if (b) b.hidden = false;
     try { console.warn("[teckel] the portal core did not load: " + why); } catch (e) {}
   }
-  return { channel: "canary", agent: "agent_0501kvv0504efvtvmb85kjqm9w2j", fail: fail,
+  return { channel: "stable", agent: "agent_0501kvv0504efvtvmb85kjqm9w2j", fail: fail,
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="fec4b1c22568">/* =====================================================================================================================
+<script data-teckel-core="548ba18675b5">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -4693,6 +4690,8 @@ window.teckelShell = (function () {
     if (lane === "log") each(b.machine_details, function (d) { add(fields, d.key); });   /* the set-once details are walked too */
     if (lane === "survey" || lane === "consent") each(b.questions, function (q) { add(fields, q.field !== undefined ? q.field : q.number); });
     if (lane === "grid") { each(b.cells, function (c) { add(fields, c.field); }); each(b.columns, function (c) { add(cols, c.key); }); }
+    // resolve_view names the lane and no fields, and can answer after form_fields has
+    if (!fields.size && !cols.size && copyFields.has(iid)) return;
     copyFields.set(iid, Object.freeze({ lane: lane, fields: fields, cols: cols }));
   }
   // the field a step or a change names, when it is one the server gave this copy in this lane; else null
@@ -4837,6 +4836,7 @@ window.teckelShell = (function () {
        payload {action:"sign", ready, slot, label, signed}. The page's reply to an op it refused at an unsigned signature box
        is that step again with say "That box still needs a signature — sign on the screen, then say 'next, please'." and
        refused:"next" | "skip". Absent: the shapes above, byte for byte.
+       A field step this turn's words chose (a tap, Back, "go to", "again", Voice on) also carries by_user:true, on that step only.
        ONE envelope for every step: speak, say and the copy are the envelope's, so Silent, "again" and the rest are handled
        once, whatever the step. A step this page does not know is refused here and never sent. The copy's id only one the
        server gave this page; no conversation, nothing sent (sendJSON refuses a closed socket).
@@ -5044,6 +5044,7 @@ window.teckelShell = (function () {
       //   Forced here as well as on the page.
       if (lane === "consent") env.speak = false;
       if (typeof m.why === "string" && /^[a-z0-9_/=-]{1,80}$/.test(m.why)) env.why = m.why;   // which sender, and why its voice is on or off
+      if (m.by_user === true) env.by_user = true;
       // the step's own help line (say_help: what works on THIS step, the server's words) — only when the page has one — and, on the
       // page's reply to an op it refused at a signature box, which op ("next" | "skip")
       if (typeof m.say_help === "string" && m.say_help.trim()) env.say_help = capText(m.say_help, 600);
@@ -11297,7 +11298,9 @@ window.teckelShell = (function () {
     keepInView(row.el);
     if (quiet === true) return;
     if (how !== "focus") focusIn(row.ctl);
+    me.byUser = how === "focus" || how === "back" || how === "goto";
     stepOut(me);                                            /* the ONE walk_step of this move */
+    me.byUser = false;
   }
   function onFocusBox(me, row){
     if (lf === me && me.kind === "grid") gridFocus(me, row);
@@ -11412,7 +11415,13 @@ window.teckelShell = (function () {
                                         + (me.held ? "/held" : ""),
                                    say: env.say, payload: freshAnswers(me, env.payload),
                                    ...((typeof env.say_help === "string" && env.say_help) ? { say_help: env.say_help } : {}),
-                                   ...(env.refused ? { refused: env.refused } : {}) });
+                                   ...(env.refused ? { refused: env.refused } : {}),
+                                   // kev cannot otherwise tell a user going back to correct a row from a late step
+                                   ...((env.step === "field" && me.byUser) ? { by_user: true } : {}) });
+  }
+  function asked(me, send){                                   /* this turn's words chose the step: it says so, once */
+    me.byUser = true;
+    try { return send(); } finally { me.byUser = false; }
   }
   function stepIsCurrent(me){ return !!(me && me.sent && me.sent.seq === me.seq && me.sent.conv === conv); }
   /* A NEW CONVERSATION re-arms the walk's current step (sent speak:true so Benedict asks again) ONLY when ALL hold (rearms):
@@ -11469,6 +11478,7 @@ window.teckelShell = (function () {
     }
     paintVoice();
     if (tell) control(speak ? "speak" : "quiet");
+    if (me) me.byUser = true;                                 /* every send below is the user's own Voice on */
     if (starts && me.mode !== "load") stepOut(me);
     // PRESSING Voice on READS THE CURRENT QUESTION AT ONCE: the cursor's step already went out silent (speak:false), so the
     // SAME envelope goes again with speak:true - once; nothing else changes. A held walk that starts here has just sent its
@@ -11479,6 +11489,7 @@ window.teckelShell = (function () {
     // none went into this conversation yet (a new conversation the walk was not re-armed in): Voice on sends the cursor's step
     //   now, aloud
     else if (tell && speak && !was && !starts && me && me.mode !== "load" && me.mode !== "done") stepAloud(me);
+    if (me) me.byUser = false;
   }
   function tellChanged(me, num, more){
     try {
@@ -13109,7 +13120,7 @@ window.teckelShell = (function () {
     if (op === "again") {
       if (me.mode === "q" && !sameNumber(me, m)) { ignore("not the question at the cursor", m); return; }
       if (!lastEnv || !stepIsCurrent(me)) { ignore("nothing was asked in this conversation", m); return; }
-      emit(me, lastEnv, true);                              /* the SAME envelope, speak:true, once; the mode unchanged */
+      asked(me, function () { emit(me, lastEnv, true); });  /* the SAME envelope, speak:true, once; the mode unchanged */
       return;
     }
     if (op === "skip" || op === "back") {
@@ -13132,7 +13143,7 @@ window.teckelShell = (function () {
     if (op === "back") { if (usable($("pp-lf-back"))) stepBack(me); else ignore("its button is not usable", m); return; }
     if (op === "again") {
       if (!lastEnv || !stepIsCurrent(me)) { ignore("nothing was asked in this conversation", m); return; }
-      emit(me, lastEnv, true);                              /* the SAME envelope, speak:true, once */
+      asked(me, function () { emit(me, lastEnv, true); });  /* the SAME envelope, speak:true, once */
       return;
     }
     signRow(me, row, true);                                 /* "sign": the signing page's link — never a signature */
@@ -13330,7 +13341,7 @@ window.teckelShell = (function () {
       if (op === "walk" && walksNow(lf) && (!speak || lf.held)) {
         const wasHeld = !!lf.held;
         setVoice(true, false);
-        if (!wasHeld) { if (lastEnv && stepIsCurrent(lf)) emit(lf, lastEnv, true); else stepOut(lf); }
+        if (!wasHeld) asked(lf, function () { if (lastEnv && stepIsCurrent(lf)) emit(lf, lastEnv, true); else stepOut(lf); });
         return;
       }
       ignore("already open", m); return;
