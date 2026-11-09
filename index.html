@@ -4,14 +4,14 @@
   from localportal_blocks/v2/lv2_shell.html. ⚠ DO NOT HAND-EDIT: change the block and rebuild (--write); --check fails
   when this file is stale.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/stable/portal.21b03dabd869.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/stable/portal.bc5de0c757a1.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/stable/portal.21b03dabd869.js
+      https://teckel-io.github.io/practice_portal_core/stable/portal.bc5de0c757a1.js
   (channel "stable"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -49,7 +49,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="21b03dabd869">/* =====================================================================================================================
+<script data-teckel-core="bc5de0c757a1">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -4631,15 +4631,19 @@ window.teckelShell = (function () {
   /* ══ THE LIVE FORM — WHAT KIND OF COPY IT IS ═════════════
      Learned from the server's own successful replies, never guessed from a name: my_forms' rows (template_type, mapped
      EXACTLY as teckel__r417_typed_answers_v1_0.py's form_kind maps a template: scheduled_grid_log / survey_log /
-     consent_form -> "other", a log -> "log", else "qa"; and the row's status), then form_fields' and resolve_view's own
-     form_kind and status for one copy, which win. A row whose template_type is empty leaves the kind unknown (""): the
-     server decides when asked. Kept in memory with the ids, forgotten with them. The server stays the authority on
-     whether a copy can be typed into; this only stops the page offering typing on a kind the server never takes. */
-  const copyKinds = new Map();             /* instance_id -> { form_kind: "qa" | "log" | "other" | "survey" | "grid" | "consent" | "", status } */
+     consent_form -> its own lane, a log -> "log", else "qa"; and the row's status), then form_fields' and resolve_view's
+     own form_kind and status for one copy. LANE and FORM_KIND are kept as two separate fields on purpose: lane is this
+     copy's IDENTITY, decided from template_type alone (via kindOfTemplateType) whenever a reply carries one — never from
+     form_kind, which for a consent/survey/grid copy answers "other" in the SAME reply that names the lane, and "other"
+     does not mean "not consent", it means "not a typed-answer lane". form_kind decides only whether typing may be
+     offered. A reply with no template_type leaves the lane as it was (unknown, "", if never learned): the server is
+     asked. Kept in memory with the ids, forgotten with them. The server stays the authority on whether a copy can be
+     typed into; this only stops the page offering typing on a kind the server never takes. */
+  const copyKinds = new Map();             /* instance_id -> { lane: "qa"|"log"|"survey"|"grid"|"consent"|"", form_kind: "qa"|"log"|"other"|"survey"|"grid"|"consent"|"", status } */
   const NOT_TYPED_TYPES = Object.freeze(["scheduled_grid_log", "survey_log", "consent_form"]);
   // The kinds once never typed into are each a LANE: named so the live form ASKS the server (form_fields decides). While a
-  //   lane's switch is off the server still answers form_kind "other", which is learned below and wins. The walk panel and
-  //   the Edit panel stay question forms / logs only.
+  //   lane's switch is off the server still answers form_kind "other", which no longer overwrites a lane learned from
+  //   template_type (see copyKinds above). The walk panel and the Edit panel stay question forms / logs only.
   const LANE_OF_TYPE = Object.freeze({ scheduled_grid_log: "grid", survey_log: "survey", consent_form: "consent" });
   const COPY_KINDS = Object.freeze(["qa", "log", "other", "survey", "grid", "consent"]);
   function kindOfTemplateType(tt){
@@ -4653,11 +4657,14 @@ window.teckelShell = (function () {
       if (!x || typeof x !== "object") return;
       const iid = String(x.instance_id || "").trim();
       if (!SCREEN_ID_OK.test(iid) || !("template_type" in x)) return;
-      copyKinds.set(iid, Object.freeze({ form_kind: kindOfTemplateType(x.template_type), status: String(x.status || "") }));
+      const lane = kindOfTemplateType(x.template_type);
+      copyKinds.set(iid, Object.freeze({ lane: lane, form_kind: lane, status: String(x.status || "") }));
     });
     const one = String(b.instance_id || "").trim();
     if (SCREEN_ID_OK.test(one) && COPY_KINDS.indexOf(b.form_kind) !== -1) {
-      copyKinds.set(one, Object.freeze({ form_kind: b.form_kind, status: String(b.status || "") }));
+      const prior = copyKinds.get(one);
+      const lane = ("template_type" in b) ? kindOfTemplateType(b.template_type) : (prior ? prior.lane : "");
+      copyKinds.set(one, Object.freeze({ lane: lane, form_kind: b.form_kind, status: String(b.status || "") }));
     }
   }
   /* THE FIELDS THE SERVER GAVE — per copy, from form_fields' own reply when it names a LANE (lane equal to form_kind): a
@@ -4775,7 +4782,7 @@ window.teckelShell = (function () {
   //   the lane only this copy's own (copyKinds). A question form's change is as before.
   function laneChanged(m, iid, more){
     const lane = (typeof more.lane === "string") ? more.lane : "", k = copyKinds.get(iid);
-    if (NEW_LANES.indexOf(lane) === -1 || !k || k.form_kind !== lane) { log("form_changed refused: not this copy's lane"); return false; }
+    if (NEW_LANES.indexOf(lane) === -1 || !k || k.lane !== lane) { log("form_changed refused: not this copy's lane"); return false; }
     const fv = more.field;
     if (fv === null || fv === undefined || fv === "") m.entry = true;
     else {
@@ -4964,7 +4971,7 @@ window.teckelShell = (function () {
   function stepLane(iid, p){
     const lane = (p.lane === undefined || p.lane === null) ? "qa" : p.lane;
     if (typeof lane !== "string" || LANES.indexOf(lane) === -1) return null;
-    const k = copyKinds.get(iid), kind = k ? k.form_kind : "";
+    const k = copyKinds.get(iid), kind = k ? k.lane : "";
     if (lane === "qa") return NEW_LANES.indexOf(kind) === -1 ? "qa" : null;
     const f = copyFields.get(iid);
     return (kind === lane && f && f.lane === lane) ? lane : null;
@@ -5144,7 +5151,7 @@ window.teckelShell = (function () {
      · ONE PER SOCKET: a second, different id on the same socket is refused (logged without it). */
   const CONV_ID_OK = /^conv_[A-Za-z0-9]{8,64}$/;   /* the server's own shape (_CONV_ID_RE) */
   const CONV_DOORS = Object.freeze(["form_fields", "entry_draft", "save_log_draft", "save_survey_answers", "save_grid_cells",
-                                    "commit_entry"]);
+                                    "commit_entry", "submit", "submit_preview"]);
   const CONV_KEEP_MAX = 4;
   let convNow = null, convSeq = 0;
   const convKept = new Map();
@@ -6554,6 +6561,34 @@ window.teckelShell = (function () {
       lapseCodes: Object.freeze(DOOR_LAPSE.slice())
     }) });
 
+  /* ══ SUBMIT — ONE PATH, NO SILENT DROP ═══════════════════════════════════════════════════════════════════════
+     Every caller (My forms, the walk panel, the live form) calls this instead of running its own submit_preview
+     then submit: a confirm_token is never held past this one call, so a stale token from before a reload, or from
+     an earlier click, is never reused — this previews fresh every time. The reply IS the server's own submit
+     reply (or submit_preview's, when it refused before a token ever existed); the only wording a caller may show
+     is that reply's user_message — this never composes "Sent." or "It was not sent." itself. extra: args a
+     caller needs submit_preview to see (e.g. My forms' chosen to_address) beyond instance_id. */
+  async function submitForm(instanceId, extra){
+    const iid = String(instanceId || "").trim();
+    if (!(SCREEN_ID_OK.test(iid) && screenIds.has(iid))) return { success: false, sent: false, user_message: "" };
+    const args = Object.assign({}, (extra && typeof extra === "object") ? extra : {}, { instance_id: iid });
+    let r;
+    try { r = await portalAction("submit_preview", args); }
+    catch (e) { return { success: false, sent: false, user_message: "" }; }
+    if (!r || r.success !== true || r.can_submit !== true || typeof r.confirm_token !== "string" || !r.confirm_token) {
+      return (r && typeof r === "object") ? r : { success: false, sent: false, user_message: "" };
+    }
+    let s;
+    try { s = await portalAction("submit", { instance_id: iid, confirm_token: r.confirm_token }); }
+    catch (e) { return { success: false, sent: false, user_message: "" }; }
+    return (s && typeof s === "object") ? s : { success: false, sent: false, user_message: "" };
+  }
+  Object.defineProperty(window, "teckelSubmitForm", { configurable: false, enumerable: false, writable: false,
+    value: function (instanceId, extra) {
+      try { return submitForm(instanceId, extra); }
+      catch (e) { return Promise.resolve({ success: false, sent: false, user_message: "" }); }
+    } });
+
   /* ══ SIGN-OUT ═════════════════════════════════════════════════════════════════════════
      Sign-in stays REMEMBERED PER BROWSER (the id in localStorage), and ends three ways:
        · the "Sign out" button in the header, shown while the page is signed in;
@@ -7919,26 +7954,23 @@ window.teckelShell = (function () {
   }
   async function confirmSubmit(){
     if (!sub || sub.sent || sending) return;
-    const mine = sub, token = sub.token;
-    // ⚠ NEVER A SUBMIT WITHOUT THE PREVIEW'S CONFIRMATION: no token, no request.
-    if (!token) { txt(sb.result, "Please check the form again before submitting it."); sb.again.hidden = false; return; }
+    const mine = sub;
     if (otherPending()) { syncConfirm(); return; }
     mine.token = null; sending = true; syncConfirm(); sb.check.disabled = true;
     txt(sb.result, "Sending…");
     let r;
-    try { r = await P.action("submit", { instance_id: mine.iid, confirm_token: token }); }
+    try { r = await window.teckelSubmitForm(mine.iid, mine.toArg ? { to_address: mine.toArg } : null); }
     finally { sending = false; sb.check.disabled = false; syncConfirm(); }
     if (sub !== mine || lapsed(r)) return;
     if (r && r.success && r.sent === true) {
       mine.sent = true;
       onScreen(mine.iid, sb.form.textContent || mine.name, "submitted");
-      const to = String(r.to_address || mine.to || "").trim();
-      txt(sb.result, to ? ("Sent to " + to + ".") : "Sent.");
+      txt(sb.result, shown(r.user_message) ? String(r.user_message) : "");
       sb.body.hidden = true; sb.confirm.hidden = true; sb.again.hidden = true; sb.cancel.textContent = "Close";
       loadForms();
       return;
     }
-    txt(sb.result, msgOf(r, "It was not sent."));
+    txt(sb.result, shown(r && r.user_message) ? String(r.user_message) : "");
     sb.again.hidden = false;
   }
   function useOther(){
@@ -10166,30 +10198,23 @@ window.teckelShell = (function () {
   async function doSubmit(){
     const mine = walk;
     if (!mine || mine.mode !== "act" || mine.busy) return;
-    let pv = mine.pv;
+    const pv = mine.pv;
     if (!pv || !pv.can) return;
-    if (!pv.token || (pv.exp && Date.now() > pv.exp - 5000)) {       /* the confirmation ran out: preview first */
-      pv = await preview(false);
-      if (walk !== mine || !pv || !pv.can || !pv.token) return;
-    }
-    const held = pv.token;
-    pv.token = null;                                                 /* single use */
     mine.busy = true; actionsBusy(true);
     txt($("pp-walk-result"), "Sending…");
     let r;
-    try { r = await P.action("submit", { instance_id: mine.iid, confirm_token: held }); }
+    try { r = await window.teckelSubmitForm(mine.iid); }
     finally { mine.busy = false; }
     if (walk !== mine) return;
     if (lapsed(r)) return;
     if (r && r.success === true && r.sent === true) {
-      const to = String(r.to_address || pv.to || "").trim();
       try { if (typeof window.teckelScreenForm === "function") window.teckelScreenForm(mine.iid, mine.name, "submitted"); } catch(e) {}
       try { if (window.teckelPortalForms) window.teckelPortalForms.reload(); } catch(e) {}
-      finishWalk(to ? ("Sent to " + to + ".") : "Sent.");
+      finishWalk(shown(r.user_message) ? String(r.user_message) : "");
       return;
     }
     actionsBusy(false);
-    txt($("pp-walk-result"), msgOf(r, "It was not sent."));
+    txt($("pp-walk-result"), shown(r && r.user_message) ? String(r.user_message) : "");
   }
   function finishWalk(text){
     const mine = walk;
@@ -10307,6 +10332,12 @@ window.teckelShell = (function () {
 
   /* ══ kev → the page: walk_result and walk_control ═══════════════════════════════════════════════════════════════ */
   function ignore(why, m){ try { console.info("[teckel-walk] ignored " + String(m && m.kind) + " " + String(m && m.op || "") + ": " + why); } catch(e) {} }
+  // The one choke point for every walk_control op: NEVER falls off the end, returns bare, or reaches ignore() — an op
+  // this screen cannot act on, including one this build has never heard of, comes back {done:false, why}, never nothing.
+  function refuse(why, m){
+    try { console.info("[teckel-walk] refused " + String(m && m.kind) + " " + String(m && m.op || "") + ": " + why); } catch(e) {}
+    return { done: false, why: why };
+  }
   function sameNumber(m){ const q = current(); return !!q && String(m.number === undefined ? "" : m.number) === String(q.number); }
   function onResult(m){
     const mine = walk, q = current();
@@ -10319,48 +10350,51 @@ window.teckelShell = (function () {
   }
   function onControl(m){
     const op = String(m.op || "");
-    if (VOICE_OPS.indexOf(op) === -1) { ignore("not an op a conversation may drive", m); return; }
-    if (op === "quiet" || op === "speak") { setVoice(op === "speak", false); return; }
-    if (op === "edit" || op === "walk") { voiceOpen(op, m); return; }
+    if (VOICE_OPS.indexOf(op) === -1) return refuse("BLOCKED", m);
+    if (op === "quiet" || op === "speak") { setVoice(op === "speak", false); return { done: true, reply: op }; }
+    if (op === "edit" || op === "walk") return voiceOpen(op, m);
     const mine = walk;
-    if (!mine || mine.mode === "done") { ignore("no walk", m); return; }
-    if (op === "stop") { endWalk("kev", true); return; }
+    if (!mine || mine.mode === "done") return refuse("NOT_ON_SCREEN", m);
+    if (op === "stop") { endWalk("kev", true); return { done: true, reply: "stop" }; }
     if (op === "again") {
-      if (mine.mode === "q" && !sameNumber(m)) { ignore("not the question on screen", m); return; }
+      if (mine.mode === "q" && !sameNumber(m)) return refuse("NOT_ON_SCREEN", m);
       sendLast(true);                                       /* the SAME envelope, speak:true, once; the mode unchanged */
-      return;
+      return { done: true, reply: "again" };
     }
     if (op === "skip" || op === "back") {
-      if (mine.mode !== "q" || !sameNumber(m)) { ignore("not the question on screen", m); return; }
+      if (mine.mode !== "q" || !sameNumber(m)) return refuse("NOT_ON_SCREEN", m);
       const b = $(op === "skip" ? "pp-walk-skip" : "pp-walk-back");
-      if (!usable(b)) { ignore("its button is not usable", m); return; }
+      if (!usable(b)) return refuse("BLOCKED", m);
       if (op === "skip") next(); else back_();
-      return;
+      return { done: true, reply: op };
     }
     // the action steps: the op acts ONLY through a button that is on screen and usable for this copy now
     const btn = $(op === "submit" ? "pp-walk-submit" : op === "sign" ? "pp-walk-sign" : "pp-walk-upload");
-    if (mine.mode !== "act" || !usable(btn) || mine.busy || mine.countdown) { ignore("its button is not shown and usable", m); return; }
-    if (op === "sign") { doSign(true); return; }
-    if (op === "upload") { doUpload(); return; }
-    if (mine.pv && mine.pv.can) { countdown(); return; }   /* GREEN by voice: 3 seconds to cancel */
+    if (mine.mode !== "act" || !usable(btn)) return refuse("NOT_ON_SCREEN", m);
+    if (mine.busy || mine.countdown) return refuse("BLOCKED", m);
+    if (op === "sign") { doSign(true); return { done: true, reply: "sign" }; }
+    if (op === "upload") { doUpload(); return { done: true, reply: "upload" }; }
+    if (mine.pv && mine.pv.can) { countdown(); return { done: true, reply: "submit" }; }   /* GREEN by voice: 3 seconds to cancel */
     preview(true);                                          /* RED: check again; still blocked, the fresh step spoken once */
+    return { done: true, reply: "submit" };
   }
   // kev's op "edit" / "walk": ONLY while the form is editable (the copy Edit and Walk are offered for), Walk only for a
-  // question form, and only while page_features.voice_edit_walk is set. Anything else is ignored, as every op outside its button is.
+  // question form, and only while page_features.voice_edit_walk is set. Anything else is refused, as every op outside its button is.
   function voiceOpen(op, m){
-    if (!feature("voice_edit_walk")) { ignore("not switched on by the server", m); return; }
+    if (!feature("voice_edit_walk")) return refuse("BLOCKED", m);
     const c = copyOnScreen();
-    if (!c) { ignore("no editable form on screen", m); return; }
+    if (!c) return refuse("NOT_ON_SCREEN", m);
     if (op === "edit") {
       let ok = false;
       try { ok = (typeof window.teckelEditOpen === "function") ? window.teckelEditOpen() === true : false; } catch(e) { ok = false; }
-      if (!ok) ignore("Edit is not shown and usable", m);
-      return;
+      if (!ok) return refuse("NOT_ON_SCREEN", m);
+      return { done: true, reply: "edit" };
     }
-    if (shown(c.form_kind) && c.form_kind !== "qa") { ignore("only a question form is walked", m); return; }
-    if (!usable(w.btn)) { ignore("its button is not shown and usable", m); return; }
-    if (walk && walk.mode !== "done" && walk.iid === String(c.instance_id)) { ignore("already walking this form", m); return; }
+    if (shown(c.form_kind) && c.form_kind !== "qa") return refuse("BLOCKED", m);
+    if (!usable(w.btn)) return refuse("NOT_ON_SCREEN", m);
+    if (walk && walk.mode !== "done" && walk.iid === String(c.instance_id)) return refuse("BLOCKED", m);
     openWalk();
+    return { done: true, reply: "walk" };
   }
   if (typeof window.teckelWalkListen === "function") {
     window.teckelWalkListen(function (m) {
@@ -10659,6 +10693,12 @@ window.teckelShell = (function () {
   function usable(b){ return !!(b && b.isConnected && !b.hidden && !b.disabled && !b.hasAttribute("data-pp-lock")); }
   function log(why){ try { console.info("[teckel-live] " + why); } catch(e) {} }   /* never a value */
   function ignore(why, m){ log("ignored " + String(m && m.kind) + " " + String(m && m.op || "") + ": " + why); return true; }
+  // The one choke point for every walk_control op this surface owns: NEVER falls off the end, returns bare, or reaches
+  // ignore() — an op this screen cannot act on comes back {done:false, why}, never nothing.
+  function refuse(why, m){
+    log("refused " + String(m && m.kind) + " " + String(m && m.op || "") + ": " + why);
+    return { done: false, why: why };
+  }
   function norm(v){ return String(v === undefined || v === null ? "" : v).replace(/\\s+/g, " ").trim().replace(/\\.$/, "").trim().toLowerCase(); }
   // does this reply say the copy is gone? opened: the live form had the copy open
   function goneReply(r, opened){
@@ -11660,32 +11700,25 @@ window.teckelShell = (function () {
   }
   async function doSubmit(me){
     if (lf !== me || me.mode !== "act" || me.busy) return;
-    let p = me.pv;
-    if (!p || p.can !== true) return;
-    if (!p.token || (p.exp && Date.now() > p.exp - 5000)) {
-      p = await preview(me, false);
-      if (lf !== me || !p || p.can !== true || !p.token) return;
-    }
-    const token = p.token;
-    p.token = null;                                                    /* single use */
+    if (!me.pv || me.pv.can !== true) return;
     me.busy = true; actsBusy(true);
     txt($("pp-lf-result"), "Sending…");
     let r;
-    try { r = await P.action("submit", { instance_id: me.iid, confirm_token: token }); }
+    try { r = await window.teckelSubmitForm(me.iid); }
     finally { me.busy = false; }
     if (lf !== me || lapsed(r) || goneIf(me, r)) return;
-    if (r && r.success === true && r.sent === true) { sentAndDone(me, String(r.to_address || p.to || "").trim()); return; }
+    if (r && r.success === true && r.sent === true) { sentAndDone(me, r); return; }
     actsBusy(false);
-    txt($("pp-lf-result"), msgOf(r, "It was not sent."));
+    txt($("pp-lf-result"), shown(r && r.user_message) ? String(r.user_message) : "");
   }
-  function sentAndDone(me, to){
+  function sentAndDone(me, r){
     me.mode = "done"; lastEnv = null;
     try { if (typeof window.teckelScreenForm === "function") window.teckelScreenForm(me.iid, me.name, "submitted"); } catch(e) {}
     try { if (window.teckelPortalForms) window.teckelPortalForms.reload(); } catch(e) {}
     control("stop");
     const key = me.key;
     closeLive("sent");
-    keepNote(key, (to ? "Sent to " + to + ". " : "Sent. ") + SAYS_SUBMITTED);
+    keepNote(key, (shown(r.user_message) ? String(r.user_message) + " " : "") + SAYS_SUBMITTED);
     refreshView(me);
   }
   // A VOICE submit on GREEN: "Sending to \x3caddress>…" with Cancel for 3 seconds; Cancel sends nothing.
@@ -13091,53 +13124,60 @@ window.teckelShell = (function () {
   }
   function onControl(m){
     const op = String(m.op || "");
-    if ((op === "skip" || STEP_OPS.indexOf(op) !== -1) && lf && lf.once && onceTake(lf, m, true)) return;
-    if (STEP_OPS.indexOf(op) !== -1) { onNext(m); return; }
-    if (ENTRY_OPS.indexOf(op) !== -1) { onSaveEntry(m); return; }
-    if (ASIDE_OPS.indexOf(op) !== -1) { onAside(m); return; }
-    if (GOTO_OPS.indexOf(op) !== -1) { onGoto(m); return; }
-    if (LIVE_OPS.indexOf(op) === -1) { ignore("not an op a conversation may drive", m); return; }
-    if (op === "quiet" || op === "speak") { setVoice(op === "speak", false); return; }
-    if (op === "edit" || op === "walk") { voiceOpen(op, m); return; }
+    if ((op === "skip" || STEP_OPS.indexOf(op) !== -1) && lf && lf.once && onceTake(lf, m, true)) return { done: true, reply: op };   /* a duplicate of an op already taken: already done, not refused */
+    if (STEP_OPS.indexOf(op) !== -1) { onNext(m); return { done: true, reply: op }; }
+    if (ENTRY_OPS.indexOf(op) !== -1) { onSaveEntry(m); return { done: true, reply: op }; }
+    if (ASIDE_OPS.indexOf(op) !== -1) { onAside(m); return { done: true, reply: op }; }
+    if (GOTO_OPS.indexOf(op) !== -1) { onGoto(m); return { done: true, reply: op }; }
+    if (LIVE_OPS.indexOf(op) === -1) return refuse("BLOCKED", m);
+    if (op === "quiet" || op === "speak") { setVoice(op === "speak", false); return { done: true, reply: op }; }
+    if (op === "edit" || op === "walk") return voiceOpen(op, m);
     const me = lf;
-    if (!me || me.mode === "load" || me.mode === "done") { ignore("no live form", m); return; }
-    if (op === "stop") { holdLive(me); return; }           /* (2.2.426, D4) kev's own stop: held, the form stays; echoed */
-    if (!walksNow(me)) { ignore("this form is not walked here", m); return; }
-    if (me.mode === "row" && op === "back") { stepBack(me); return; }
+    if (!me || me.mode === "load" || me.mode === "done") return refuse("NOT_ON_SCREEN", m);
+    if (op === "stop") { holdLive(me); return { done: true, reply: "stop" }; }           /* (2.2.426, D4) kev's own stop: held, the form stays; echoed */
+    if (!walksNow(me)) return refuse("NOT_ON_SCREEN", m);
+    if (me.mode === "row" && op === "back") { stepBack(me); return { done: true, reply: "back" }; }
     // a signature box at the cursor: never skipped by voice (re-checked, and still unsigned the refusal line, as for "next");
     // "go back", "say that again" and "sign" act on it without a question number (its step names none)
     const sr = curRow(me);
-    if (sr && sr.sign && (op === "skip" || op === "back" || op === "again" || op === "sign")) { signControl(me, sr, op, m); return; }
+    if (sr && sr.sign && (op === "skip" || op === "back" || op === "again" || op === "sign")) return signControl(me, sr, op, m);
     if (op === "again") {
-      if (me.mode === "q" && !sameNumber(me, m)) { ignore("not the question at the cursor", m); return; }
-      if (!lastEnv || !stepIsCurrent(me)) { ignore("nothing was asked in this conversation", m); return; }
+      if (me.mode === "q" && !sameNumber(me, m)) return refuse("NOT_ON_SCREEN", m);
+      if (!lastEnv || !stepIsCurrent(me)) return refuse("NOT_ON_SCREEN", m);
       asked(me, function () { emit(me, lastEnv, true); });  /* the SAME envelope, speak:true, once; the mode unchanged */
-      return;
+      return { done: true, reply: "again" };
     }
     if (op === "skip" || op === "back") {
-      if (me.mode !== "q" || !sameNumber(me, m)) { ignore("not the question at the cursor", m); return; }
-      if (!usable($(op === "skip" ? "pp-lf-skip" : "pp-lf-back"))) { ignore("its button is not usable", m); return; }
+      if (me.mode !== "q" || !sameNumber(me, m)) return refuse("NOT_ON_SCREEN", m);
+      if (!usable($(op === "skip" ? "pp-lf-skip" : "pp-lf-back"))) return refuse("BLOCKED", m);
       if (op === "skip") next(me, "skip"); else stepBack(me);
-      return;
+      return { done: true, reply: op };
     }
     const btn = $(op === "submit" ? "pp-lf-submit" : op === "sign" ? "pp-lf-sign" : "pp-lf-upload");
-    if (me.mode !== "act" || !usable(btn) || me.busy || me.countdown) { ignore("its button is not shown and usable", m); return; }
-    if (op === "sign") { doSign(me, true); return; }
-    if (op === "upload") { doUpload(me); return; }
-    if (op !== "submit") { ignore("not an action a conversation may take", m); return; }   /* never a fall-through */
-    if (me.pv && me.pv.can === true) { countdown(me); return; }
+    if (me.mode !== "act" || !usable(btn)) return refuse("NOT_ON_SCREEN", m);
+    if (me.busy || me.countdown) return refuse("BLOCKED", m);
+    if (op === "sign") { doSign(me, true); return { done: true, reply: "sign" }; }
+    if (op === "upload") { doUpload(me); return { done: true, reply: "upload" }; }
+    if (op !== "submit") return refuse("BLOCKED", m);   /* never a fall-through */
+    if (me.pv && me.pv.can === true) { countdown(me); return { done: true, reply: "submit" }; }
     preview(me, true);                                      /* RED: check again; still blocked, the fresh step spoken once */
+    return { done: true, reply: "submit" };
   }
   /* ── a signature box in the walk: Next, kev's "next", and his ops on the box ── */
   function signControl(me, row, op, m){
-    if (op === "skip") { signNext(me, row, "skip"); return; }   /* never skipped by voice: moved past only once signed */
-    if (op === "back") { if (usable($("pp-lf-back"))) stepBack(me); else ignore("its button is not usable", m); return; }
+    if (op === "skip") { signNext(me, row, "skip"); return { done: true, reply: "skip" }; }   /* never skipped by voice: moved past only once signed */
+    if (op === "back") {
+      if (!usable($("pp-lf-back"))) return refuse("BLOCKED", m);
+      stepBack(me);
+      return { done: true, reply: "back" };
+    }
     if (op === "again") {
-      if (!lastEnv || !stepIsCurrent(me)) { ignore("nothing was asked in this conversation", m); return; }
+      if (!lastEnv || !stepIsCurrent(me)) return refuse("NOT_ON_SCREEN", m);
       asked(me, function () { emit(me, lastEnv, true); });  /* the SAME envelope, speak:true, once */
-      return;
+      return { done: true, reply: "again" };
     }
     signRow(me, row, true);                                 /* "sign": the signing page's link — never a signature */
+    return { done: true, reply: "sign" };
   }
   // kev's walk_control "next" (STEP_OPS): advance if allowed — a signature box only once it is signed; a question as Skip
   // does; the end's Sign step re-checked (still owed: the refusal line); anything else: nothing
@@ -13326,19 +13366,20 @@ window.teckelShell = (function () {
   // kev's "edit" / "walk": the live form on the form on screen (open it if Stop closed it); "walk" also turns Voice on
   function voiceOpen(op, m){
     const c = editableCopy();
-    if (!c) { ignore("no editable form on screen", m); return; }
-    if (knownWhyNot(c)) { ignore("this form can't be typed into here", m); return; }
+    if (!c) return refuse("NOT_ON_SCREEN", m);
+    if (knownWhyNot(c)) return refuse("BLOCKED", m);
     if (lf && lf.iid === String(c.instance_id)) {
       if (op === "walk" && walksNow(lf) && (!speak || lf.held)) {
         const wasHeld = !!lf.held;
         setVoice(true, false);
         if (!wasHeld) asked(lf, function () { if (lastEnv && stepIsCurrent(lf)) emit(lf, lastEnv, true); else stepOut(lf); });
-        return;
+        return { done: true, reply: "walk" };
       }
-      ignore("already open", m); return;
+      return refuse("BLOCKED", m);
     }
     if (op === "walk") setVoice(true, false);
-    if (!openByPress(op === "walk")) ignore("it can't be opened now", m);
+    if (!openByPress(op === "walk")) return refuse("NOT_ON_SCREEN", m);
+    return { done: true, reply: op };
   }
   function frame(m){
     if (!m || typeof m !== "object" || !liveOn()) return false;   /* off: the walk script's */
