@@ -4,14 +4,14 @@
   from localportal_blocks/v2/lv2_shell.html. ⚠ DO NOT HAND-EDIT: change the block and rebuild (--write); --check fails
   when this file is stale.
   ⭐ CORE_MODE "inline" (Yusuf, 25 Oct 2026; until the core's repo exists): this page CARRIES its core — the exact bytes
-  of localportal_core/stable/portal.bc5de0c757a1.js — in one inline script tag below, instead of loading it from the
+  of localportal_core/stable/portal.aec474a0be7b.js — in one inline script tag below, instead of loading it from the
   address named next; it never requests that address. Switching to CORE_MODE "external" is ONE builder constant and
   a rebuild (teckel__build_localportal_v2_0.py --write): the core stays the same file, and only this page changes.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://teckel-io.github.io/practice_portal_core/stable/portal.bc5de0c757a1.js
+      https://teckel-io.github.io/practice_portal_core/stable/portal.aec474a0be7b.js
   (channel "stable"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -49,7 +49,7 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="bc5de0c757a1">/* =====================================================================================================================
+<script data-teckel-core="aec474a0be7b">/* =====================================================================================================================
    THE PRACTICE PORTAL'S CORE (V2) — ONE FILE FOR EVERY PRACTICE ON A CHANNEL. A GENERATED FILE, built by
    teckel__build_localportal_v2_0.py from localportal_blocks/v2/lv2_core_wrapper.js and the V2 page (the ElevenLabs
    source + the blocks + the anchored edits). ⚠ DO NOT HAND-EDIT: rebuild (--write); --check fails when this is stale.
@@ -4848,18 +4848,35 @@ window.teckelShell = (function () {
   // the one line beside the read-only form. Forgotten with the voice copy.
   let voiceNote = null;
   function forgetVoiceCopy(){ if (voiceCopy || voiceNote) { voiceCopy = null; voiceNote = null; viewerEvent(); } voiceSeq++; }
+  // the view this copy resolves to is OBTAINED with exactly one retry on an answer that is no verdict at all,
+  // then an honest line in place of silence (NOT a raw code) — never a second silent attempt.
+  async function resolveView(id, seq, retried){
+    let r;
+    try { r = await portalAction("resolve_view", { view_session_id: id }); }
+    catch(e) { log("resolve_view failed: " + e.message); r = null; }
+    if (seq !== voiceSeq) { log("resolve_view answered after the screen changed; dropped"); return null; }
+    if (noServerVerdict(r) && !retried) {
+      await sleep(1000);
+      if (seq !== voiceSeq) return null;
+      return resolveView(id, seq, true);
+    }
+    if (noServerVerdict(r)) {
+      voiceNote = "Benedict opened a form, but this page could not confirm which one just now.";
+      viewerEvent();
+      return null;
+    }
+    return r;
+  }
   async function resolveVoiceCopy(vsid, typed){
     const seq = ++voiceSeq;
     const id = String(vsid || "").trim();
     if (!/^[A-Za-z0-9_-]{8,32}$/.test(id)) return;
-    let r;
-    try { r = await portalAction("resolve_view", { view_session_id: id }); }
-    catch(e) { log("resolve_view failed: " + e.message); return; }
-    if (seq !== voiceSeq) { log("resolve_view answered after the screen changed; dropped"); return; }
-    const iid = r && r.success === true ? String(r.instance_id || "").trim() : "";
+    const r = await resolveView(id, seq, false);
+    if (!r) return;
+    const iid = r.success === true ? String(r.instance_id || "").trim() : "";
     if (!walkIid(iid)) {
       log("resolve_view: not a copy of this practice's to type into");
-      if (r && String(r.error_code || "").trim().toUpperCase() === "NOT_YOURS" && typeof r.message === "string" && r.message.trim()) {
+      if (String(r.error_code || "").trim().toUpperCase() === "NOT_YOURS" && typeof r.message === "string" && r.message.trim()) {
         voiceNote = r.message.trim().slice(0, 300);
         viewerEvent();
       }
@@ -4869,8 +4886,9 @@ window.teckelShell = (function () {
     // this reply) that kev stays silent on open because the page walks it — the page decides by its own rule and logs
     // (never a value) when the two disagree.
     const pf = (r.page_features && typeof r.page_features === "object") ? r.page_features : null;
+    const formName = String(r.form_title || "").replace(/\\s+/g, " ").trim().slice(0, 300) || null;
     voiceCopy = Object.freeze({ instance_id: iid,
-                                form_name: String(r.form_title || "").replace(/\\s+/g, " ").trim().slice(0, 300) || null,
+                                form_name: formName,
                                 editable: r.editable === true, form_kind: String(r.form_kind || ""),
                                 status: String(r.status || ""), display: "v" + (++displaySeq),
                                 walks_on_open: pf && typeof pf.walks_on_open === "boolean" ? pf.walks_on_open : null,
@@ -4879,6 +4897,15 @@ window.teckelShell = (function () {
     // a form opened because the user typed for it is walked by the page like a View: kev is told which form (no tellScreenForm: that forgets this copy)
     if (voiceCopy.typed) sendScreen(screenFormMsg({ instance_id: iid, form_name: voiceCopy.form_name, action: "view", at: new Date().toISOString() }));
     viewerEvent();
+    // THE FOUR-CASE ENVELOPE RULE (page-state contract, 9 Nov 2026): a walk envelope naming a copy X (this one) while the
+    // page shows Y decides whether this browser's server-side attach — the step counter, the position tracking — follows
+    // X at once, or waits. It never touches the viewer's own display of X (kev's display_form already drew it): only
+    // whether THIS PAGE'S walk_attach follows it immediately.
+    let Y = null;
+    try { Y = (typeof window.teckelEditableCopy === "function") ? window.teckelEditableCopy() : null; } catch(e) { Y = null; }
+    if (!Y || !Y.instance_id || Y.instance_id === iid) { await walkAttach(iid, Y && Y.instance_id === iid ? "voice" : "voice"); return; }
+    if (!hasUnsavedText()) { hideGoThere(); await walkAttach(iid, "switch"); return; }
+    showGoThere(iid, formName);                       /* case 4: Y has unsaved text — leave Y alone, never attach to X yet */
   }
   Object.defineProperty(window, "teckelVoiceCopy", { configurable: false, enumerable: false, writable: false,
     value: function () {
@@ -5151,7 +5178,7 @@ window.teckelShell = (function () {
      · ONE PER SOCKET: a second, different id on the same socket is refused (logged without it). */
   const CONV_ID_OK = /^conv_[A-Za-z0-9]{8,64}$/;   /* the server's own shape (_CONV_ID_RE) */
   const CONV_DOORS = Object.freeze(["form_fields", "entry_draft", "save_log_draft", "save_survey_answers", "save_grid_cells",
-                                    "commit_entry", "submit", "submit_preview"]);
+                                    "commit_entry", "submit", "submit_preview", "walk_attach", "walk_position"]);
   const CONV_KEEP_MAX = 4;
   let convNow = null, convSeq = 0;
   const convKept = new Map();
@@ -6481,6 +6508,12 @@ window.teckelShell = (function () {
   Object.defineProperty(window, "teckelPageFeatures", { configurable: false, enumerable: false, writable: false,
     value: function () { return pageFeatures; } });
 
+  /* A reply this page MADE UP because no verdict came back from the server wears this marker, and every caller
+     that needs to know asks noServerVerdict() — never an error_code string. The codes below are free to grow:
+     a new one is a no-verdict reply everywhere at once, with nothing elsewhere to keep in step. */
+  const NO_VERDICT_MARK = "_noVerdict";
+  function noServerVerdict(reply){ return !reply || !!reply[NO_VERDICT_MARK]; }
+
   // THE ONE WAY A PORTAL REQUEST LEAVES THIS PAGE. Every reply comes back as the server sent it;
   // a failure to reach the server comes back in the same shape, with a plain sentence.
   async function portalAction(action, args){
@@ -6488,7 +6521,7 @@ window.teckelShell = (function () {
     if (!pass) {
       // ⚠ NO PASS, NO REQUEST. Greyed controls cannot get here; this is the backstop.
       return { success: false, action: a, error_code: "NO_PASS",
-               message: "Please enter your access code first." };
+               message: "Please enter your access code first.", [NO_VERDICT_MARK]: true };
     }
     const sent = pass, epoch = signOutEpoch;
     // the live form's handle becomes conversation_id in the args of the doors that take it,
@@ -6496,11 +6529,13 @@ window.teckelShell = (function () {
     const sendArgs = convArgs(a, (args && typeof args === "object" && !Array.isArray(args)) ? args : {});
     if (sendArgs === null) {
       return { success: false, action: a, error_code: "NO_CONVERSATION",
-               message: "Typed answers go into the entry once Benedict is connected; until then, Save entry saves the whole entry." };
+               message: "Typed answers go into the entry once Benedict is connected; until then, Save entry saves the whole entry.",
+               [NO_VERDICT_MARK]: true };
     }
     // Signed out while this was on its way: its answer must not reach a signed-out page.
     const signedOut = function () {
-      return { success: false, action: a, error_code: "NO_PASS", message: "Please enter your access code first." };
+      return { success: false, action: a, error_code: "NO_PASS", message: "Please enter your access code first.",
+               [NO_VERDICT_MARK]: true };
     };
     let r, b = null;
     try {
@@ -6512,16 +6547,19 @@ window.teckelShell = (function () {
     } catch(e) {
       if (epoch !== signOutEpoch) return signedOut();
       log("portal: " + a + " unreachable — " + e.message);
+      markOffline(); noteWriteLost(a);
       return { success: false, action: a, error_code: "UNREACHABLE",
-               message: "teckel could not be reached just now. Please try again." };
+               message: "teckel could not be reached just now. Please try again.", [NO_VERDICT_MARK]: true };
     }
     try { b = await r.json(); } catch(e) { b = null; }
     if (epoch !== signOutEpoch) { log("portal: " + a + " answered after the sign-out; dropped"); return signedOut(); }
     if (!b || typeof b !== "object" || Array.isArray(b)) {
       log("portal: " + a + " no verdict (HTTP " + r.status + ")");
+      markOffline(); noteWriteLost(a);
       return { success: false, action: a, error_code: "NO_VERDICT",
-               message: "Something went wrong just now. Please try again." };
+               message: "Something went wrong just now. Please try again.", [NO_VERDICT_MARK]: true };
     }
+    markOnline();
     const code = String(b.error_code || "").trim().toUpperCase();
     log("portal: " + a + " -> " + (b.success ? "ok" : (code || "refused")));
     if (b.success === true) learnScreenIds(args, b);
@@ -6530,6 +6568,277 @@ window.teckelShell = (function () {
     else if (code === "PORTAL_OFF") enterLegacy();
     return b;
   }
+
+  /* ══ PAGE STATE — SURVIVING A REFRESH, A SECOND TAB AND A DROPPED LINE (page-state contract, 9 Nov 2026) ═══════════
+     Three new doors on this SAME portal_action channel: walk_restore (no args beyond the pass — "what was this browser
+     last holding"), walk_attach {page_contract, instance_id, conversation_id?} ("attach to this copy — a NEW load
+     number, the step counter back to 0"), walk_position {instance_id, load, step, number|field|detached,
+     conversation_id?} ("here is where the copy on screen is now"). This page reports PRESENCE — which copy, that it is
+     shown — never POSITION: the step counter below exists only so every walk_position carries a step that counts up
+     from the attach that opened it, NEVER from anything this page remembers across a refresh.
+     A write id rides on each of the 16 WRITES actions (around(), server-side, makes it idempotent); one write id per
+     ACTION, not per copy — this browser never has two of the same write in flight at once — minted once and reused on
+     every resend of THE SAME attempt (same args) so the server stores it exactly once. WRITE_IN_FLIGHT backs off on
+     the SAME id at 2/4/8/16 s; past that this page stops asking and leaves the caller to re-read instead of guessing
+     an outcome no one is answering. A reply that never arrived at all (one portalAction made up itself, above, and
+     marked as no verdict) is a LOST REPLY: the write id is kept, unasked, and resent once the line is confirmed back. */
+  const PAGE_CONTRACT = 1;
+  const WRITES = Object.freeze(["save_answer", "submit", "save_log_entry", "log_entry_edit", "entry_draft",
+    "save_log_draft", "save_survey_answers", "save_grid_cells", "commit_entry", "new_copy", "review_resolve",
+    "base_question_unhide", "machine_select", "evidence_rename", "save_consent_answer", "save_machine_details"]);
+  const WRITE_BACKOFF_MS = Object.freeze([2000, 4000, 8000, 16000]);
+  function sleep(ms){ return new Promise(function (r) { setTimeout(r, ms); }); }
+  function newUuid(){
+    try { if (crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID(); } catch(e) {}
+    const b = new Uint8Array(16);
+    try { crypto.getRandomValues(b); } catch(e) { for (let i = 0; i \x3c 16; i++) b[i] = Math.floor(Math.random() * 256); }
+    b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+    const h = Array.prototype.map.call(b, function (x) { return x.toString(16).padStart(2, "0"); }).join("");
+    return h.slice(0, 8) + "-" + h.slice(8, 12) + "-" + h.slice(12, 16) + "-" + h.slice(16, 20) + "-" + h.slice(20);
+  }
+  function stableJson(v){
+    if (v === null || typeof v !== "object") return JSON.stringify(v);
+    if (Array.isArray(v)) return "[" + v.map(stableJson).join(",") + "]";
+    const keys = Object.keys(v).sort();
+    return "{" + keys.map(function (k) { return JSON.stringify(k) + ":" + stableJson(v[k]); }).join(",") + "}";
+  }
+  const pendingWrites = new Map();      /* action -> { write_id, argsKey, args, lost } */
+  async function writeAction(action, args){
+    const a = String(action || "");
+    const base = (args && typeof args === "object" && !Array.isArray(args)) ? args : {};
+    if (WRITES.indexOf(a) === -1) return portalAction(a, base);
+    const key = stableJson(base);
+    let entry = pendingWrites.get(a);
+    if (!entry || entry.argsKey !== key) { entry = { write_id: newUuid(), argsKey: key, args: base, lost: false }; pendingWrites.set(a, entry); }
+    entry.lost = false;
+    for (let attempt = 0; ; attempt++) {
+      const send = Object.assign({}, entry.args, { write_id: entry.write_id });
+      const b = await portalAction(a, send);
+      if (pendingWrites.get(a) !== entry) return b;                 /* a newer attempt replaced this one mid-flight */
+      const code = String(b && b.error_code || "").trim().toUpperCase();
+      // A reply the server never gave is a LOST reply, not a refusal: portalAction's own catch already called
+      // noteWriteLost(a) on this SAME entry, so the write id stays in pendingWrites — resendLostWrites() finds
+      // it once the line is confirmed back and resends THIS id, unasked. Deleting it needs a verdict saying so,
+      // which is why the delete is what carries the condition: no verdict can only ever keep the id.
+      const noVerdict = noServerVerdict(b);
+      if (!noVerdict && code !== "WRITE_IN_FLIGHT") { pendingWrites.delete(a); return b; }
+      if (noVerdict) return b;
+      if (attempt >= WRITE_BACKOFF_MS.length) {
+        // the ceiling (page-state contract §5): a write in flight this long is a LOST REPLY, not a slow one — stop
+        // asking and tell the caller to re-read the form instead of retrying a write id that may never answer.
+        log("portal: " + a + " write_id gave up after " + WRITE_BACKOFF_MS.length + " retries — re-read, don't retry");
+        return Object.assign({}, b, { _writeGaveUp: true });
+      }
+      await sleep(WRITE_BACKOFF_MS[attempt]);
+    }
+  }
+  function noteWriteLost(action){ const e = pendingWrites.get(String(action || "")); if (e) e.lost = true; }
+  async function resendLostWrites(){
+    const lost = Array.from(pendingWrites.entries()).filter(function (e) { return e[1].lost; });
+    for (let i = 0; i \x3c lost.length; i++) {
+      const a = lost[i][0], entry = lost[i][1];
+      if (pendingWrites.get(a) !== entry) continue;
+      log("portal: resending " + a + " after reconnecting, same write id");
+      await writeAction(a, entry.args);
+    }
+  }
+
+  /* ── ONLINE / OFFLINE — a visible, honest banner (never a raw code), the same backoff on the probe, automatic
+        recovery when the line is back: the user is never asked to repeat themselves. ── */
+  const OFFLINE_SAY = "Connection lost — your saved answers are safe. Reconnecting…";
+  const ONLINE_SAY = "Back online.";
+  let netDown = false, netProbing = false, netProbeAttempt = 0, onlineBannerTimer = null;
+  function netBanner(){
+    let b = document.getElementById("pp-net-banner");
+    if (!b) {
+      b = document.createElement("div");
+      b.id = "pp-net-banner"; b.setAttribute("role", "status"); b.hidden = true;
+      b.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99999;padding:10px 16px;" +
+        "font:14px/1.4 system-ui,sans-serif;text-align:center;color:#fff;background:#8a2d2d";
+      document.body.appendChild(b);
+    }
+    return b;
+  }
+  function showNet(text, ok){ const b = netBanner(); b.textContent = text || ""; b.hidden = !text; b.style.background = ok ? "#2d6a2d" : "#8a2d2d"; }
+  function netProbeDelay(){ const d = WRITE_BACKOFF_MS[Math.min(netProbeAttempt, WRITE_BACKOFF_MS.length - 1)]; netProbeAttempt++; return d; }
+  async function netProbe(){
+    if (!netDown || netProbing) return;
+    netProbing = true;
+    let ok = false;
+    try {
+      if (pass) {
+        const b = await portalAction("walk_restore", {});
+        ok = !noServerVerdict(b);
+      } else {
+        const r = await obtainPass("retry");
+        ok = r !== null;                                        /* a definite verdict either way, not "no verdict" */
+      }
+    } catch(e) { ok = false; }
+    netProbing = false;
+    if (ok) { markOnline(); return; }
+    if (netDown) setTimeout(netProbe, netProbeDelay());
+  }
+  function markOffline(){
+    if (netDown) return;
+    netDown = true; netProbeAttempt = 0;
+    showNet(OFFLINE_SAY, false);
+    setTimeout(netProbe, netProbeDelay());
+  }
+  async function netRecovered(){
+    showNet(ONLINE_SAY, true);
+    clearTimeout(onlineBannerTimer); onlineBannerTimer = setTimeout(function () { showNet("", true); }, 4000);
+    if (doorMode === "unreachable") await obtainPass("retry");
+    await resendLostWrites();
+    await restoreThenAttach("reconnect");
+  }
+  function markOnline(){ if (netDown) { netDown = false; netRecovered(); } }
+  window.addEventListener("offline", markOffline);
+  window.addEventListener("online", function () { if (netDown) netProbe(); });
+  if (typeof navigator !== "undefined" && navigator.onLine === false) markOffline();
+
+  /* ── WALK_RESTORE / WALK_ATTACH / WALK_POSITION — the step counter starts at the attach, never at page memory;
+        case 1-3 of the envelope rule attach at once, case 4 waits (below, resolveVoiceCopy) ── */
+  let walkState = null;        /* { instance_id, load, step, lane, attachReason } | null */
+  let walkSeq = 0;
+  function walkEvent(){ try { window.dispatchEvent(new Event("teckel-walkstate")); } catch(e) {} }
+  Object.defineProperty(window, "teckelWalkState", { configurable: false, enumerable: false, writable: false,
+    value: function () { return walkState ? Object.freeze(Object.assign({}, walkState)) : null; } });
+  function withConv(args){
+    let h = null;
+    try { h = window.teckelConversation && window.teckelConversation.now(); } catch(e) { h = null; }
+    return h ? Object.assign({}, args, { conversation: h }) : args;
+  }
+  async function walkDetach(){
+    if (!walkState) return;
+    const st = walkState;
+    try { await portalAction("walk_position", { instance_id: st.instance_id, load: st.load, step: ++st.step, detached: true }); }
+    catch(e) {}
+  }
+  async function walkAttach(iid, reason){
+    const seq = ++walkSeq;
+    const prior = walkState;
+    if (prior && prior.instance_id !== iid) await walkDetach();
+    let r;
+    try { r = await portalAction("walk_attach", withConv({ instance_id: iid, page_contract: PAGE_CONTRACT })); }
+    catch(e) { log("walk_attach failed: " + e.message); return null; }
+    if (seq !== walkSeq) return null;                      /* a newer attach already replaced this one */
+    if (!r || r.success !== true) {
+      if (prior && prior.instance_id === iid) { walkState = null; walkEvent(); }
+      return r || null;
+    }
+    walkState = { instance_id: iid, load: r.load, step: 0, lane: r.lane, attachReason: String(reason || "attach") };
+    hideUseHere();
+    walkEvent();
+    return r;
+  }
+  let lastRestore = null;
+  Object.defineProperty(window, "teckelWalkRestore", { configurable: false, enumerable: false, writable: false,
+    value: function () { return lastRestore; } });
+  Object.defineProperty(window, "teckelWalkAttachNow", { configurable: false, enumerable: false, writable: false,
+    value: function (iid, reason) { return walkAttach(String(iid || "").trim(), reason || "tap"); } });
+  async function restoreThenAttach(reason){
+    let r;
+    try { r = await portalAction("walk_restore", {}); } catch(e) { log("walk_restore failed: " + e.message); r = null; }
+    lastRestore = (r && r.success === true) ? (r.restore || null) : lastRestore;
+    let shown = null;
+    try { shown = (typeof window.teckelEditableCopy === "function") ? window.teckelEditableCopy() : null; } catch(e) { shown = null; }
+    if (!shown || !shown.instance_id) { if (walkState) { await walkDetach(); walkState = null; walkEvent(); } return; }
+    if (walkState && walkState.instance_id === shown.instance_id) return;     /* already attached to it */
+    await walkAttach(shown.instance_id, reason);
+  }
+  async function walkPosition(numberOrField, isField){
+    if (!walkState) return null;
+    const st = walkState;
+    st.step++;
+    const key = {}; key[isField ? "field" : "number"] = String(numberOrField);
+    let r;
+    try { r = await portalAction("walk_position", withConv(Object.assign({ instance_id: st.instance_id, load: st.load, step: st.step }, key))); }
+    catch(e) { log("walk_position failed: " + e.message); return null; }
+    const code = String(r && r.error_code || "").trim().toUpperCase();
+    if (code === "POSITION_SUPERSEDED") { walkState = null; walkEvent(); showUseHere(st.instance_id); }
+    else if (code === "POSITION_NOT_ATTACHED") { walkState = null; walkEvent(); }
+    return r;
+  }
+  Object.defineProperty(window, "teckelWalkPosition", { configurable: false, enumerable: false, writable: false,
+    value: function (numberOrField, isField) { return walkPosition(numberOrField, isField === true); } });
+  // on load, once a pass opens, and after any reconnection — never kept across a refresh in page memory
+  doorListeners.signin.push(function () { restoreThenAttach("load"); });
+
+  /* ── A SECOND TAB: the tab that is superseded is told, by the SAME code the server already uses to keep one load
+        live per copy (POSITION_SUPERSEDED, above) — "Use here" re-attaches, which is this page's own fresh, higher
+        load number taking the copy back, exactly as the other tab took it. ── */
+  function hideUseHere(){ const b = document.getElementById("pp-use-here"); if (b) b.hidden = true; }
+  function showUseHere(iid){
+    let b = document.getElementById("pp-use-here");
+    if (!b) {
+      b = document.createElement("div"); b.id = "pp-use-here"; b.setAttribute("role", "status");
+      b.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:99998;padding:10px 16px;" +
+        "font:14px/1.4 system-ui,sans-serif;text-align:center;color:#fff;background:#8a6d2d";
+      document.body.appendChild(b);
+    }
+    b.textContent = "This form is open in another tab — ";
+    const useBtn = document.createElement("button");
+    useBtn.type = "button"; useBtn.textContent = "Use here";
+    useBtn.style.cssText = "margin-left:8px;color:#fff;background:transparent;border:1px solid #fff;border-radius:4px;padding:2px 8px;cursor:pointer";
+    useBtn.addEventListener("click", function () { hideUseHere(); walkAttach(iid, "tab"); });
+    b.appendChild(useBtn);
+    b.hidden = false;
+  }
+
+  /* ── CASE 4's BANNER: Y (on screen) has unsaved typed text, so this page's attach stays on Y until the user taps
+        Go there, or Y's text is saved or cleared (polled: no generic "saved" event exists to hook across every box). ── */
+  let goThereTimer = null;
+  function hideGoThere(){ const b = document.getElementById("pp-go-there"); if (b) b.hidden = true; clearInterval(goThereTimer); goThereTimer = null; }
+  function showGoThere(iid, formName){
+    let b = document.getElementById("pp-go-there");
+    if (!b) {
+      b = document.createElement("div"); b.id = "pp-go-there"; b.setAttribute("role", "status");
+      b.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:99998;padding:10px 16px;" +
+        "font:14px/1.4 system-ui,sans-serif;text-align:center;color:#fff;background:#2d4a8a";
+      document.body.appendChild(b);
+    }
+    b.textContent = "Benedict is working on " + (formName || "a form") + " — ";
+    const goBtn = document.createElement("button");
+    goBtn.type = "button"; goBtn.textContent = "Go there";
+    goBtn.style.cssText = "margin-left:8px;color:#fff;background:transparent;border:1px solid #fff;border-radius:4px;padding:2px 8px;cursor:pointer";
+    goBtn.addEventListener("click", function () { hideGoThere(); walkAttach(iid, "tap"); });
+    b.appendChild(goBtn);
+    b.hidden = false;
+    clearInterval(goThereTimer);
+    goThereTimer = setInterval(function () { if (!hasUnsavedText()) { hideGoThere(); walkAttach(iid, "cleared"); } }, 3000);
+  }
+
+  /* ── "UNSAVED TYPED TEXT" — a block that can leave text unsaved registers its own check; beforeunload and case 4
+        ask every one registered and take the first yes. Never invented: a block that registers none means none is
+        asked, honestly, rather than a guess. ── */
+  const unsavedCheckers = [];
+  Object.defineProperty(window, "teckelRegisterUnsaved", { configurable: false, enumerable: false, writable: false,
+    value: function (fn) { if (typeof fn === "function") unsavedCheckers.push(fn); } });
+  function hasUnsavedText(){
+    return unsavedCheckers.some(function (fn) { try { return fn() === true; } catch(e) { return false; } });
+  }
+  window.addEventListener("beforeunload", function (e) {
+    if (!hasUnsavedText()) return;                        /* never for case 4: that navigation is ours, not the user's */
+    e.preventDefault(); e.returnValue = "";
+  });
+
+  /* ── THE THREE DATA ATTRIBUTES (authorised exception, 9 Nov 2026: "the page is mine to decide… exposing them as
+        attributes adds no exposure a browser did not already have"). On document.body, beside the existing
+        data-pp-door; ABSENT, never empty, when there is nothing to show. ── */
+  function setBodyAttr(name, value){
+    try { if (value === null || value === undefined || value === "") document.body.removeAttribute(name);
+          else document.body.setAttribute(name, String(value)); } catch(e) {}
+  }
+  function syncPageStateAttrs(){
+    let cid = null;
+    try { cid = convOpen() ? convNow.cid : null; } catch(e) { cid = null; }
+    setBodyAttr("data-teckel-conversation", cid);
+    setBodyAttr("data-teckel-copy", walkState ? walkState.instance_id : null);
+    setBodyAttr("data-teckel-attach-reason", walkState ? walkState.attachReason : null);
+  }
+  window.addEventListener("teckel-conversation", syncPageStateAttrs);
+  window.addEventListener("teckel-walkstate", syncPageStateAttrs);
+  syncPageStateAttrs();
 
   /* ══ AUTO-START ═══════════════════════════════════════════════════════════════════════
      The access code ACCEPTED is the start: the conversation begins exactly as Start would begin it, with no second tap.
@@ -6554,6 +6863,7 @@ window.teckelShell = (function () {
   Object.defineProperty(window, "teckelPortal", { configurable: false, enumerable: false, writable: false,
     value: Object.freeze({
       action: portalAction,
+      write: writeAction,
       held: function () { return !!pass; },
       mode: function () { return doorMode; },
       live: function () { return isOpen(); },
@@ -6579,7 +6889,7 @@ window.teckelShell = (function () {
       return (r && typeof r === "object") ? r : { success: false, sent: false, user_message: "" };
     }
     let s;
-    try { s = await portalAction("submit", { instance_id: iid, confirm_token: r.confirm_token }); }
+    try { s = await writeAction("submit", { instance_id: iid, confirm_token: r.confirm_token }); }
     catch (e) { return { success: false, sent: false, user_message: "" }; }
     return (s && typeof s === "object") ? s : { success: false, sent: false, user_message: "" };
   }
@@ -7424,7 +7734,7 @@ window.teckelShell = (function () {
     // The server's stamp of the item AS SHOWN goes back with the decision — by voice and by click alike — so an item that
     //   changed since it was shown is refused (ITEM_CHANGED) and shown again. Only when the server gave one.
     if (w && w.shown) { args.via = voice ? "voice" : "click"; args.shown = { fp: w.shown.fp, at: w.shown.at }; }
-    const r = await P.action("review_resolve", args);
+    const r = await P.write("review_resolve", args);
     if (lapsed(r)) return;
     // For the walk's next step: the server's own line and its lists, rebuilt — only while the walk runs on THIS item
     const after = (rwOn() && current === s) ? { prefix: rwSayOf(r), outcome: rwOutcome(r, decision) } : null;
@@ -8638,7 +8948,7 @@ window.teckelShell = (function () {
           const args = { instance_id: ctx.iid };
           if (shown(h.question_number)) args.question_number = String(h.question_number).trim();
           else args.question = String(h.question_text);
-          const u = await P.action("base_question_unhide", args);
+          const u = await P.write("base_question_unhide", args);
           if (lapsed(u)) return;
           if (u && u.success === true) { txt(note, msgOf(u, "It is back on the form.")); again(); return; }
           cb.checked = false; cb.disabled = false;
@@ -8768,7 +9078,7 @@ window.teckelShell = (function () {
       const col = cols.find(function (x) { return String(x.key) === fSel.value; });
       if (!col) return;
       b.disabled = true; txt(note, "Saving…");
-      const u = await P.action("log_entry_edit", { instance_id: ctx.iid, row_id: String(e.row_id),
+      const u = await P.write("log_entry_edit", { instance_id: ctx.iid, row_id: String(e.row_id),
                                                    field: String(col.key), value: String(vIn.value || "").trim() });
       b.disabled = false;
       if (lapsed(u)) return;
@@ -8810,7 +9120,7 @@ window.teckelShell = (function () {
         const v = (mIn.value || "").trim();
         if (!v) { txt(note, "Type the machine's name or serial number first."); mIn.focus(); return; }
         b.disabled = true; txt(note, "Starting…");
-        const u = await P.action("machine_select", { storage_key: key, machine: v });
+        const u = await P.write("machine_select", { storage_key: key, machine: v });
         b.disabled = false;
         if (lapsed(u)) return;
         if (!u || u.success !== true) { txt(note, msgOf(u, "That log could not be started just now.")); return; }
@@ -8936,7 +9246,7 @@ window.teckelShell = (function () {
     const args = { storage_key: key };
     if (o.confirmedNew) args.confirmed_new = true;
     txt(res, o.open === true ? "Opening…" : "Starting…");
-    const r = await P.action("new_copy", args);
+    const r = await P.write("new_copy", args);
     if (lapsed(r)) return;
     const name = shown(r && r.form_name) ? String(r.form_name) : (shown(formName) ? String(formName) : "the form");
     // A copy in progress: are there MORE unfinished copies of this form?
@@ -9146,7 +9456,7 @@ window.teckelShell = (function () {
           const v = (nIn.value || "").trim();
           if (!v) { txt(note, "Type the new name first."); nIn.focus(); return; }
           b.disabled = true; txt(note, "Saving…");
-          const u = await P.action("evidence_rename", { evidence_id: String(d.evidence_id), name: v });
+          const u = await P.write("evidence_rename", { evidence_id: String(d.evidence_id), name: v });
           b.disabled = false;
           if (lapsed(u)) return;
           if (u && u.success === true) { txt(note, msgOf(u, "Renamed.")); again(); return; }
@@ -9496,7 +9806,8 @@ window.teckelShell = (function () {
     if (!c) { syncBtn(); return; }
     // Opened by itself or by voice: in place (no focus, no scroll under the user).
     const show = function (fn) { if (here === true) inPlace(fn); else fn(); };
-    const mine = { iid: String(c.instance_id), name: shown(c.form_name) ? String(c.form_name) : "", kind: "" };
+    const mine = { iid: String(c.instance_id), name: shown(c.form_name) ? String(c.form_name) : "", kind: "",
+                   fields: [], logBoxes: null };
     cur = mine;
     show(function () {
       ed.body.textContent = ""; txt(ed.title, mine.name); txt(ed.msg, "Loading the questions…");
@@ -9601,6 +9912,7 @@ window.teckelShell = (function () {
   }
   function wireAnswer(mine, qn, ctl, st){
     const s = { saved: String(ctl.value || ""), busy: false, again: false };   /* what the server holds, as far as we know */
+    mine.fields.push({ ctl: ctl, s: s });                       /* so an unsaved-text check can read what is typed vs held */
     async function save(){
       if (cur !== mine || off) return;
       const v = String(ctl.value || "");
@@ -9609,7 +9921,7 @@ window.teckelShell = (function () {
       s.busy = true; s.again = false;
       say(st, "Saving…");
       let r;
-      try { r = await P.action("save_answer", { instance_id: mine.iid, question_number: qn, value: v }); }
+      try { r = await P.write("save_answer", { instance_id: mine.iid, question_number: qn, value: v }); }
       finally { s.busy = false; }
       if (cur !== mine) return;
       if (EDIT_OFF.indexOf(codeOf(r)) !== -1) { setOff(); return; }
@@ -9651,6 +9963,7 @@ window.teckelShell = (function () {
       cell.appendChild(b.ctl); if (b.hint) cell.appendChild(b.hint);
       boxes.push({ key: String(c.key), ctl: b.ctl, st: status(cell) });
     });
+    mine.logBoxes = boxes;                           /* a new entry's boxes: any non-blank one is unsaved typed text */
     ed.body.appendChild(list);
     const acts = el("div", "pp-actions");
     const saveBtn = el("button", "lv-btn primary", "Save entry"); saveBtn.type = "button"; saveBtn.id = "pp-ed-save";
@@ -9672,7 +9985,7 @@ window.teckelShell = (function () {
       if (saveBlank === true) args.save_blank = true;
       txt(res, "Saving…");
       let r;
-      try { r = await P.action("save_log_entry", args); }
+      try { r = await P.write("save_log_entry", args); }
       finally { busy = false; }
       if (cur !== mine) return;
       if (EDIT_OFF.indexOf(codeOf(r)) !== -1) { setOff(); return; }
@@ -9723,6 +10036,15 @@ window.teckelShell = (function () {
     if (cur !== mine || lapsed(r) || !r || r.success !== true || !r.url) return;
     if (typeof window.teckelPortalShow === "function") await window.teckelPortalShow("form", r.url, r.expires_at);
   }
+
+  /* ══ UNSAVED TYPED TEXT (page-state contract §3/§7) — a box not yet matching what the server holds. ══ */
+  function anyUnsaved(){
+    if (!cur) return false;
+    const dirty = (cur.fields || []).some(function (f) { return String(f.ctl.value || "").trim() !== f.s.saved.trim(); });
+    if (dirty) return true;
+    return !!(cur.logBoxes && cur.logBoxes.some(function (x) { return String(x.ctl.value || "").trim() !== ""; }));
+  }
+  if (typeof window.teckelRegisterUnsaved === "function") window.teckelRegisterUnsaved(anyUnsaved);
 
   /* ══ EVENTS ═════════════════════════════════════════════════════════════════════════════ */
   ed.btn.addEventListener("click", function () {
@@ -9986,6 +10308,10 @@ window.teckelShell = (function () {
     mine.known = {};                                      /* each answer as known here, for follow-up boxes */
     r.questions.forEach(function (q) { if (q && typeof q === "object" && shown(q.number)) mine.known[String(q.number)] = q.answer; });
     txt(w.msg, "");
+    // the page's own step counter starts from an attach, never from anything remembered across a refresh (page-state
+    // contract §1) — attach for THIS copy before the first position report goes out
+    if (typeof window.teckelWalkAttachNow === "function") { try { await window.teckelWalkAttachNow(mine.iid, "open"); } catch(e) {} }
+    if (walk !== mine) return;
     const first = seek(mine, 0, 1);
     if (!mine.list.length || first === -1) { actions(true); return; }
     showQ(first);
@@ -10053,6 +10379,7 @@ window.teckelShell = (function () {
     }
     send("field", { number: String(q.number), label: String(q.label || ""), field_type: String(q.field_type || q.kind || "text"),
                     options: Array.isArray(q.options) ? q.options.map(String) : [], lane: "qa" }, String(q.say || ""));
+    if (typeof window.teckelWalkPosition === "function") window.teckelWalkPosition(q.number, false);
   }
   function press(id){ pressing = id; }
   function leftBox(mine, q, ctl, seq, e){
@@ -10113,7 +10440,7 @@ window.teckelShell = (function () {
     if (override !== true) mine.tried = v;                  /* a refused value is not re-sent when the box is left */
     txt($("pp-walk-saved"), "Saving…");
     let r;
-    try { r = await P.action("save_answer", args); }
+    try { r = await P.write("save_answer", args); }
     finally { mine.busy = false; }
     if (walk !== mine || current() !== q) return;
     if (WALK_OFF.indexOf(codeOf(r)) !== -1) { setOff(); return; }
@@ -10425,6 +10752,17 @@ window.teckelShell = (function () {
     }
     w.btn.setAttribute("aria-expanded", "false");
   }
+
+  /* ══ UNSAVED TYPED TEXT (page-state contract §3/§7) — the box on screen, typed but not yet the saved value. ══ */
+  function anyUnsaved(){
+    if (!walk || walk.mode !== "q") return false;
+    const q = current(); const ctl = $("pp-walk-box");
+    if (!q || !ctl) return false;
+    const v = String(ctl.value || "").trim();
+    if (!v) return false;
+    return v !== String(shown(q.saved) ? q.saved : "").trim();
+  }
+  if (typeof window.teckelRegisterUnsaved === "function") window.teckelRegisterUnsaved(anyUnsaved);
 
   /* ══ EVENTS ═════════════════════════════════════════════════════════════════════════════════════════════════════════ */
   w.btn.addEventListener("click", function () { if (walk) endWalk("user", true); else openWalk(); });
@@ -11205,7 +11543,7 @@ window.teckelShell = (function () {
     row.busy = true;
     say(row.st, "Saving…", null);
     let r;
-    try { r = await P.action("save_answer", { instance_id: me.iid, question_number: row.num, value: v, override: true }); }
+    try { r = await P.write("save_answer", { instance_id: me.iid, question_number: row.num, value: v, override: true }); }
     finally { row.busy = false; }
     if (lf !== me || lapsed(r) || goneIf(me, r)) return;
     if (r && r.success === true) {
@@ -11563,7 +11901,7 @@ window.teckelShell = (function () {
     if (astyped) args.override = true;
     let r;
     // a consent form saves through its own door (the format floors, the policy locks, the three lists)
-    try { r = me.kind === "consent" ? consentReply(await P.action("save_consent_answer", args), row.num) : await P.action("save_answer", args); }
+    try { r = me.kind === "consent" ? consentReply(await P.write("save_consent_answer", args), row.num) : await P.write("save_answer", args); }
     finally { row.busy = false; }
     if (lf !== me) return;
     if (TYPING_OFF.indexOf(codeOf(r)) !== -1) { liveOff = true; offKey = me.key; closeLive("off"); note(SAYS_SOON); return; }
@@ -11843,7 +12181,7 @@ window.teckelShell = (function () {
     ch.forEach(function (x) { say(x.st, ""); });
     const values = {};
     ch.forEach(function (x) { values[x.key] = String(x.ctl.value || "").trim(); });
-    const r = await P.action("save_machine_details", { instance_id: me.iid, values: values });
+    const r = await P.write("save_machine_details", { instance_id: me.iid, values: values });
     if (lf !== me) return false;
     if (lapsed(r) || goneIf(me, r)) return false;
     if (r && r.success === true) {
@@ -12019,7 +12357,7 @@ window.teckelShell = (function () {
     let r;
     try {
       if (!(await saveOnce(me, en.res))) return;
-      r = await P.action("save_log_entry", args);
+      r = await P.write("save_log_entry", args);
     }
     finally { en.busy = false; }
     if (lf !== me) return;
@@ -12372,7 +12710,7 @@ window.teckelShell = (function () {
   async function readDraft(me){
     if (lf !== me || !me.cv) return null;
     if (me.kind === "grid") return rereadGrid(me);
-    let r = await P.action("entry_draft", { instance_id: me.iid, conversation: me.cv });
+    let r = await P.write("entry_draft", { instance_id: me.iid, conversation: me.cv });
     if (lf !== me || lapsed(r) || goneIf(me, r) || convRefused(me, r)) return null;
     if (!r || r.success !== true) {                          /* not served for this lane: form_fields carries the same parts */
       r = await P.action("form_fields", { instance_id: me.iid, conversation: me.cv });
@@ -12464,7 +12802,7 @@ window.teckelShell = (function () {
     const C = CV(), now = C.now();
     me.following = true;
     let r = null;
-    try { r = await P.action("entry_draft", { instance_id: me.iid, conversation: now }); } catch(e) { r = null; }
+    try { r = await P.write("entry_draft", { instance_id: me.iid, conversation: now }); } catch(e) { r = null; }
     me.following = false;
     if (lf !== me || lapsed(r) || goneIf(me, r) || !r || r.success !== true || !boundElsewhere(me) || C.now() !== now) return null;
     const dv = (r.draft_values && typeof r.draft_values === "object" && !Array.isArray(r.draft_values)) ? r.draft_values : {};
@@ -12565,7 +12903,7 @@ window.teckelShell = (function () {
     args[isLog ? "values" : "answers"] = vals;
     rows.forEach(function (x) { x.busy = true; say(x.st, "Saving…", null); });
     let r;
-    try { r = await (isLog ? P.action("save_log_draft", args) : P.action("save_survey_answers", args)); }
+    try { r = await (isLog ? P.write("save_log_draft", args) : P.write("save_survey_answers", args)); }
     finally { rows.forEach(function (x) { x.busy = false; }); }
     if (lf !== me || lapsed(r) || goneIf(me, r)) return false;
     if (convRefused(me, r)) { rows.forEach(function (x) { say(x.st, "", null); }); return false; }
@@ -12598,7 +12936,7 @@ window.teckelShell = (function () {
     row.busy = true;
     say(row.st, "Saving…", null);
     let r;
-    try { r = await (isLog ? P.action("save_log_draft", args) : P.action("save_survey_answers", args)); }
+    try { r = await (isLog ? P.write("save_log_draft", args) : P.write("save_survey_answers", args)); }
     finally { row.busy = false; }
     if (lf !== me || lapsed(r) || goneIf(me, r)) return;
     if (convRefused(me, r)) { say(row.st, "", null); return; }   /* the box keeps it: Save entry saves the whole entry */
@@ -12636,13 +12974,13 @@ window.teckelShell = (function () {
       if (me.cv) {
         const args = { instance_id: me.iid, conversation: me.cv };
         if (blank === true) args.save_blank = true;
-        r = await P.action("commit_entry", args);
+        r = await P.write("commit_entry", args);
       } else {
         const values = {};
         me.rows.forEach(function (x) { if (x.ctl && !x.personal) values[x.num] = String(x.ctl.value || ""); });
         const args = { instance_id: me.iid, values: values };
         if (blank === true) args.save_blank = true;
-        r = isLog ? await P.action("save_log_entry", args) : await P.action("commit_entry", args);
+        r = isLog ? await P.write("save_log_entry", args) : await P.write("commit_entry", args);
       }
     } finally { me.committing = false; }
     if (lf !== me) return false;
@@ -12853,11 +13191,11 @@ window.teckelShell = (function () {
     const args = { instance_id: me.iid, cells: cells };
     if (me.cv) args.conversation = me.cv;
     let r;
-    try { r = await P.action("save_grid_cells", args); } catch(e) { r = null; }
+    try { r = await P.write("save_grid_cells", args); } catch(e) { r = null; }
     if (lf !== me) return null;
     if (args.conversation && convRefused(me, r)) {           /* rows are the record: once more, without a conversation */
       if (Object.keys(cells).some(function (k) { return k.indexOf("date|") === 0; })) return null;
-      try { r = await P.action("save_grid_cells", { instance_id: me.iid, cells: cells }); } catch(e) { r = null; }
+      try { r = await P.write("save_grid_cells", { instance_id: me.iid, cells: cells }); } catch(e) { r = null; }
       if (lf !== me) return null;
     }
     return r;
