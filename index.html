@@ -3,12 +3,15 @@
   index.html — THE PRACTICE PORTAL (V2): A THIN SHELL. A GENERATED FILE, built by teckel__build_localportal_v2_0.py
   from localportal_blocks/v2/lv2_shell.html. ⚠ DO NOT HAND-EDIT: change the block and rebuild (--write); --check fails
   when this file is stale.
+  DO NOT DEPLOY — HELD (24 Oct 2026): a held build, for the TEST sites only (teckel__tenant_page_publish_one_v1_0.py
+  allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
+  any file carrying it.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://benedict.teckel.io/practice_portal_core/stable/portal.aec474a0be7b.js
-  (channel "stable"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
+      https://benedict.teckel.io/practice_portal_core/canary/portal.a0c1e8a90fe7.js
+  (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
 
@@ -38,17 +41,36 @@
 <p id="teckel-core-fail" role="alert" hidden style="margin:24px;font:16px/1.5 system-ui,sans-serif">Benedict couldn't load. Reload the page, or visit teckel.io/support.</p>
 <script>
 window.teckelShell = (function () {
-  var done = false, t = setTimeout(function () { fail("no ready signal in 10 s"); }, 10000);
+  // written(): the core's markup reached the parser, nothing more. ready() keeps the watchdog's old meaning and is
+  // now called by the PAGE itself, last, once its own init has run — a throw in the page's own init used to leave
+  // no line on screen, because ready() fired before any page script had run at all.
+  var done = false, errShortened = false, t = setTimeout(function () { fail("no ready signal in 10 s"); }, 10000);
   function box() { return document.getElementById("teckel-core-fail"); }
   function fail(why) {
     if (done) return;
     var b = box(); if (b) b.hidden = false;
     try { console.warn("[teckel] the portal core did not load: " + why); } catch (e) {}
   }
-  return { channel: "stable", agent: "agent_0501kvv0504efvtvmb85kjqm9w2j", fail: fail,
+  function onUncaught(reason) {
+    if (done) {
+      try { console.warn("[teckel] an uncaught error after the page came up: " + reason); } catch (e) {}
+      return;
+    }
+    try { console.warn("[teckel] an uncaught error before the page was ready: " + reason); } catch (e) {}
+    if (errShortened) return;            // taken once — a second error before ready() never extends the deadline
+    errShortened = true;
+    clearTimeout(t);
+    t = setTimeout(function () { fail("an uncaught error: " + reason); }, 1500);
+  }
+  window.addEventListener("error", function (e) { onUncaught(e && e.message ? e.message : "error"); });
+  window.addEventListener("unhandledrejection", function (e) {
+    onUncaught(e && e.reason ? String(e.reason) : "unhandled rejection");
+  });
+  return { channel: "canary", agent: "agent_0501kvv0504efvtvmb85kjqm9w2j", fail: fail,
+           written: function () {},
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="aec474a0be7b" src="https://benedict.teckel.io/practice_portal_core/stable/portal.aec474a0be7b.js" data-teckel-page="692d15a8098b" onerror="window.teckelShell.fail('the file did not load')"></script>
+<script data-teckel-core="a0c1e8a90fe7" src="https://benedict.teckel.io/practice_portal_core/canary/portal.a0c1e8a90fe7.js" data-teckel-page="a5312df3bb28" integrity="sha384-3g/9a9/QvKOk4MASKpBUiXnFYLOTVkF96HLEpFrbR4XJ+z1Oq7gXlojAqmg3hwwN" crossorigin="anonymous" onerror="window.teckelShell.fail('the file did not load')"></script>
 </body>
 </html>
