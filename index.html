@@ -3,15 +3,12 @@
   index.html — THE PRACTICE PORTAL (V2): A THIN SHELL. A GENERATED FILE, built by teckel__build_localportal_v2_0.py
   from localportal_blocks/v2/lv2_shell.html. ⚠ DO NOT HAND-EDIT: change the block and rebuild (--write); --check fails
   when this file is stale.
-  DO NOT DEPLOY — HELD (24 Oct 2026): a held build, for the TEST sites only (teckel__tenant_page_publish_one_v1_0.py
-  allows a held page there). Rebuild with --release to drop this line; teckel__template_page_put_v1_0.py refuses
-  any file carrying it.
 
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://benedict.teckel.io/practice_portal_core/canary/portal.a0c1e8a90fe7.js
-  (channel "canary"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
+      https://benedict.teckel.io/practice_portal_core/stable/portal.a0c1e8a90fe7.js
+  (channel "stable"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
 
@@ -66,11 +63,11 @@ window.teckelShell = (function () {
   window.addEventListener("unhandledrejection", function (e) {
     onUncaught(e && e.reason ? String(e.reason) : "unhandled rejection");
   });
-  return { channel: "canary", agent: "agent_0501kvv0504efvtvmb85kjqm9w2j", fail: fail,
+  return { channel: "stable", agent: "agent_0501kvv0504efvtvmb85kjqm9w2j", fail: fail,
            written: function () {},
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="a0c1e8a90fe7" src="https://benedict.teckel.io/practice_portal_core/canary/portal.a0c1e8a90fe7.js" data-teckel-page="a5312df3bb28" integrity="sha384-3g/9a9/QvKOk4MASKpBUiXnFYLOTVkF96HLEpFrbR4XJ+z1Oq7gXlojAqmg3hwwN" crossorigin="anonymous" onerror="window.teckelShell.fail('the file did not load')"></script>
+<script data-teckel-core="a0c1e8a90fe7" src="https://benedict.teckel.io/practice_portal_core/stable/portal.a0c1e8a90fe7.js" data-teckel-page="1ee479fdf6c5" integrity="sha384-3g/9a9/QvKOk4MASKpBUiXnFYLOTVkF96HLEpFrbR4XJ+z1Oq7gXlojAqmg3hwwN" crossorigin="anonymous" onerror="window.teckelShell.fail('the file did not load')"></script>
 </body>
 </html>
