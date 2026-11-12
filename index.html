@@ -7,7 +7,7 @@
   This file carries only what is THIS practice's own: its name and its agent id (filled by provisioning and the publish
   tools exactly as before, in the same places), its favicon and its address (the repo path, which stays the practice's
   identity). The portal itself — its markup, style and scripts — is ONE CORE, shared by every practice on a channel:
-      https://benedict.teckel.io/practice_portal_core/stable/portal.a0c1e8a90fe7.js
+      https://benedict.teckel.io/practice_portal_core/stable/portal.c4882b67457e.js
   (channel "stable"; a core's file name carries the first 12 hex of its own sha256, so a published core never changes
   under a page that names it). If the core does not load — an error, or no ready signal within 10 seconds — this page
   says so in plain words (a core that arrives late still draws the page, and takes the line away).
@@ -68,6 +68,6 @@ window.teckelShell = (function () {
            ready: function () { done = true; clearTimeout(t); var b = box(); if (b) b.hidden = true; } };
 })();
 </script>
-<script data-teckel-core="a0c1e8a90fe7" src="https://benedict.teckel.io/practice_portal_core/stable/portal.a0c1e8a90fe7.js" data-teckel-page="1ee479fdf6c5" integrity="sha384-3g/9a9/QvKOk4MASKpBUiXnFYLOTVkF96HLEpFrbR4XJ+z1Oq7gXlojAqmg3hwwN" crossorigin="anonymous" onerror="window.teckelShell.fail('the file did not load')"></script>
+<script data-teckel-core="c4882b67457e" src="https://benedict.teckel.io/practice_portal_core/stable/portal.c4882b67457e.js" data-teckel-page="03fb432c06c2" integrity="sha384-NKM8qs+oGT99s+eG+j8f3N9NrzVhSEW9xx6GAvLU6DPv556zVjR4wOCgQKFvirLx" crossorigin="anonymous" onerror="window.teckelShell.fail('the file did not load')"></script>
 </body>
 </html>
